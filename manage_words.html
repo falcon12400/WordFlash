@@ -75,6 +75,11 @@
       font-family: inherit;
       background: #fff9ec;
     }
+    input,
+    textarea {
+      user-select: text;
+      -webkit-user-select: text;
+    }
     textarea {
       resize: vertical;
       min-height: 140px;
@@ -108,19 +113,15 @@
   <main>
     <section class="panel">
       <div class="field">
-        <label for="unitSelect">單元</label>
+        <label for="unitSelect">字庫</label>
         <select id="unitSelect"></select>
       </div>
-      <div class="field">
-        <label for="newUnitName">新單元名稱</label>
-        <input id="newUnitName" type="text" placeholder="例如：第一單元" />
-      </div>
       <div class="actions">
-        <button id="addUnit" type="button">新增單元</button>
-        <button id="deleteUnit" type="button">刪除單元</button>
+        <button id="addUnit" type="button">新增字庫</button>
+        <button id="deleteUnit" type="button">刪除字庫</button>
       </div>
       <div class="field">
-        <label for="unitWords">單元字庫（每行一個字或詞）</label>
+        <label for="unitWords">字庫內容（每行一個字或詞）</label>
         <textarea id="unitWords" rows="8"></textarea>
       </div>
       <div class="actions">
@@ -148,7 +149,6 @@
 
     const STORAGE_KEY = "wordflash_units_v1";
     const unitSelect = document.getElementById("unitSelect");
-    const newUnitName = document.getElementById("newUnitName");
     const addUnitBtn = document.getElementById("addUnit");
     const deleteUnitBtn = document.getElementById("deleteUnit");
     const unitWords = document.getElementById("unitWords");
@@ -190,9 +190,9 @@
       let data = loadUnits();
       if (!data || !data.units || !Object.keys(data.units).length) {
         data = {
-          current: "第一單元",
+          current: "第一字庫",
           units: {
-            "第一單元": DEFAULT_WORDS
+            "第一字庫": DEFAULT_WORDS
           }
         };
         saveUnits(data);
@@ -209,29 +209,30 @@
       state.current = name;
       unitWords.value = state.units[name].join("\n");
       saveUnits(state);
-      status.textContent = "切換單元完成。";
+      status.textContent = "切換字庫完成。";
     });
 
     addUnitBtn.addEventListener("click", () => {
-      const name = newUnitName.value.trim();
-      if (!name) return;
-      if (state.units[name]) {
-        status.textContent = "此單元已存在。";
+      const name = window.prompt("請輸入字庫名稱");
+      if (name === null) return;
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      if (state.units[trimmed]) {
+        status.textContent = "此字庫已存在。";
         return;
       }
-      state.units[name] = [];
-      state.current = name;
+      state.units[trimmed] = [];
+      state.current = trimmed;
       saveUnits(state);
-      refreshUnitSelect(state.units, name);
+      refreshUnitSelect(state.units, trimmed);
       unitWords.value = "";
-      status.textContent = "已新增單元，請輸入字庫並儲存。";
-      newUnitName.value = "";
+      status.textContent = "已新增字庫，請輸入內容並儲存。";
     });
 
     deleteUnitBtn.addEventListener("click", () => {
       const name = unitSelect.value;
       if (Object.keys(state.units).length <= 1) {
-        status.textContent = "至少保留一個單元。";
+        status.textContent = "至少保留一個字庫。";
         return;
       }
       delete state.units[name];
@@ -239,7 +240,7 @@
       saveUnits(state);
       refreshUnitSelect(state.units, state.current);
       unitWords.value = state.units[state.current].join("\n");
-      status.textContent = "已刪除單元。";
+      status.textContent = "已刪除字庫。";
     });
 
     saveUnitBtn.addEventListener("click", () => {

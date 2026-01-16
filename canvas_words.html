@@ -85,7 +85,7 @@
     <div class="title">WordFlash</div>
     <div class="menu">
       <label>
-        單元
+        字庫
         <select id="unitSelect"></select>
       </label>
       <label>
@@ -273,9 +273,9 @@
       let data = loadUnits();
       if (!data || !data.units || !Object.keys(data.units).length) {
         data = {
-          current: "第一單元",
+          current: "第一字庫",
           units: {
-            "第一單元": DEFAULT_WORDS
+            "第一字庫": DEFAULT_WORDS
           }
         };
         saveUnits(data);
