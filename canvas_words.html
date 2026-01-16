@@ -181,8 +181,8 @@
     const startRepeat = () => {
       if (repeatTimer || repeatInterval) return;
       repeatTimer = window.setTimeout(() => {
-        repeatInterval = window.setInterval(showNext, 350);
-      }, 450);
+        repeatInterval = window.setInterval(showNext, 10);
+      }, 300);
     };
 
     const stopRepeat = () => {
