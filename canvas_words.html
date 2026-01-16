@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <title>中文練習 - 大字顯示</title>
+  <style>
+    :root {
+      color-scheme: light;
+    }
+    html, body {
+      margin: 0;
+      height: 100%;
+    }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #f7f4e8 0%, #efe6d5 45%, #e8dcc8 100%);
+      font-family: "Noto Serif TC", "PingFang TC", "Heiti TC", serif;
+      color: #2b2b2b;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-bottom: 2px solid #2b2b2b;
+      background: rgba(255, 249, 236, 0.92);
+      backdrop-filter: blur(6px);
+    }
+    header .title {
+      font-size: 20px;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+    header .menu {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+    }
+    header select,
+    header a {
+      border: 2px solid #2b2b2b;
+      border-radius: 6px;
+      padding: 6px 10px;
+      background: #fff9ec;
+      font-family: inherit;
+      font-size: 14px;
+      color: inherit;
+      text-decoration: none;
+    }
+    main {
+      display: grid;
+      place-items: center;
+      padding: 28px 0 40px;
+    }
+    canvas {
+      width: min(92vw, 1000px);
+      height: min(70vh, 700px);
+      border: 6px solid #2b2b2b;
+      background: #fff9ec;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+    .hint {
+      margin-top: 18px;
+      font-size: 16px;
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+    @media (max-width: 720px) {
+      header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      canvas {
+        height: min(58vh, 520px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">WordFlash</div>
+    <div class="menu">
+      <label>
+        單元
+        <select id="unitSelect"></select>
+      </label>
+      <label>
+        字型
+        <select id="fontSelect"></select>
+      </label>
+      <a href="manage_words.html">字庫管理</a>
+    </div>
+  </header>
+  <main>
+    <div>
+      <canvas id="stage" width="1000" height="700" aria-label="中文練習畫布"></canvas>
+      <div class="hint" id="status">載入中...</div>
+    </div>
+  </main>
+
+  <script>
+    const DEFAULT_WORDS = [
+      "郭",
+      "柚",
+      "讓",
+      "推",
+      "拉",
+      "茶",
+      "走",
+      "招",
+      "地",
+      "朵",
+      "笑",
+      "臉"
+    ];
+
+    const canvas = document.getElementById("stage");
+    const ctx = canvas.getContext("2d");
+    const status = document.getElementById("status");
+    const unitSelect = document.getElementById("unitSelect");
+    const fontSelect = document.getElementById("fontSelect");
+    let index = 0;
+    let order = [];
+    let currentText = "";
+    const STORAGE_KEY = "wordflash_units_v1";
+    const FONT_KEY = "wordflash_font_family";
+    const DEFAULT_FONT = "'Noto Serif TC', 'PingFang TC', 'Heiti TC', serif";
+    let fontFamily = localStorage.getItem(FONT_KEY) || DEFAULT_FONT;
+
+    const shuffle = (arr) => {
+      for (let i = arr.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    };
+
+    const fitFontSize = (text) => {
+      const maxWidth = canvas.width * 0.8;
+      const maxHeight = canvas.height * 0.7;
+      let size = 420;
+      while (size > 120) {
+        ctx.font = `bold ${size}px ${fontFamily}`;
+        const metrics = ctx.measureText(text);
+        const textHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+        if (metrics.width <= maxWidth && textHeight <= maxHeight) {
+          break;
+        }
+        size -= 10;
+      }
+      return size;
+    };
+
+    const drawWord = (text) => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#2b2b2b";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const size = fitFontSize(text);
+      ctx.font = `bold ${size}px ${fontFamily}`;
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 10);
+    };
+
+    const showNext = () => {
+      if (!order.length) return;
+      if (index >= order.length) {
+        shuffle(order);
+        index = 0;
+      }
+      currentText = order[index];
+      drawWord(currentText);
+      index += 1;
+    };
+
+    let repeatTimer = null;
+    let repeatInterval = null;
+
+    const startRepeat = () => {
+      if (repeatTimer || repeatInterval) return;
+      repeatTimer = window.setTimeout(() => {
+        repeatInterval = window.setInterval(showNext, 350);
+      }, 450);
+    };
+
+    const stopRepeat = () => {
+      if (repeatTimer) {
+        window.clearTimeout(repeatTimer);
+        repeatTimer = null;
+      }
+      if (repeatInterval) {
+        window.clearInterval(repeatInterval);
+        repeatInterval = null;
+      }
+    };
+
+    canvas.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      showNext();
+      startRepeat();
+    });
+
+    canvas.addEventListener("pointerup", stopRepeat);
+    canvas.addEventListener("pointerleave", stopRepeat);
+    canvas.addEventListener("pointercancel", stopRepeat);
+
+    document.addEventListener("keydown", (event) => {
+      if (event.code !== "Space") return;
+      event.preventDefault();
+      showNext();
+    });
+
+    const loadUnits = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+      return null;
+    };
+
+    const saveUnits = (data) => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    };
+
+    const startWithWords = (words) => {
+      order = [...words];
+      shuffle(order);
+      index = 0;
+      showNext();
+      status.textContent = "按空白鍵或點擊換字，長按連續換字";
+    };
+
+    const refreshUnitSelect = (units, current) => {
+      unitSelect.innerHTML = "";
+      Object.keys(units).forEach((name) => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        unitSelect.appendChild(option);
+      });
+      unitSelect.value = current;
+    };
+
+    const fontOptions = [
+      { label: "微軟正黑體（Microsoft JhengHei）", value: "'Microsoft JhengHei', 'PingFang TC', sans-serif" },
+      { label: "新細明體（PMingLiU）", value: "'PMingLiU', 'MingLiU', serif" },
+      { label: "標楷體", value: "'標楷體-繁', 'BiauKaiTC-Regular', 'BiauKai', 'DFKai-SB', 'KaiU', serif" },
+      { label: "仿宋（FangSong）", value: "'FangSong', 'STFangsong', serif" },
+      { label: "黑體（Heiti TC）", value: "'Heiti TC', 'PingFang TC', sans-serif" },
+      { label: "Times New Roman", value: "'Times New Roman', Times, serif" },
+      { label: "Georgia", value: "Georgia, serif" },
+      { label: "Arial", value: "Arial, Helvetica, sans-serif" },
+      { label: "Helvetica", value: "Helvetica, Arial, sans-serif" },
+      { label: "Verdana", value: "Verdana, Geneva, sans-serif" }
+    ];
+
+    const initFonts = () => {
+      fontSelect.innerHTML = "";
+      fontOptions.forEach((font) => {
+        const option = document.createElement("option");
+        option.value = font.value;
+        option.textContent = font.label;
+        fontSelect.appendChild(option);
+      });
+      fontSelect.value = fontFamily;
+    };
+
+    const initUnits = () => {
+      let data = loadUnits();
+      if (!data || !data.units || !Object.keys(data.units).length) {
+        data = {
+          current: "第一單元",
+          units: {
+            "第一單元": DEFAULT_WORDS
+          }
+        };
+        saveUnits(data);
+      }
+      refreshUnitSelect(data.units, data.current);
+      startWithWords(data.units[data.current]);
+      return data;
+    };
+
+    let state = initUnits();
+    initFonts();
+    status.textContent = "按空白鍵或點擊換字，長按連續換字";
+
+    unitSelect.addEventListener("change", () => {
+      const name = unitSelect.value;
+      state.current = name;
+      saveUnits(state);
+      startWithWords(state.units[name]);
+    });
+
+    fontSelect.addEventListener("change", () => {
+      fontFamily = fontSelect.value;
+      localStorage.setItem(FONT_KEY, fontFamily);
+      if (currentText) drawWord(currentText);
+    });
+
+    window.addEventListener("storage", (event) => {
+      if (event.key !== FONT_KEY) return;
+      fontFamily = localStorage.getItem(FONT_KEY) || DEFAULT_FONT;
+      if (currentText) drawWord(currentText);
+    });
+  </script>
+</body>
+</html>

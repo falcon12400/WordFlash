@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <title>WordFlash - 字庫管理</title>
+  <style>
+    :root {
+      color-scheme: light;
+    }
+    html, body {
+      margin: 0;
+      height: 100%;
+    }
+    body {
+      background: radial-gradient(circle at top, #f7f4e8 0%, #efe6d5 45%, #e8dcc8 100%);
+      font-family: "Noto Serif TC", "PingFang TC", "Heiti TC", serif;
+      color: #2b2b2b;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-bottom: 2px solid #2b2b2b;
+      background: rgba(255, 249, 236, 0.92);
+      backdrop-filter: blur(6px);
+    }
+    header .title {
+      font-size: 20px;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+    header a {
+      border: 2px solid #2b2b2b;
+      border-radius: 6px;
+      padding: 6px 10px;
+      background: #fff9ec;
+      font-family: inherit;
+      font-size: 14px;
+      color: inherit;
+      text-decoration: none;
+    }
+    main {
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .panel {
+      width: min(92vw, 820px);
+      background: rgba(255, 249, 236, 0.92);
+      border: 2px solid #2b2b2b;
+      border-radius: 10px;
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+    }
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+    .field label {
+      font-size: 14px;
+    }
+    select,
+    input,
+    textarea,
+    button {
+      padding: 8px 10px;
+      border: 2px solid #2b2b2b;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fff9ec;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 140px;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .hint {
+      font-size: 14px;
+      letter-spacing: 0.06em;
+    }
+    @media (max-width: 720px) {
+      header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .actions {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">WordFlash</div>
+    <a href="canvas_words.html">回到顯示頁</a>
+  </header>
+  <main>
+    <section class="panel">
+      <div class="field">
+        <label for="unitSelect">單元</label>
+        <select id="unitSelect"></select>
+      </div>
+      <div class="field">
+        <label for="newUnitName">新單元名稱</label>
+        <input id="newUnitName" type="text" placeholder="例如：第一單元" />
+      </div>
+      <div class="actions">
+        <button id="addUnit" type="button">新增單元</button>
+        <button id="deleteUnit" type="button">刪除單元</button>
+      </div>
+      <div class="field">
+        <label for="unitWords">單元字庫（每行一個字或詞）</label>
+        <textarea id="unitWords" rows="8"></textarea>
+      </div>
+      <div class="actions">
+        <button id="saveUnit" type="button">儲存字庫</button>
+      </div>
+      <div class="hint" id="status">編輯後請按「儲存字庫」。</div>
+    </section>
+  </main>
+
+  <script>
+    const DEFAULT_WORDS = [
+      "郭",
+      "柚",
+      "讓",
+      "推",
+      "拉",
+      "茶",
+      "走",
+      "招",
+      "地",
+      "朵",
+      "笑",
+      "臉"
+    ];
+
+    const STORAGE_KEY = "wordflash_units_v1";
+    const unitSelect = document.getElementById("unitSelect");
+    const newUnitName = document.getElementById("newUnitName");
+    const addUnitBtn = document.getElementById("addUnit");
+    const deleteUnitBtn = document.getElementById("deleteUnit");
+    const unitWords = document.getElementById("unitWords");
+    const saveUnitBtn = document.getElementById("saveUnit");
+    const status = document.getElementById("status");
+
+    const loadUnits = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+      return null;
+    };
+
+    const saveUnits = (data) => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    };
+
+    const normalizeWords = (text) => text
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+
+    const refreshUnitSelect = (units, current) => {
+      unitSelect.innerHTML = "";
+      Object.keys(units).forEach((name) => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        unitSelect.appendChild(option);
+      });
+      unitSelect.value = current;
+    };
+
+    const initUnits = () => {
+      let data = loadUnits();
+      if (!data || !data.units || !Object.keys(data.units).length) {
+        data = {
+          current: "第一單元",
+          units: {
+            "第一單元": DEFAULT_WORDS
+          }
+        };
+        saveUnits(data);
+      }
+      refreshUnitSelect(data.units, data.current);
+      unitWords.value = data.units[data.current].join("\n");
+      return data;
+    };
+
+    let state = initUnits();
+
+    unitSelect.addEventListener("change", () => {
+      const name = unitSelect.value;
+      state.current = name;
+      unitWords.value = state.units[name].join("\n");
+      saveUnits(state);
+      status.textContent = "切換單元完成。";
+    });
+
+    addUnitBtn.addEventListener("click", () => {
+      const name = newUnitName.value.trim();
+      if (!name) return;
+      if (state.units[name]) {
+        status.textContent = "此單元已存在。";
+        return;
+      }
+      state.units[name] = [];
+      state.current = name;
+      saveUnits(state);
+      refreshUnitSelect(state.units, name);
+      unitWords.value = "";
+      status.textContent = "已新增單元，請輸入字庫並儲存。";
+      newUnitName.value = "";
+    });
+
+    deleteUnitBtn.addEventListener("click", () => {
+      const name = unitSelect.value;
+      if (Object.keys(state.units).length <= 1) {
+        status.textContent = "至少保留一個單元。";
+        return;
+      }
+      delete state.units[name];
+      state.current = Object.keys(state.units)[0];
+      saveUnits(state);
+      refreshUnitSelect(state.units, state.current);
+      unitWords.value = state.units[state.current].join("\n");
+      status.textContent = "已刪除單元。";
+    });
+
+    saveUnitBtn.addEventListener("click", () => {
+      const name = unitSelect.value;
+      const words = normalizeWords(unitWords.value);
+      if (!words.length) {
+        status.textContent = "字庫是空的，請至少輸入一個字。";
+        return;
+      }
+      state.units[name] = words;
+      saveUnits(state);
+      status.textContent = "已儲存字庫。";
+    });
+  </script>
+</body>
+</html>
