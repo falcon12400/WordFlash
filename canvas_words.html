@@ -124,7 +124,8 @@
     const unitSelect = document.getElementById("unitSelect");
     const fontSelect = document.getElementById("fontSelect");
     let index = 0;
-    let order = [];
+    let wordList = [];
+    let remaining = [];
     let currentText = "";
     const STORAGE_KEY = "wordflash_units_v1";
     const FONT_KEY = "wordflash_font_family";
@@ -164,13 +165,17 @@
       ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 10);
     };
 
+    const refillRemaining = () => {
+      remaining = [...wordList];
+      shuffle(remaining);
+    };
+
     const showNext = () => {
-      if (!order.length) return;
-      if (index >= order.length) {
-        shuffle(order);
-        index = 0;
+      if (!wordList.length) return;
+      if (!remaining.length) {
+        refillRemaining();
       }
-      currentText = order[index];
+      currentText = remaining.pop();
       drawWord(currentText);
       index += 1;
     };
@@ -227,9 +232,9 @@
     };
 
     const startWithWords = (words) => {
-      order = [...words];
-      shuffle(order);
+      wordList = [...words];
       index = 0;
+      refillRemaining();
       showNext();
       status.textContent = "按空白鍵或點擊換字，長按連續換字";
     };
