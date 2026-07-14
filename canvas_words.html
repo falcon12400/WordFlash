@@ -159,6 +159,54 @@
     const STORAGE_KEY = "wordflash_units_v1";
     const FONT_KEY = "wordflash_font_family";
     const DEFAULT_FONT = "'Noto Serif TC', 'PingFang TC', 'Heiti TC', serif";
+    const ZHUYIN_FONT = "'Microsoft JhengHei', 'Noto Sans TC', 'PingFang TC', sans-serif";
+    const AUTO_ZHUYIN_MAP = {
+      "一": "ㄧ",
+      "二": "ㄦˋ",
+      "三": "ㄙㄢ",
+      "人": "ㄖㄣˊ",
+      "大": "ㄉㄚˋ",
+      "小": "ㄒㄧㄠˇ",
+      "上": "ㄕㄤˋ",
+      "下": "ㄒㄧㄚˋ",
+      "手": "ㄕㄡˇ",
+      "口": "ㄎㄡˇ",
+      "天": "ㄊㄧㄢ",
+      "地": "ㄉㄧˋ",
+      "中": "ㄓㄨㄥ",
+      "文": "ㄨㄣˊ",
+      "字": "ㄗˋ",
+      "學": "ㄒㄩㄝˊ",
+      "生": "ㄕㄥ",
+      "老": "ㄌㄠˇ",
+      "師": "ㄕ",
+      "我": "ㄨㄛˇ",
+      "你": "ㄋㄧˇ",
+      "他": "ㄊㄚ",
+      "她": "ㄊㄚ",
+      "它": "ㄊㄚ",
+      "們": "ㄇㄣ˙",
+      "的": "ㄉㄜ˙",
+      "是": "ㄕˋ",
+      "在": "ㄗㄞˋ",
+      "來": "ㄌㄞˊ",
+      "去": "ㄑㄩˋ",
+      "看": "ㄎㄢˋ",
+      "說": "ㄕㄨㄛ",
+      "讀": "ㄉㄨˊ",
+      "寫": "ㄒㄧㄝˇ",
+      "走": "ㄗㄡˇ",
+      "笑": "ㄒㄧㄠˋ",
+      "臉": "ㄌㄧㄢˇ",
+      "茶": "ㄔㄚˊ",
+      "推": "ㄊㄨㄟ",
+      "拉": "ㄌㄚ",
+      "招": "ㄓㄠ",
+      "朵": "ㄉㄨㄛˇ",
+      "讓": "ㄖㄤˋ",
+      "郭": "ㄍㄨㄛ",
+      "柚": "ㄧㄡˋ"
+    };
     let fontFamily = localStorage.getItem(FONT_KEY) || DEFAULT_FONT;
 
     const shuffle = (arr) => {
@@ -168,7 +216,36 @@
       }
     };
 
-    const fitFontSize = (text) => {
+    const getAutoZhuyin = (text) => {
+      if (!/[\u3400-\u9fff]/.test(text) || /[A-Za-z]/.test(text)) {
+        return "";
+      }
+      const syllables = [];
+      for (const char of [...text]) {
+        const zhuyin = AUTO_ZHUYIN_MAP[char];
+        if (!zhuyin) {
+          return "";
+        }
+        syllables.push(zhuyin);
+      }
+      return syllables.join(" ");
+    };
+
+    const parseEntry = (rawValue) => {
+      const raw = String(rawValue ?? "").trim();
+      if (!raw) {
+        return { text: "", zhuyin: "" };
+      }
+      const parts = raw.split("|");
+      const text = (parts.shift() || "").trim();
+      const manualZhuyin = parts.join("|").trim();
+      return {
+        text,
+        zhuyin: manualZhuyin || getAutoZhuyin(text)
+      };
+    };
+
+    const fitFontSize = (text, zhuyinText = "") => {
       const maxWidth = canvas.width * 0.8;
       const maxHeight = canvas.height * 0.7;
       let size = 420;
@@ -176,7 +253,13 @@
         ctx.font = `bold ${size}px ${fontFamily}`;
         const metrics = ctx.measureText(text);
         const textHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-        if (metrics.width <= maxWidth && textHeight <= maxHeight) {
+        let totalWidth = metrics.width;
+        if (zhuyinText) {
+          const zhuyinSize = Math.max(34, Math.round(size * 0.16));
+          ctx.font = `600 ${zhuyinSize}px ${ZHUYIN_FONT}`;
+          totalWidth += ctx.measureText(zhuyinText).width + Math.max(24, size * 0.08);
+        }
+        if (totalWidth <= maxWidth && textHeight <= maxHeight) {
           break;
         }
         size -= 10;
@@ -184,14 +267,32 @@
       return size;
     };
 
-    const drawWord = (text) => {
+    const drawWord = (text, zhuyinText = "") => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#2b2b2b";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const size = fitFontSize(text);
+      const size = fitFontSize(text, zhuyinText);
       ctx.font = `bold ${size}px ${fontFamily}`;
-      ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 10);
+      const textWidth = ctx.measureText(text).width;
+      const gap = zhuyinText ? Math.max(24, size * 0.08) : 0;
+      let zhuyinWidth = 0;
+      let zhuyinSize = 0;
+      if (zhuyinText) {
+        zhuyinSize = Math.max(34, Math.round(size * 0.16));
+        ctx.font = `600 ${zhuyinSize}px ${ZHUYIN_FONT}`;
+        zhuyinWidth = ctx.measureText(zhuyinText).width;
+      }
+      const totalWidth = textWidth + gap + zhuyinWidth;
+      const startX = (canvas.width - totalWidth) / 2;
+      const textCenterX = startX + textWidth / 2;
+      ctx.font = `bold ${size}px ${fontFamily}`;
+      ctx.fillText(text, textCenterX, canvas.height / 2 + 10);
+      if (zhuyinText) {
+        ctx.font = `600 ${zhuyinSize}px ${ZHUYIN_FONT}`;
+        const zhuyinCenterX = startX + textWidth + gap + zhuyinWidth / 2;
+        ctx.fillText(zhuyinText, zhuyinCenterX, canvas.height / 2 + 10);
+      }
     };
 
     const getSpeechConfig = (text) => {
@@ -214,13 +315,15 @@
 
     const speakCurrentWord = () => {
       if (!currentText) return;
+      const entry = parseEntry(currentText);
+      if (!entry.text) return;
       if (!("speechSynthesis" in window)) {
         status.textContent = "這個瀏覽器不支援語音朗讀。";
         return;
       }
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(currentText);
-      const speechConfig = getSpeechConfig(currentText);
+      const utterance = new SpeechSynthesisUtterance(entry.text);
+      const speechConfig = getSpeechConfig(entry.text);
       utterance.lang = speechConfig.lang;
       utterance.rate = speechConfig.rate;
       utterance.onend = () => {
@@ -229,7 +332,7 @@
       utterance.onerror = () => {
         status.textContent = "播放讀音失敗，請再試一次。";
       };
-      status.textContent = `正在播放：${currentText}`;
+      status.textContent = `正在播放：${entry.text}`;
       window.speechSynthesis.speak(utterance);
     };
 
@@ -244,7 +347,8 @@
         refillRemaining();
       }
       currentText = remaining.pop();
-      drawWord(currentText);
+      const entry = parseEntry(currentText);
+      drawWord(entry.text, entry.zhuyin);
       index += 1;
     };
 
@@ -340,7 +444,10 @@
     fontSelect.addEventListener("change", () => {
       fontFamily = fontSelect.value;
       localStorage.setItem(FONT_KEY, fontFamily);
-      if (currentText) drawWord(currentText);
+      if (currentText) {
+        const entry = parseEntry(currentText);
+        drawWord(entry.text, entry.zhuyin);
+      }
     });
 
     speakButton.addEventListener("click", speakCurrentWord);
@@ -349,7 +456,10 @@
     window.addEventListener("storage", (event) => {
       if (event.key !== FONT_KEY) return;
       fontFamily = localStorage.getItem(FONT_KEY) || DEFAULT_FONT;
-      if (currentText) drawWord(currentText);
+      if (currentText) {
+        const entry = parseEntry(currentText);
+        drawWord(entry.text, entry.zhuyin);
+      }
     });
   </script>
 </body>
