@@ -71,6 +71,23 @@
       letter-spacing: 0.08em;
       text-align: center;
     }
+    .controls {
+      margin-top: 18px;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+    .controls button {
+      border: 2px solid #2b2b2b;
+      border-radius: 8px;
+      padding: 10px 24px;
+      background: #fff9ec;
+      font-family: inherit;
+      font-size: 16px;
+      color: inherit;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+    }
     @media (max-width: 720px) {
       header {
         flex-direction: column;
@@ -105,6 +122,9 @@
   <main>
     <div>
       <canvas id="stage" width="1000" height="700" aria-label="中文練習畫布"></canvas>
+      <div class="controls">
+        <button id="nextButton" type="button">換字</button>
+      </div>
       <div class="hint" id="status">載入中...</div>
     </div>
   </main>
@@ -131,6 +151,7 @@
     const unitSelect = document.getElementById("unitSelect");
     const fontSelect = document.getElementById("fontSelect");
     const speakButton = document.getElementById("speakButton");
+    const nextButton = document.getElementById("nextButton");
     let index = 0;
     let wordList = [];
     let remaining = [];
@@ -184,7 +205,7 @@
       utterance.lang = "zh-TW";
       utterance.rate = 0.85;
       utterance.onend = () => {
-        status.textContent = "按空白鍵或點擊換字，長按連續換字";
+        status.textContent = "點畫布或按「播放讀音」朗讀，按下方「換字」切換下一個字";
       };
       utterance.onerror = () => {
         status.textContent = "播放讀音失敗，請再試一次。";
@@ -208,41 +229,9 @@
       index += 1;
     };
 
-    let repeatTimer = null;
-    let repeatInterval = null;
-
-    const startRepeat = () => {
-      if (repeatTimer || repeatInterval) return;
-      repeatTimer = window.setTimeout(() => {
-        repeatInterval = window.setInterval(showNext, 10);
-      }, 300);
-    };
-
-    const stopRepeat = () => {
-      if (repeatTimer) {
-        window.clearTimeout(repeatTimer);
-        repeatTimer = null;
-      }
-      if (repeatInterval) {
-        window.clearInterval(repeatInterval);
-        repeatInterval = null;
-      }
-    };
-
     canvas.addEventListener("pointerdown", (event) => {
       event.preventDefault();
-      showNext();
-      startRepeat();
-    });
-
-    canvas.addEventListener("pointerup", stopRepeat);
-    canvas.addEventListener("pointerleave", stopRepeat);
-    canvas.addEventListener("pointercancel", stopRepeat);
-
-    document.addEventListener("keydown", (event) => {
-      if (event.code !== "Space") return;
-      event.preventDefault();
-      showNext();
+      speakCurrentWord();
     });
 
     const loadUnits = () => {
@@ -264,7 +253,7 @@
       index = 0;
       refillRemaining();
       showNext();
-      status.textContent = "按空白鍵或點擊換字，長按連續換字";
+      status.textContent = "點畫布或按「播放讀音」朗讀，按下方「換字」切換下一個字";
     };
 
     const refreshUnitSelect = (units, current) => {
@@ -320,7 +309,7 @@
 
     let state = initUnits();
     initFonts();
-    status.textContent = "按空白鍵或點擊換字，長按連續換字";
+    status.textContent = "點畫布或按「播放讀音」朗讀，按下方「換字」切換下一個字";
 
     unitSelect.addEventListener("change", () => {
       const name = unitSelect.value;
@@ -336,6 +325,7 @@
     });
 
     speakButton.addEventListener("click", speakCurrentWord);
+    nextButton.addEventListener("click", showNext);
 
     window.addEventListener("storage", (event) => {
       if (event.key !== FONT_KEY) return;
