@@ -14,6 +14,10 @@ WordFlash 是一個輕量的字卡練習網頁，支援多單元字庫與字型�
   - 字庫管理頁
   - 用來編輯或整理字庫內容
 
+- `settings.html`
+  - 設定頁
+  - 可開啟或關閉字卡上的注音提示
+
 ## 線上網址
 
 - GitHub Pages：`https://falcon12400.github.io/WordFlash/`
@@ -28,4 +32,5 @@ WordFlash 是一個輕量的字卡練習網頁，支援多單元字庫與字型�
 
 - 如果要改畫面顯示或練習互動，先看 `canvas_words.html`
 - 如果要改字庫管理流程，先看 `manage_words.html`
+- 如果要改注音提示的顯示設定，先看 `settings.html` 與 `canvas_words.html`
 - 這個專案目前是純 HTML 檔案，不是 React / Vite 專案

@@ -116,6 +116,7 @@
         <select id="fontSelect"></select>
       </label>
       <button id="speakButton" type="button">播放讀音</button>
+      <a href="settings.html">設定</a>
       <a href="manage_words.html">字庫管理</a>
     </div>
   </header>
@@ -158,6 +159,7 @@
     let currentText = "";
     const STORAGE_KEY = "wordflash_units_v1";
     const FONT_KEY = "wordflash_font_family";
+    const ZHUYIN_ENABLED_KEY = "wordflash_zhuyin_enabled";
     const DEFAULT_FONT = "'Noto Serif TC', 'PingFang TC', 'Heiti TC', serif";
     const ZHUYIN_FONT = "'Microsoft JhengHei', 'Noto Sans TC', 'PingFang TC', sans-serif";
     const AUTO_ZHUYIN_MAP = {
@@ -208,6 +210,7 @@
       "柚": "ㄧㄡˋ"
     };
     let fontFamily = localStorage.getItem(FONT_KEY) || DEFAULT_FONT;
+    let zhuyinEnabled = localStorage.getItem(ZHUYIN_ENABLED_KEY) !== "false";
 
     const shuffle = (arr) => {
       for (let i = arr.length - 1; i > 0; i -= 1) {
@@ -295,6 +298,11 @@
       }
     };
 
+    const drawCurrentWord = () => {
+      const entry = parseEntry(currentText);
+      drawWord(entry.text, zhuyinEnabled ? entry.zhuyin : "");
+    };
+
     const getSpeechConfig = (text) => {
       const normalized = text.trim();
       const hasCjk = /[\u3400-\u9fff]/.test(normalized);
@@ -347,8 +355,7 @@
         refillRemaining();
       }
       currentText = remaining.pop();
-      const entry = parseEntry(currentText);
-      drawWord(entry.text, entry.zhuyin);
+      drawCurrentWord();
       index += 1;
     };
 
@@ -445,8 +452,7 @@
       fontFamily = fontSelect.value;
       localStorage.setItem(FONT_KEY, fontFamily);
       if (currentText) {
-        const entry = parseEntry(currentText);
-        drawWord(entry.text, entry.zhuyin);
+        drawCurrentWord();
       }
     });
 
@@ -454,11 +460,15 @@
     nextButton.addEventListener("click", showNext);
 
     window.addEventListener("storage", (event) => {
-      if (event.key !== FONT_KEY) return;
-      fontFamily = localStorage.getItem(FONT_KEY) || DEFAULT_FONT;
+      if (event.key === FONT_KEY) {
+        fontFamily = localStorage.getItem(FONT_KEY) || DEFAULT_FONT;
+      } else if (event.key === ZHUYIN_ENABLED_KEY) {
+        zhuyinEnabled = localStorage.getItem(ZHUYIN_ENABLED_KEY) !== "false";
+      } else {
+        return;
+      }
       if (currentText) {
-        const entry = parseEntry(currentText);
-        drawWord(entry.text, entry.zhuyin);
+        drawCurrentWord();
       }
     });
   </script>

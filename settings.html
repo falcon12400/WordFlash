@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WordFlash - 設定</title>
+  <style>
+    :root {
+      color-scheme: light;
+    }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+    }
+    body {
+      background: radial-gradient(circle at top, #f7f4e8 0%, #efe6d5 45%, #e8dcc8 100%);
+      font-family: "Noto Serif TC", "PingFang TC", "Heiti TC", serif;
+      color: #2b2b2b;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 24px;
+      border-bottom: 2px solid #2b2b2b;
+      background: rgba(255, 249, 236, 0.92);
+      backdrop-filter: blur(6px);
+    }
+    header .title {
+      font-size: 20px;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+    header a {
+      border: 2px solid #2b2b2b;
+      border-radius: 6px;
+      padding: 6px 10px;
+      background: #fff9ec;
+      font-family: inherit;
+      font-size: 14px;
+      color: inherit;
+      text-decoration: none;
+    }
+    main {
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .panel {
+      width: min(92vw, 620px);
+      background: rgba(255, 249, 236, 0.92);
+      border: 2px solid #2b2b2b;
+      border-radius: 10px;
+      padding: 22px;
+      display: grid;
+      gap: 16px;
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+    }
+    h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 16px;
+      border: 2px solid #2b2b2b;
+      border-radius: 8px;
+      background: #fff9ec;
+    }
+    .setting-label {
+      display: grid;
+      gap: 6px;
+    }
+    .setting-label strong {
+      font-size: 18px;
+    }
+    .hint, #status {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.6;
+      letter-spacing: 0.04em;
+    }
+    input[type="checkbox"] {
+      width: 24px;
+      height: 24px;
+      accent-color: #2b2b2b;
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+    @media (max-width: 520px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .setting-row {
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">WordFlash</div>
+    <a href="canvas_words.html">回到顯示頁</a>
+  </header>
+  <main>
+    <section class="panel" aria-labelledby="settingsTitle">
+      <h1 id="settingsTitle">設定</h1>
+      <label class="setting-row" for="zhuyinToggle">
+        <span class="setting-label">
+          <strong>顯示注音提示</strong>
+          <span>開啟後，字卡會顯示手動指定或可自動辨識的注音。</span>
+        </span>
+        <input id="zhuyinToggle" type="checkbox" />
+      </label>
+      <p id="status" aria-live="polite"></p>
+      <p class="hint">這項設定只會儲存在目前瀏覽器；不會修改字庫內容。</p>
+    </section>
+  </main>
+  <script>
+    const ZHUYIN_ENABLED_KEY = "wordflash_zhuyin_enabled";
+    const zhuyinToggle = document.getElementById("zhuyinToggle");
+    const status = document.getElementById("status");
+
+    const isZhuyinEnabled = () => localStorage.getItem(ZHUYIN_ENABLED_KEY) !== "false";
+
+    const render = () => {
+      const enabled = isZhuyinEnabled();
+      zhuyinToggle.checked = enabled;
+      status.textContent = enabled ? "注音提示目前已開啟。" : "注音提示目前已關閉。";
+    };
+
+    zhuyinToggle.addEventListener("change", () => {
+      localStorage.setItem(ZHUYIN_ENABLED_KEY, String(zhuyinToggle.checked));
+      render();
+    });
+
+    window.addEventListener("storage", (event) => {
+      if (event.key === ZHUYIN_ENABLED_KEY) render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
