@@ -2,6 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>中文練習 - 大字顯示</title>
   <style>
     :root {
@@ -93,9 +94,34 @@
         flex-direction: column;
         gap: 10px;
         align-items: flex-start;
+        padding: 16px;
+      }
+      header .title {
+        font-size: 22px;
       }
       header .menu {
         width: 100%;
+        gap: 10px;
+      }
+      header .menu label {
+        display: grid;
+        gap: 4px;
+      }
+      header select,
+      header a,
+      header button {
+        min-height: 44px;
+        padding: 9px 14px;
+        font-size: 16px;
+      }
+      .controls button {
+        min-height: 52px;
+        padding: 12px 36px;
+        font-size: 20px;
+      }
+      .hint {
+        padding: 0 16px;
+        font-size: 15px;
       }
       canvas {
         height: min(58vh, 520px);
