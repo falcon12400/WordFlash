@@ -85,6 +85,10 @@
       resize: vertical;
       min-height: 140px;
     }
+    button:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
     .actions {
       display: flex;
       gap: 10px;
@@ -128,7 +132,7 @@
       <div class="actions">
         <button id="saveUnit" type="button">儲存字庫</button>
       </div>
-      <div class="hint" id="status">可輸入像「茶|ㄔㄚˊ」這樣的格式手動指定注音；未填時，顯示頁會對部分常見中文字自動補注音。</div>
+      <div class="hint" id="status">按「儲存字庫」後，系統會自動向萌典查詢未標註項目的注音。手動輸入像「茶|ㄔㄚˊ」的內容會保留不變。</div>
     </section>
   </main>
 
@@ -174,6 +178,65 @@
       .split("\n")
       .map((item) => item.trim())
       .filter(Boolean);
+
+    const CHINESE_CHARACTER = /[\u3400-\u9fff]/u;
+    const MOEDICT_API_BASE = "https://www.moedict.tw/a/";
+    const lookupCache = new Map();
+
+    const splitEntry = (rawValue) => {
+      const parts = String(rawValue ?? "").split("|");
+      return {
+        text: (parts.shift() || "").trim(),
+        zhuyin: parts.join("|").trim()
+      };
+    };
+
+    const lookupBopomofo = async (text) => {
+      if (lookupCache.has(text)) return lookupCache.get(text);
+
+      const request = fetch(`${MOEDICT_API_BASE}${encodeURIComponent(text)}.json`)
+        .then(async (response) => {
+          if (!response.ok) return "";
+          const data = await response.json();
+          const heteronym = data.h?.find((item) => typeof item.b === "string" && item.b.trim());
+          return heteronym?.b.trim() || "";
+        })
+        .catch(() => "");
+
+      lookupCache.set(text, request);
+      return request;
+    };
+
+    const lookupZhuyin = async (text) => {
+      const phraseZhuyin = await lookupBopomofo(text);
+      if (phraseZhuyin) return phraseZhuyin;
+
+      const characters = [...text].filter((character) => CHINESE_CHARACTER.test(character));
+      if (!characters.length) return "";
+
+      const characterZhuyin = await Promise.all(characters.map(lookupBopomofo));
+      return characterZhuyin.every(Boolean) ? characterZhuyin.join(" ") : "";
+    };
+
+    const annotateEntry = async (rawValue) => {
+      const entry = splitEntry(rawValue);
+      if (!entry.text) {
+        return { value: String(rawValue).trim(), annotated: false, failed: false };
+      }
+      if (entry.zhuyin) {
+        return { value: `${entry.text}|${entry.zhuyin}`, annotated: false, failed: false };
+      }
+      if (!CHINESE_CHARACTER.test(entry.text)) {
+        return { value: entry.text, annotated: false, failed: false };
+      }
+
+      const zhuyin = await lookupZhuyin(entry.text);
+      if (!zhuyin) {
+        return { value: entry.text, annotated: false, failed: true };
+      }
+
+      return { value: `${entry.text}|${zhuyin}`, annotated: true, failed: false };
+    };
 
 
     const refreshUnitSelect = (units, current) => {
@@ -244,16 +307,27 @@
       status.textContent = "已刪除字庫。";
     });
 
-    saveUnitBtn.addEventListener("click", () => {
+    saveUnitBtn.addEventListener("click", async () => {
       const name = unitSelect.value;
       const words = normalizeWords(unitWords.value);
       if (!words.length) {
         status.textContent = "字庫是空的，請至少輸入一個字。";
         return;
       }
-      state.units[name] = words;
+
+      saveUnitBtn.disabled = true;
+      status.textContent = "正在向萌典查詢注音...";
+      const results = await Promise.all(words.map(annotateEntry));
+      const annotatedCount = results.filter((result) => result.annotated).length;
+      const failedCount = results.filter((result) => result.failed).length;
+
+      state.units[name] = results.map((result) => result.value);
+      unitWords.value = state.units[name].join("\n");
       saveUnits(state);
-      status.textContent = "已儲存字庫。";
+      saveUnitBtn.disabled = false;
+      status.textContent = failedCount
+        ? `已儲存字庫，自動補上 ${annotatedCount} 筆注音；${failedCount} 筆查不到，請手動指定。`
+        : `已儲存字庫，自動補上 ${annotatedCount} 筆注音。`;
     });
   </script>
 </body>

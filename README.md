@@ -12,7 +12,7 @@ WordFlash 是一個輕量的字卡練習網頁，支援多單元字庫與字型�
 
 - `manage_words.html`
   - 字庫管理頁
-  - 用來編輯或整理字庫內容
+  - 用來編輯或整理字庫內容；儲存時會自動查詢未標註項目的注音
 
 - `settings.html`
   - 設定頁
@@ -31,6 +31,6 @@ WordFlash 是一個輕量的字卡練習網頁，支援多單元字庫與字型�
 ## 維護提示
 
 - 如果要改畫面顯示或練習互動，先看 `canvas_words.html`
-- 如果要改字庫管理流程，先看 `manage_words.html`
+- 如果要改字庫管理或自動注音查詢流程，先看 `manage_words.html`
 - 如果要改注音提示的顯示設定，先看 `settings.html` 與 `canvas_words.html`
 - 這個專案目前是純 HTML 檔案，不是 React / Vite 專案
