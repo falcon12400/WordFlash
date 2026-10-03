@@ -303,10 +303,19 @@
 
     const getZhuyinSize = (size) => Math.max(34, Math.round(size * 0.16));
 
-    const getAnnotationWidth = (syllable, size) => {
+    const getAnnotationLayout = (syllable, size) => {
       const { top, bottom } = getZhuyinParts(syllable);
       ctx.font = `600 ${getZhuyinSize(size)}px ${ZHUYIN_FONT}`;
-      return Math.max(ctx.measureText(top).width, ctx.measureText(bottom).width) + Math.max(18, size * 0.07);
+      const contentWidth = Math.max(ctx.measureText(top).width, ctx.measureText(bottom).width);
+      const leadingGap = Math.max(28, size * 0.18);
+      const trailingGap = Math.max(18, size * 0.1);
+      return {
+        top,
+        bottom,
+        contentWidth,
+        leadingGap,
+        width: leadingGap + contentWidth + trailingGap
+      };
     };
 
     const getWordLayout = (text, annotations, size) => {
@@ -314,11 +323,13 @@
       const blocks = [...text].map((character, index) => {
         const characterWidth = ctx.measureText(character).width;
         const annotation = annotations[index] || "";
+        const annotationLayout = annotation ? getAnnotationLayout(annotation, size) : null;
         return {
           character,
           characterWidth,
           annotation,
-          annotationWidth: annotation ? getAnnotationWidth(annotation, size) : 0
+          annotationLayout,
+          annotationWidth: annotationLayout ? annotationLayout.width : 0
         };
       });
       ctx.font = `bold ${size}px ${fontFamily}`;
@@ -344,11 +355,11 @@
       return size;
     };
 
-    const drawZhuyin = (syllable, centerX, centerY, size) => {
-      const { top, bottom } = getZhuyinParts(syllable);
+    const drawZhuyin = (annotationLayout, centerX, centerY, size) => {
+      const { top, bottom } = annotationLayout;
       ctx.font = `600 ${getZhuyinSize(size)}px ${ZHUYIN_FONT}`;
-      if (top) ctx.fillText(top, centerX, centerY - size * 0.16);
-      if (bottom) ctx.fillText(bottom, centerX, centerY + size * 0.16);
+      if (top) ctx.fillText(top, centerX, centerY - size * 0.19);
+      if (bottom) ctx.fillText(bottom, centerX, centerY + size * 0.15);
     };
 
     const drawWord = (text, zhuyinText = "") => {
@@ -365,10 +376,10 @@
       layout.blocks.forEach((block) => {
         ctx.font = `bold ${size}px ${fontFamily}`;
         ctx.fillText(block.character, cursorX + block.characterWidth / 2, centerY);
-        if (block.annotation) {
+        if (block.annotationLayout) {
           drawZhuyin(
-            block.annotation,
-            cursorX + block.characterWidth + block.annotationWidth / 2,
+            block.annotationLayout,
+            cursorX + block.characterWidth + block.annotationLayout.leadingGap + block.annotationLayout.contentWidth / 2,
             centerY,
             size
           );
