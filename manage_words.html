@@ -132,7 +132,7 @@
       <div class="actions">
         <button id="saveUnit" type="button">儲存字庫</button>
       </div>
-      <div class="hint" id="status">按「儲存字庫」後，系統會自動向萌典查詢未標註項目的注音。手動輸入像「茶|ㄔㄚˊ」的內容會保留不變。</div>
+      <div class="hint" id="status">按「儲存字庫」後，系統會先以整個詞向萌典查詢注音，再逐字補查。多音字請維持為完整詞語（如「重新」），或用「文字|注音」手動指定；手動指定會保留不變。</div>
     </section>
   </main>
 
@@ -207,9 +207,17 @@
       return request;
     };
 
+    const hasMatchingSyllableCount = (text, zhuyin) => {
+      const chineseCount = [...text].filter((character) => CHINESE_CHARACTER.test(character)).length;
+      const syllableCount = String(zhuyin).trim().split(/\s+/).filter(Boolean).length;
+      return chineseCount > 0 && chineseCount === syllableCount;
+    };
+
     const lookupZhuyin = async (text) => {
       const phraseZhuyin = await lookupBopomofo(text);
-      if (phraseZhuyin) return phraseZhuyin;
+      // 詞條查詢能保留上下文，例如「重新」的「重」讀 ㄔㄨㄥˊ，
+      // 而「很重」中的「重」讀 ㄓㄨㄥˋ。
+      if (hasMatchingSyllableCount(text, phraseZhuyin)) return phraseZhuyin;
 
       const characters = [...text].filter((character) => CHINESE_CHARACTER.test(character));
       if (!characters.length) return "";
