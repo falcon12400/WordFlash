@@ -86,7 +86,7 @@
       position: relative;
       display: inline-block;
       width: 1em;
-      padding-inline-end: 0.74em;
+      padding-inline-end: 1.2em;
     }
     .semantic-ruby {
       display: none;
@@ -98,7 +98,7 @@
     }
     .zhuyin-visual {
       position: absolute;
-      left: 1.04em;
+      left: 1.25em;
       top: 50%;
       transform: translateY(-50%);
       color: #2b2b2b;
@@ -333,7 +333,7 @@
       const characterCount = Math.max([...text].length, 1);
       const annotationCount = annotations.filter(Boolean).length;
       const stageWidth = stage.clientWidth || 1000;
-      const size = Math.max(64, Math.min(420, Math.floor((stageWidth * 0.78) / (characterCount + annotationCount * 0.65))));
+      const size = Math.max(64, Math.min(420, Math.floor((stageWidth * 0.78) / (characterCount + annotationCount * 1.1))));
       const word = document.createElement("span");
       word.className = "word-display";
       word.style.setProperty("--word-font", fontFamily);
