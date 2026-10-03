@@ -86,9 +86,15 @@
       position: relative;
       display: inline-block;
       padding-inline-end: 0.74em;
-      ruby-position: over;
+    }
+    .zhuyin-cell ruby {
+      display: block;
+      line-height: 1;
     }
     .zhuyin-cell rt {
+      display: none;
+    }
+    .zhuyin-visual {
       position: absolute;
       inset-inline-start: 1.04em;
       top: 50%;
@@ -337,13 +343,20 @@
           word.append(document.createTextNode(character));
           return;
         }
+        const cell = document.createElement("span");
+        cell.className = "zhuyin-cell";
+        cell.setAttribute("aria-label", `${character}，注音 ${annotation}`);
         const ruby = document.createElement("ruby");
-        ruby.className = "zhuyin-cell";
         ruby.append(document.createTextNode(character));
         const rt = document.createElement("rt");
         rt.textContent = annotation;
         ruby.append(rt);
-        word.append(ruby);
+        const visual = document.createElement("span");
+        visual.className = "zhuyin-visual";
+        visual.setAttribute("aria-hidden", "true");
+        visual.textContent = annotation;
+        cell.append(ruby, visual);
+        word.append(cell);
       });
 
       stage.replaceChildren(word);
