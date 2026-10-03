@@ -106,8 +106,16 @@
       font-size: 0.22em;
       font-weight: 600;
       line-height: 1.05;
-      writing-mode: vertical-rl;
-      text-orientation: upright;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.05em;
+      white-space: nowrap;
+    }
+    .zhuyin-initial,
+    .zhuyin-final {
+      display: block;
+      line-height: 1;
     }
     .hint {
       margin-top: 18px;
@@ -316,6 +324,10 @@
     };
 
     const CHINESE_CHARACTER = /[\u3400-\u9fff]/u;
+    const ZHUYIN_INITIALS = new Set([
+      "ㄅ", "ㄆ", "ㄇ", "ㄈ", "ㄉ", "ㄊ", "ㄋ", "ㄌ", "ㄍ", "ㄎ", "ㄏ",
+      "ㄐ", "ㄑ", "ㄒ", "ㄓ", "ㄔ", "ㄕ", "ㄖ", "ㄗ", "ㄘ", "ㄙ"
+    ]);
 
     const getZhuyinByCharacter = (text, zhuyinText) => {
       const syllables = String(zhuyinText).trim().split(/\s+/).filter(Boolean);
@@ -326,6 +338,15 @@
       return [...text].map((character) => (
         CHINESE_CHARACTER.test(character) ? syllables[syllableIndex++] : ""
       ));
+    };
+
+    const splitZhuyinSyllable = (syllable) => {
+      const symbols = [...String(syllable)];
+      const hasInitial = ZHUYIN_INITIALS.has(symbols[0]);
+      return {
+        initial: hasInitial ? symbols[0] : "",
+        final: symbols.slice(hasInitial ? 1 : 0).join("")
+      };
     };
 
     const drawWord = (text, zhuyinText = "") => {
@@ -362,7 +383,19 @@
         const visual = document.createElement("span");
         visual.className = "zhuyin-visual";
         visual.setAttribute("aria-hidden", "true");
-        visual.textContent = annotation;
+        const { initial, final } = splitZhuyinSyllable(annotation);
+        if (initial) {
+          const initialElement = document.createElement("span");
+          initialElement.className = "zhuyin-initial";
+          initialElement.textContent = initial;
+          visual.append(initialElement);
+        }
+        if (final) {
+          const finalElement = document.createElement("span");
+          finalElement.className = "zhuyin-final";
+          finalElement.textContent = final;
+          visual.append(finalElement);
+        }
         cell.append(ruby, characterVisual, visual);
         word.append(cell);
       });
