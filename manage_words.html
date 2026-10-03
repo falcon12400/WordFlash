@@ -98,6 +98,21 @@
       font-size: 14px;
       letter-spacing: 0.06em;
     }
+    .reading-choices {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 2px dashed #2b2b2b;
+      border-radius: 6px;
+      background: rgba(255, 249, 236, 0.62);
+    }
+    .reading-choices[hidden] {
+      display: none;
+    }
+    .reading-choice {
+      display: grid;
+      gap: 5px;
+    }
     @media (max-width: 720px) {
       header {
         flex-direction: column;
@@ -131,8 +146,14 @@
       </div>
       <div class="actions">
         <button id="saveUnit" type="button">儲存字庫</button>
+        <button id="refreshZhuyin" type="button">重新查詢注音</button>
       </div>
-      <div class="hint" id="status">按「儲存字庫」後，系統會先以整個詞向萌典查詢注音，再逐字補查。多音字請維持為完整詞語（如「重新」），或用「文字|注音」手動指定；手動指定會保留不變。</div>
+      <section class="reading-choices" id="readingChoices" hidden>
+        <strong>請選擇多音字讀音</strong>
+        <div id="readingChoiceList"></div>
+        <button id="applyReadings" type="button">套用選擇並儲存</button>
+      </section>
+      <div class="hint" id="status">按「儲存字庫」後，系統會先以整個詞向萌典查詢注音，再逐字補查。沒有詞條的多音字會請你選擇讀音；手動輸入「文字|注音」的內容會保留不變。</div>
     </section>
   </main>
 
@@ -158,7 +179,12 @@
     const deleteUnitBtn = document.getElementById("deleteUnit");
     const unitWords = document.getElementById("unitWords");
     const saveUnitBtn = document.getElementById("saveUnit");
+    const refreshZhuyinBtn = document.getElementById("refreshZhuyin");
+    const readingChoices = document.getElementById("readingChoices");
+    const readingChoiceList = document.getElementById("readingChoiceList");
+    const applyReadingsBtn = document.getElementById("applyReadings");
     const status = document.getElementById("status");
+    let pendingReadings = [];
 
     const loadUnits = () => {
       try {
@@ -196,12 +222,13 @@
 
       const request = fetch(`${MOEDICT_API_BASE}${encodeURIComponent(text)}.json`)
         .then(async (response) => {
-          if (!response.ok) return "";
+          if (!response.ok) return [];
           const data = await response.json();
-          const heteronym = data.h?.find((item) => typeof item.b === "string" && item.b.trim());
-          return heteronym?.b.trim() || "";
+          return [...new Set((data.h || [])
+            .map((item) => typeof item.b === "string" ? item.b.trim() : "")
+            .filter(Boolean))];
         })
-        .catch(() => "");
+        .catch(() => []);
 
       lookupCache.set(text, request);
       return request;
@@ -214,16 +241,33 @@
     };
 
     const lookupZhuyin = async (text) => {
-      const phraseZhuyin = await lookupBopomofo(text);
+      const phraseZhuyin = (await lookupBopomofo(text))
+        .find((reading) => hasMatchingSyllableCount(text, reading));
       // 詞條查詢能保留上下文，例如「重新」的「重」讀 ㄔㄨㄥˊ，
       // 而「很重」中的「重」讀 ㄓㄨㄥˋ。
-      if (hasMatchingSyllableCount(text, phraseZhuyin)) return phraseZhuyin;
+      if (phraseZhuyin) return { zhuyin: phraseZhuyin, ambiguities: [] };
 
       const characters = [...text].filter((character) => CHINESE_CHARACTER.test(character));
-      if (!characters.length) return "";
+      if (!characters.length) return { zhuyin: "", ambiguities: [] };
 
-      const characterZhuyin = await Promise.all(characters.map(lookupBopomofo));
-      return characterZhuyin.every(Boolean) ? characterZhuyin.join(" ") : "";
+      const candidates = await Promise.all(characters.map(lookupBopomofo));
+      if (!candidates.every((readings) => readings.length)) {
+        return { zhuyin: "", ambiguities: [] };
+      }
+
+      const ambiguities = candidates
+        .map((readings, index) => readings.length > 1 ? {
+          character: characters[index],
+          syllableIndex: index,
+          readings
+        } : null)
+        .filter(Boolean);
+
+      return {
+        zhuyin: ambiguities.length ? "" : candidates.map((readings) => readings[0]).join(" "),
+        ambiguities,
+        fallbackReadings: candidates.map((readings) => readings[0])
+      };
     };
 
     const annotateEntry = async (rawValue) => {
@@ -238,12 +282,21 @@
         return { value: entry.text, annotated: false, failed: false };
       }
 
-      const zhuyin = await lookupZhuyin(entry.text);
-      if (!zhuyin) {
+      const lookup = await lookupZhuyin(entry.text);
+      if (lookup.ambiguities.length) {
+        return {
+          value: entry.text,
+          annotated: false,
+          failed: false,
+          ambiguities: lookup.ambiguities,
+          fallbackReadings: lookup.fallbackReadings
+        };
+      }
+      if (!lookup.zhuyin) {
         return { value: entry.text, annotated: false, failed: true };
       }
 
-      return { value: `${entry.text}|${zhuyin}`, annotated: true, failed: false };
+      return { value: `${entry.text}|${lookup.zhuyin}`, annotated: true, failed: false };
     };
 
 
@@ -281,6 +334,7 @@
       state.current = name;
       unitWords.value = state.units[name].join("\n");
       saveUnits(state);
+      hideReadingChoices();
       status.textContent = "切換字庫完成。";
     });
 
@@ -298,6 +352,7 @@
       saveUnits(state);
       refreshUnitSelect(state.units, trimmed);
       unitWords.value = "";
+      hideReadingChoices();
       status.textContent = "已新增字庫，請輸入內容並儲存。";
     });
 
@@ -312,30 +367,115 @@
       saveUnits(state);
       refreshUnitSelect(state.units, state.current);
       unitWords.value = state.units[state.current].join("\n");
+      hideReadingChoices();
       status.textContent = "已刪除字庫。";
     });
 
-    saveUnitBtn.addEventListener("click", async () => {
+    const hideReadingChoices = () => {
+      pendingReadings = [];
+      readingChoiceList.replaceChildren();
+      readingChoices.hidden = true;
+    };
+
+    const showReadingChoices = (results) => {
+      pendingReadings = results.flatMap((result, lineIndex) => result.ambiguities?.length ? [{
+        lineIndex,
+        text: result.value,
+        ambiguities: result.ambiguities,
+        fallbackReadings: result.fallbackReadings
+      }] : []);
+      readingChoiceList.replaceChildren();
+
+      pendingReadings.forEach((pending, pendingIndex) => {
+        pending.ambiguities.forEach((ambiguity, ambiguityIndex) => {
+          const field = document.createElement("label");
+          field.className = "reading-choice";
+          field.textContent = `「${pending.text}」中的「${ambiguity.character}」`;
+          const select = document.createElement("select");
+          select.dataset.pendingIndex = String(pendingIndex);
+          select.dataset.ambiguityIndex = String(ambiguityIndex);
+          const placeholder = document.createElement("option");
+          placeholder.value = "";
+          placeholder.textContent = "請選擇讀音";
+          placeholder.selected = true;
+          placeholder.disabled = true;
+          select.append(placeholder);
+          ambiguity.readings.forEach((reading) => {
+            const option = document.createElement("option");
+            option.value = reading;
+            option.textContent = reading;
+            select.append(option);
+          });
+          field.append(select);
+          readingChoiceList.append(field);
+        });
+      });
+      readingChoices.hidden = pendingReadings.length === 0;
+    };
+
+    const saveAndLookup = async (words) => {
       const name = unitSelect.value;
-      const words = normalizeWords(unitWords.value);
       if (!words.length) {
         status.textContent = "字庫是空的，請至少輸入一個字。";
         return;
       }
 
       saveUnitBtn.disabled = true;
+      refreshZhuyinBtn.disabled = true;
       status.textContent = "正在向萌典查詢注音...";
       const results = await Promise.all(words.map(annotateEntry));
       const annotatedCount = results.filter((result) => result.annotated).length;
       const failedCount = results.filter((result) => result.failed).length;
+      const ambiguousCount = results.filter((result) => result.ambiguities?.length).length;
 
       state.units[name] = results.map((result) => result.value);
       unitWords.value = state.units[name].join("\n");
       saveUnits(state);
       saveUnitBtn.disabled = false;
-      status.textContent = failedCount
-        ? `已儲存字庫，自動補上 ${annotatedCount} 筆注音；${failedCount} 筆查不到，請手動指定。`
-        : `已儲存字庫，自動補上 ${annotatedCount} 筆注音。`;
+      refreshZhuyinBtn.disabled = false;
+      showReadingChoices(results);
+      if (ambiguousCount) {
+        status.textContent = `已儲存字庫，自動補上 ${annotatedCount} 筆注音；${ambiguousCount} 筆含多音字，請在下方選擇讀音。`;
+      } else if (failedCount) {
+        status.textContent = `已儲存字庫，自動補上 ${annotatedCount} 筆注音；${failedCount} 筆查不到，請手動指定。`;
+      } else {
+        status.textContent = `已儲存字庫，自動補上 ${annotatedCount} 筆注音。`;
+      }
+    };
+
+    saveUnitBtn.addEventListener("click", () => {
+      saveAndLookup(normalizeWords(unitWords.value));
+    });
+
+    refreshZhuyinBtn.addEventListener("click", () => {
+      if (!window.confirm("這會重新查詢目前字庫的全部注音，並覆蓋手動指定的注音。要繼續嗎？")) return;
+      const words = normalizeWords(unitWords.value).map((rawValue) => splitEntry(rawValue).text);
+      saveAndLookup(words);
+    });
+
+    applyReadingsBtn.addEventListener("click", () => {
+      const selects = [...readingChoiceList.querySelectorAll("select")];
+      if (selects.some((select) => !select.value)) {
+        status.textContent = "請先為每個多音字選擇讀音。";
+        return;
+      }
+
+      const selectedReadings = new Map(selects.map((select) => [
+        `${select.dataset.pendingIndex}:${select.dataset.ambiguityIndex}`,
+        select.value
+      ]));
+      const name = unitSelect.value;
+      pendingReadings.forEach((pending, pendingIndex) => {
+        const syllables = [...pending.fallbackReadings];
+        pending.ambiguities.forEach((ambiguity, ambiguityIndex) => {
+          syllables[ambiguity.syllableIndex] = selectedReadings.get(`${pendingIndex}:${ambiguityIndex}`);
+        });
+        state.units[name][pending.lineIndex] = `${pending.text}|${syllables.join(" ")}`;
+      });
+      unitWords.value = state.units[name].join("\n");
+      saveUnits(state);
+      hideReadingChoices();
+      status.textContent = "已套用選擇並儲存多音字注音。";
     });
   </script>
 </body>
