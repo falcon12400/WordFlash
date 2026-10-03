@@ -59,12 +59,53 @@
       place-items: center;
       padding: 28px 0 40px;
     }
-    canvas {
+    .stage {
       width: min(92vw, 1000px);
       height: min(70vh, 700px);
       border: 6px solid #2b2b2b;
       background: #fff9ec;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    .word-display {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 82%;
+      color: #2b2b2b;
+      font-family: var(--word-font);
+      font-size: var(--word-size);
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .zhuyin-cell {
+      padding-inline-end: 0.52em;
+      ruby-position: inter-character;
+    }
+    .zhuyin-cell rt {
+      color: #2b2b2b;
+      font-family: "Microsoft JhengHei", "Noto Sans TC", "PingFang TC", sans-serif;
+      font-size: 0.22em;
+      font-weight: 600;
+      line-height: 1.05;
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+    }
+    @supports not (ruby-position: inter-character) {
+      .zhuyin-cell {
+        position: relative;
+        display: inline-block;
+      }
+      .zhuyin-cell rt {
+        position: absolute;
+        inset-inline-start: calc(100% - 0.45em);
+        top: 50%;
+        transform: translateY(-50%);
+      }
     }
     .hint {
       margin-top: 18px;
@@ -123,7 +164,7 @@
         padding: 0 16px;
         font-size: 15px;
       }
-      canvas {
+      .stage {
         height: min(58vh, 520px);
       }
     }
@@ -148,7 +189,7 @@
   </header>
   <main>
     <div>
-      <canvas id="stage" width="1000" height="700" aria-label="中文練習畫布"></canvas>
+      <div id="stage" class="stage" role="img" aria-label="中文字卡"></div>
       <div class="controls">
         <button id="nextButton" type="button">換字</button>
       </div>
@@ -172,8 +213,7 @@
       "臉"
     ];
 
-    const canvas = document.getElementById("stage");
-    const ctx = canvas.getContext("2d");
+    const stage = document.getElementById("stage");
     const status = document.getElementById("status");
     const unitSelect = document.getElementById("unitSelect");
     const fontSelect = document.getElementById("fontSelect");
@@ -187,7 +227,6 @@
     const FONT_KEY = "wordflash_font_family";
     const ZHUYIN_ENABLED_KEY = "wordflash_zhuyin_enabled";
     const DEFAULT_FONT = "'Noto Serif TC', 'PingFang TC', 'Heiti TC', serif";
-    const ZHUYIN_FONT = "'Microsoft JhengHei', 'Noto Sans TC', 'PingFang TC', sans-serif";
     const AUTO_ZHUYIN_MAP = {
       "一": "ㄧ",
       "二": "ㄦˋ",
@@ -275,10 +314,6 @@
     };
 
     const CHINESE_CHARACTER = /[\u3400-\u9fff]/u;
-    const ZHUYIN_INITIALS = new Set([
-      "ㄅ", "ㄆ", "ㄇ", "ㄈ", "ㄉ", "ㄊ", "ㄋ", "ㄌ", "ㄍ", "ㄎ", "ㄏ",
-      "ㄐ", "ㄑ", "ㄒ", "ㄓ", "ㄔ", "ㄕ", "ㄖ", "ㄗ", "ㄘ", "ㄙ"
-    ]);
 
     const getZhuyinByCharacter = (text, zhuyinText) => {
       const syllables = String(zhuyinText).trim().split(/\s+/).filter(Boolean);
@@ -291,101 +326,34 @@
       ));
     };
 
-    const getZhuyinParts = (syllable) => {
-      const tone = (String(syllable).match(/[ˊˇˋ˙]/u) || [""])[0];
-      const symbols = [...String(syllable)].filter((symbol) => !/[ˊˇˋ˙]/u.test(symbol));
-      const hasInitial = ZHUYIN_INITIALS.has(symbols[0]);
-      return {
-        top: hasInitial ? symbols[0] : "",
-        bottom: `${symbols.slice(hasInitial ? 1 : 0).join("")}${tone}`
-      };
-    };
-
-    const getZhuyinSize = (size) => Math.max(34, Math.round(size * 0.16));
-
-    const getAnnotationLayout = (syllable, size) => {
-      const { top, bottom } = getZhuyinParts(syllable);
-      ctx.font = `600 ${getZhuyinSize(size)}px ${ZHUYIN_FONT}`;
-      const contentWidth = Math.max(ctx.measureText(top).width, ctx.measureText(bottom).width);
-      const leadingGap = Math.max(42, size * 0.32);
-      const trailingGap = Math.max(48, size * 0.52);
-      return {
-        top,
-        bottom,
-        contentWidth,
-        leadingGap,
-        width: leadingGap + contentWidth + trailingGap
-      };
-    };
-
-    const getWordLayout = (text, annotations, size) => {
-      ctx.font = `bold ${size}px ${fontFamily}`;
-      const blocks = [...text].map((character, index) => {
-        const characterWidth = ctx.measureText(character).width;
-        const annotation = annotations[index] || "";
-        const annotationLayout = annotation ? getAnnotationLayout(annotation, size) : null;
-        return {
-          character,
-          characterWidth,
-          annotation,
-          annotationLayout,
-          annotationWidth: annotationLayout ? annotationLayout.width : 0
-        };
-      });
-      ctx.font = `bold ${size}px ${fontFamily}`;
-      const metrics = ctx.measureText(text);
-      return {
-        blocks,
-        totalWidth: blocks.reduce((total, block) => total + block.characterWidth + block.annotationWidth, 0),
-        textHeight: metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent
-      };
-    };
-
-    const fitFontSize = (text, annotations = []) => {
-      const maxWidth = canvas.width * 0.8;
-      const maxHeight = canvas.height * 0.7;
-      let size = 420;
-      while (size > 120) {
-        const layout = getWordLayout(text, annotations, size);
-        if (layout.totalWidth <= maxWidth && layout.textHeight <= maxHeight) {
-          break;
-        }
-        size -= 10;
-      }
-      return size;
-    };
-
-    const drawZhuyin = (annotationLayout, centerX, centerY, size) => {
-      const { top, bottom } = annotationLayout;
-      ctx.font = `600 ${getZhuyinSize(size)}px ${ZHUYIN_FONT}`;
-      if (top) ctx.fillText(top, centerX, centerY - size * 0.19);
-      if (bottom) ctx.fillText(bottom, centerX, centerY + size * 0.15);
-    };
-
     const drawWord = (text, zhuyinText = "") => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#2b2b2b";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
       const annotations = getZhuyinByCharacter(text, zhuyinText);
-      const size = fitFontSize(text, annotations);
-      const layout = getWordLayout(text, annotations, size);
-      const centerY = canvas.height / 2 + 10;
-      let cursorX = (canvas.width - layout.totalWidth) / 2;
+      const characterCount = Math.max([...text].length, 1);
+      const annotationCount = annotations.filter(Boolean).length;
+      const stageWidth = stage.clientWidth || 1000;
+      const size = Math.max(64, Math.min(420, Math.floor((stageWidth * 0.78) / (characterCount + annotationCount * 0.65))));
+      const word = document.createElement("span");
+      word.className = "word-display";
+      word.style.setProperty("--word-font", fontFamily);
+      word.style.setProperty("--word-size", `${size}px`);
 
-      layout.blocks.forEach((block) => {
-        ctx.font = `bold ${size}px ${fontFamily}`;
-        ctx.fillText(block.character, cursorX + block.characterWidth / 2, centerY);
-        if (block.annotationLayout) {
-          drawZhuyin(
-            block.annotationLayout,
-            cursorX + block.characterWidth + block.annotationLayout.leadingGap + block.annotationLayout.contentWidth / 2,
-            centerY,
-            size
-          );
+      [...text].forEach((character, index) => {
+        const annotation = annotations[index] || "";
+        if (!annotation) {
+          word.append(document.createTextNode(character));
+          return;
         }
-        cursorX += block.characterWidth + block.annotationWidth;
+        const ruby = document.createElement("ruby");
+        ruby.className = "zhuyin-cell";
+        ruby.append(document.createTextNode(character));
+        const rt = document.createElement("rt");
+        rt.textContent = annotation;
+        ruby.append(rt);
+        word.append(ruby);
       });
+
+      stage.replaceChildren(word);
+      stage.setAttribute("aria-label", zhuyinText ? `${text}，注音 ${zhuyinText}` : text);
     };
 
     const drawCurrentWord = () => {
@@ -449,7 +417,7 @@
       index += 1;
     };
 
-    canvas.addEventListener("pointerdown", (event) => {
+    stage.addEventListener("pointerdown", (event) => {
       event.preventDefault();
       speakCurrentWord();
     });
