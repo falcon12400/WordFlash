@@ -83,10 +83,16 @@
       white-space: nowrap;
     }
     .zhuyin-cell {
-      padding-inline-end: 0.52em;
-      ruby-position: inter-character;
+      position: relative;
+      display: inline-block;
+      padding-inline-end: 0.74em;
+      ruby-position: over;
     }
     .zhuyin-cell rt {
+      position: absolute;
+      inset-inline-start: 1.04em;
+      top: 50%;
+      transform: translateY(-50%);
       color: #2b2b2b;
       font-family: "Microsoft JhengHei", "Noto Sans TC", "PingFang TC", sans-serif;
       font-size: 0.22em;
@@ -94,18 +100,6 @@
       line-height: 1.05;
       writing-mode: vertical-rl;
       text-orientation: upright;
-    }
-    @supports not (ruby-position: inter-character) {
-      .zhuyin-cell {
-        position: relative;
-        display: inline-block;
-      }
-      .zhuyin-cell rt {
-        position: absolute;
-        inset-inline-start: calc(100% - 0.45em);
-        top: 50%;
-        transform: translateY(-50%);
-      }
     }
     .hint {
       margin-top: 18px;
