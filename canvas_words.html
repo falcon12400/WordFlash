@@ -307,8 +307,8 @@
       const { top, bottom } = getZhuyinParts(syllable);
       ctx.font = `600 ${getZhuyinSize(size)}px ${ZHUYIN_FONT}`;
       const contentWidth = Math.max(ctx.measureText(top).width, ctx.measureText(bottom).width);
-      const leadingGap = Math.max(28, size * 0.18);
-      const trailingGap = Math.max(18, size * 0.1);
+      const leadingGap = Math.max(42, size * 0.32);
+      const trailingGap = Math.max(30, size * 0.18);
       return {
         top,
         bottom,
