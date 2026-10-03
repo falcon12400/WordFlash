@@ -274,21 +274,69 @@
       };
     };
 
-    const fitFontSize = (text, zhuyinText = "") => {
+    const CHINESE_CHARACTER = /[\u3400-\u9fff]/u;
+    const ZHUYIN_INITIALS = new Set([
+      "ㄅ", "ㄆ", "ㄇ", "ㄈ", "ㄉ", "ㄊ", "ㄋ", "ㄌ", "ㄍ", "ㄎ", "ㄏ",
+      "ㄐ", "ㄑ", "ㄒ", "ㄓ", "ㄔ", "ㄕ", "ㄖ", "ㄗ", "ㄘ", "ㄙ"
+    ]);
+
+    const getZhuyinByCharacter = (text, zhuyinText) => {
+      const syllables = String(zhuyinText).trim().split(/\s+/).filter(Boolean);
+      const chineseCount = [...text].filter((character) => CHINESE_CHARACTER.test(character)).length;
+      if (!syllables.length || syllables.length !== chineseCount) return [];
+
+      let syllableIndex = 0;
+      return [...text].map((character) => (
+        CHINESE_CHARACTER.test(character) ? syllables[syllableIndex++] : ""
+      ));
+    };
+
+    const getZhuyinParts = (syllable) => {
+      const tone = (String(syllable).match(/[ˊˇˋ˙]/u) || [""])[0];
+      const symbols = [...String(syllable)].filter((symbol) => !/[ˊˇˋ˙]/u.test(symbol));
+      const hasInitial = ZHUYIN_INITIALS.has(symbols[0]);
+      return {
+        top: hasInitial ? symbols[0] : "",
+        bottom: `${symbols.slice(hasInitial ? 1 : 0).join("")}${tone}`
+      };
+    };
+
+    const getZhuyinSize = (size) => Math.max(34, Math.round(size * 0.16));
+
+    const getAnnotationWidth = (syllable, size) => {
+      const { top, bottom } = getZhuyinParts(syllable);
+      ctx.font = `600 ${getZhuyinSize(size)}px ${ZHUYIN_FONT}`;
+      return Math.max(ctx.measureText(top).width, ctx.measureText(bottom).width) + Math.max(18, size * 0.07);
+    };
+
+    const getWordLayout = (text, annotations, size) => {
+      ctx.font = `bold ${size}px ${fontFamily}`;
+      const blocks = [...text].map((character, index) => {
+        const characterWidth = ctx.measureText(character).width;
+        const annotation = annotations[index] || "";
+        return {
+          character,
+          characterWidth,
+          annotation,
+          annotationWidth: annotation ? getAnnotationWidth(annotation, size) : 0
+        };
+      });
+      ctx.font = `bold ${size}px ${fontFamily}`;
+      const metrics = ctx.measureText(text);
+      return {
+        blocks,
+        totalWidth: blocks.reduce((total, block) => total + block.characterWidth + block.annotationWidth, 0),
+        textHeight: metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent
+      };
+    };
+
+    const fitFontSize = (text, annotations = []) => {
       const maxWidth = canvas.width * 0.8;
       const maxHeight = canvas.height * 0.7;
       let size = 420;
       while (size > 120) {
-        ctx.font = `bold ${size}px ${fontFamily}`;
-        const metrics = ctx.measureText(text);
-        const textHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-        let totalWidth = metrics.width;
-        if (zhuyinText) {
-          const zhuyinSize = Math.max(34, Math.round(size * 0.16));
-          ctx.font = `600 ${zhuyinSize}px ${ZHUYIN_FONT}`;
-          totalWidth += ctx.measureText(zhuyinText).width + Math.max(24, size * 0.08);
-        }
-        if (totalWidth <= maxWidth && textHeight <= maxHeight) {
+        const layout = getWordLayout(text, annotations, size);
+        if (layout.totalWidth <= maxWidth && layout.textHeight <= maxHeight) {
           break;
         }
         size -= 10;
@@ -296,32 +344,37 @@
       return size;
     };
 
+    const drawZhuyin = (syllable, centerX, centerY, size) => {
+      const { top, bottom } = getZhuyinParts(syllable);
+      ctx.font = `600 ${getZhuyinSize(size)}px ${ZHUYIN_FONT}`;
+      if (top) ctx.fillText(top, centerX, centerY - size * 0.16);
+      if (bottom) ctx.fillText(bottom, centerX, centerY + size * 0.16);
+    };
+
     const drawWord = (text, zhuyinText = "") => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#2b2b2b";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const size = fitFontSize(text, zhuyinText);
-      ctx.font = `bold ${size}px ${fontFamily}`;
-      const textWidth = ctx.measureText(text).width;
-      const gap = zhuyinText ? Math.max(24, size * 0.08) : 0;
-      let zhuyinWidth = 0;
-      let zhuyinSize = 0;
-      if (zhuyinText) {
-        zhuyinSize = Math.max(34, Math.round(size * 0.16));
-        ctx.font = `600 ${zhuyinSize}px ${ZHUYIN_FONT}`;
-        zhuyinWidth = ctx.measureText(zhuyinText).width;
-      }
-      const totalWidth = textWidth + gap + zhuyinWidth;
-      const startX = (canvas.width - totalWidth) / 2;
-      const textCenterX = startX + textWidth / 2;
-      ctx.font = `bold ${size}px ${fontFamily}`;
-      ctx.fillText(text, textCenterX, canvas.height / 2 + 10);
-      if (zhuyinText) {
-        ctx.font = `600 ${zhuyinSize}px ${ZHUYIN_FONT}`;
-        const zhuyinCenterX = startX + textWidth + gap + zhuyinWidth / 2;
-        ctx.fillText(zhuyinText, zhuyinCenterX, canvas.height / 2 + 10);
-      }
+      const annotations = getZhuyinByCharacter(text, zhuyinText);
+      const size = fitFontSize(text, annotations);
+      const layout = getWordLayout(text, annotations, size);
+      const centerY = canvas.height / 2 + 10;
+      let cursorX = (canvas.width - layout.totalWidth) / 2;
+
+      layout.blocks.forEach((block) => {
+        ctx.font = `bold ${size}px ${fontFamily}`;
+        ctx.fillText(block.character, cursorX + block.characterWidth / 2, centerY);
+        if (block.annotation) {
+          drawZhuyin(
+            block.annotation,
+            cursorX + block.characterWidth + block.annotationWidth / 2,
+            centerY,
+            size
+          );
+        }
+        cursorX += block.characterWidth + block.annotationWidth;
+      });
     };
 
     const drawCurrentWord = () => {
