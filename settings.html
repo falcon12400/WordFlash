@@ -7,144 +7,351 @@
   <style>
     :root {
       color-scheme: light;
+      --ink: #2b2b2b;
+      --paper: #fff9ec;
+      --line: 2px solid var(--ink);
     }
-    html, body {
-      margin: 0;
-      min-height: 100%;
-    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
+      min-height: 100dvh;
+      margin: 0;
       background: radial-gradient(circle at top, #f7f4e8 0%, #efe6d5 45%, #e8dcc8 100%);
+      color: var(--ink);
       font-family: "Noto Serif TC", "PingFang TC", "Heiti TC", serif;
-      color: #2b2b2b;
-      display: grid;
-      grid-template-rows: auto 1fr;
     }
     header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 16px;
+      min-height: 64px;
       padding: 12px 24px;
-      border-bottom: 2px solid #2b2b2b;
+      border-bottom: var(--line);
       background: rgba(255, 249, 236, 0.92);
       backdrop-filter: blur(6px);
     }
-    header .title {
+    .brand {
       font-size: 20px;
-      letter-spacing: 0.08em;
       font-weight: 700;
+      letter-spacing: 0.08em;
     }
-    header a {
-      border: 2px solid #2b2b2b;
-      border-radius: 6px;
-      padding: 6px 10px;
-      background: #fff9ec;
-      font-family: inherit;
-      font-size: 14px;
+    .back-link, .secondary-link, .reset-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 7px 12px;
+      border: var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: inherit;
+      font: inherit;
+      font-size: 15px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    main {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+      padding: 34px 24px 48px;
+    }
+    .page-heading {
+      max-width: 720px;
+      margin-bottom: 28px;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 8px; font-size: clamp(28px, 4vw, 38px); }
+    .page-heading p, .description, .setting-note, .future-note, #status {
+      color: #55504a;
+      line-height: 1.65;
+    }
+    .settings-layout {
+      display: grid;
+      grid-template-columns: 210px minmax(0, 1fr);
+      gap: 28px;
+      align-items: start;
+    }
+    .section-nav {
+      position: sticky;
+      top: 18px;
+      display: grid;
+      gap: 7px;
+      padding: 12px;
+      border: var(--line);
+      border-radius: 12px;
+      background: rgba(255, 249, 236, 0.75);
+    }
+    .section-nav a {
+      padding: 9px 10px;
+      border-radius: 7px;
       color: inherit;
       text-decoration: none;
     }
-    main {
-      display: grid;
-      place-items: center;
-      padding: 24px;
+    .section-nav a:hover, .section-nav a:focus-visible {
+      background: #efe6d5;
+      outline: none;
     }
-    .panel {
-      width: min(92vw, 620px);
-      background: rgba(255, 249, 236, 0.92);
-      border: 2px solid #2b2b2b;
-      border-radius: 10px;
-      padding: 22px;
-      display: grid;
-      gap: 16px;
-      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+    .settings-content { display: grid; gap: 22px; }
+    .setting-group {
+      scroll-margin-top: 18px;
+      overflow: hidden;
+      border: var(--line);
+      border-radius: 12px;
+      background: rgba(255, 249, 236, 0.93);
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
     }
-    h1 {
-      margin: 0;
-      font-size: 24px;
+    .group-heading {
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid rgba(43, 43, 43, 0.24);
     }
+    .group-heading h2 { margin-bottom: 5px; font-size: 22px; }
+    .group-heading p { margin-bottom: 0; }
+    .setting-list { display: grid; }
     .setting-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 20px;
-      padding: 16px;
-      border: 2px solid #2b2b2b;
-      border-radius: 8px;
-      background: #fff9ec;
-    }
-    .setting-label {
-      display: grid;
-      gap: 6px;
-    }
-    .setting-label strong {
-      font-size: 18px;
-    }
-    .hint, #status {
-      margin: 0;
-      font-size: 14px;
-      line-height: 1.6;
-      letter-spacing: 0.04em;
-    }
-    input[type="checkbox"] {
-      width: 24px;
-      height: 24px;
-      accent-color: #2b2b2b;
+      gap: 22px;
+      min-height: 86px;
+      padding: 17px 22px;
       cursor: pointer;
+    }
+    .setting-row + .setting-row { border-top: 1px solid rgba(43, 43, 43, 0.18); }
+    .setting-copy { display: grid; gap: 4px; }
+    .setting-copy strong { font-size: 18px; }
+    .setting-copy span { color: #5b554d; font-size: 15px; line-height: 1.45; }
+    .switch {
+      position: relative;
+      width: 52px;
+      height: 30px;
       flex: 0 0 auto;
     }
-    @media (max-width: 520px) {
-      header {
-        flex-direction: column;
-        align-items: flex-start;
+    .switch input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+    .slider {
+      position: absolute;
+      inset: 0;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: #d7cebd;
+      transition: background 160ms ease;
+    }
+    .slider::after {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--paper);
+      content: "";
+      transition: transform 160ms ease;
+    }
+    .switch input:checked + .slider { background: #85775e; }
+    .switch input:checked + .slider::after { transform: translateX(22px); }
+    .switch input:focus-visible + .slider { outline: 3px solid #9eb4c7; outline-offset: 3px; }
+    .group-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 22px;
+      border-top: 1px solid rgba(43, 43, 43, 0.18);
+      background: rgba(239, 230, 213, 0.46);
+    }
+    .group-footer p { margin: 0; }
+    .future-card {
+      margin: 18px 22px 22px;
+      padding: 16px;
+      border: 2px dashed #756d62;
+      border-radius: 8px;
+      background: rgba(255, 249, 236, 0.6);
+    }
+    .future-card h3 { margin-bottom: 5px; font-size: 18px; }
+    .future-card p { margin-bottom: 0; }
+    .data-action {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 20px 22px;
+    }
+    #status { margin: 0; font-size: 14px; }
+    @media (max-width: 720px) {
+      header { padding: 12px 16px; }
+      main { padding: 24px 16px 36px; }
+      .page-heading { margin-bottom: 20px; }
+      .settings-layout { grid-template-columns: 1fr; gap: 16px; }
+      .section-nav {
+        position: static;
+        grid-auto-flow: column;
+        grid-auto-columns: max-content;
+        overflow-x: auto;
+        padding: 8px;
+        white-space: nowrap;
       }
-      .setting-row {
-        align-items: flex-start;
-      }
+      .setting-row { min-height: 82px; padding: 15px 16px; gap: 14px; }
+      .group-heading, .group-footer, .data-action { padding-right: 16px; padding-left: 16px; }
+      .future-card { margin: 16px; }
+      .group-footer, .data-action { align-items: flex-start; flex-direction: column; }
     }
   </style>
 </head>
 <body>
   <header>
-    <div class="title">WordFlash</div>
-    <a href="canvas_words.html">回到顯示頁</a>
+    <div class="brand">WordFlash</div>
+    <a class="back-link" href="canvas_words.html">回到顯示頁</a>
   </header>
   <main>
-    <section class="panel" aria-labelledby="settingsTitle">
-      <h1 id="settingsTitle">設定</h1>
-      <label class="setting-row" for="zhuyinToggle">
-        <span class="setting-label">
-          <strong>顯示注音提示</strong>
-          <span>開啟後，字卡會顯示手動指定或可自動辨識的注音。</span>
-        </span>
-        <input id="zhuyinToggle" type="checkbox" />
-      </label>
-      <p id="status" aria-live="polite"></p>
-      <p class="hint">這項設定只會儲存在目前瀏覽器；不會修改字庫內容。</p>
-    </section>
+    <div class="page-heading">
+      <h1>設定中心</h1>
+      <p>調整顯示頁外觀與工具列。設定只會儲存在這台裝置的瀏覽器中，不會改動字庫內容。</p>
+    </div>
+    <div class="settings-layout">
+      <nav class="section-nav" aria-label="設定分類">
+        <a href="#display">字卡顯示</a>
+        <a href="#toolbar">工具列</a>
+        <a href="#practice">練習與紀錄</a>
+        <a href="#library">字庫與資料</a>
+      </nav>
+      <div class="settings-content">
+        <section class="setting-group" id="display" aria-labelledby="displayTitle">
+          <div class="group-heading">
+            <h2 id="displayTitle">字卡顯示</h2>
+            <p class="description">控制孩子在字卡上能看見的提示。</p>
+          </div>
+          <div class="setting-list">
+            <label class="setting-row" for="zhuyinToggle">
+              <span class="setting-copy">
+                <strong>顯示注音提示</strong>
+                <span>開啟後，字卡會顯示手動指定或可自動辨識的注音。</span>
+              </span>
+              <span class="switch"><input id="zhuyinToggle" type="checkbox" /><span class="slider" aria-hidden="true"></span></span>
+            </label>
+          </div>
+        </section>
+
+        <section class="setting-group" id="toolbar" aria-labelledby="toolbarTitle">
+          <div class="group-heading">
+            <h2 id="toolbarTitle">工具列</h2>
+            <p class="description">隱藏不需要的控制項，讓練習頁更專注。設定入口會保留，方便隨時調整。</p>
+          </div>
+          <div class="setting-list">
+            <label class="setting-row" for="unitControlToggle">
+              <span class="setting-copy"><strong>字庫切換</strong><span>顯示選擇字庫的下拉欄。</span></span>
+              <span class="switch"><input id="unitControlToggle" type="checkbox" /><span class="slider" aria-hidden="true"></span></span>
+            </label>
+            <label class="setting-row" for="fontControlToggle">
+              <span class="setting-copy"><strong>字型切換</strong><span>顯示選擇字型的下拉欄。</span></span>
+              <span class="switch"><input id="fontControlToggle" type="checkbox" /><span class="slider" aria-hidden="true"></span></span>
+            </label>
+            <label class="setting-row" for="speakButtonToggle">
+              <span class="setting-copy"><strong>播放讀音</strong><span>顯示朗讀按鈕。</span></span>
+              <span class="switch"><input id="speakButtonToggle" type="checkbox" /><span class="slider" aria-hidden="true"></span></span>
+            </label>
+            <label class="setting-row" for="manageLinkToggle">
+              <span class="setting-copy"><strong>字庫管理入口</strong><span>顯示前往字庫管理頁的按鈕。</span></span>
+              <span class="switch"><input id="manageLinkToggle" type="checkbox" /><span class="slider" aria-hidden="true"></span></span>
+            </label>
+            <label class="setting-row" for="hintToggle">
+              <span class="setting-copy"><strong>操作提示</strong><span>顯示字卡下方的操作說明。</span></span>
+              <span class="switch"><input id="hintToggle" type="checkbox" /><span class="slider" aria-hidden="true"></span></span>
+            </label>
+          </div>
+          <div class="group-footer">
+            <p id="status" aria-live="polite"></p>
+            <button class="reset-button" id="resetDisplay" type="button">恢復預設顯示</button>
+          </div>
+        </section>
+
+        <section class="setting-group" id="practice" aria-labelledby="practiceTitle">
+          <div class="group-heading">
+            <h2 id="practiceTitle">練習與紀錄</h2>
+            <p class="description">這一組保留給答題模式與學習數據，避免未來和外觀設定混在一起。</p>
+          </div>
+          <div class="future-card">
+            <h3>下一階段功能</h3>
+            <p class="future-note">之後會在此加入「純練習、統計、挑戰」模式。統計模式會累積答對、答錯與正確率；挑戰模式則會在答錯時重置連續答對數。功能尚未啟用前，不會出現無效的開關。</p>
+          </div>
+        </section>
+
+        <section class="setting-group" id="library" aria-labelledby="libraryTitle">
+          <div class="group-heading">
+            <h2 id="libraryTitle">字庫與資料</h2>
+            <p class="description">管理字詞、注音和多音字選擇。</p>
+          </div>
+          <div class="data-action">
+            <div><strong>字庫管理</strong><p class="setting-note">新增或編輯字庫，並重新查詢注音。</p></div>
+            <a class="secondary-link" href="manage_words.html">開啟字庫管理</a>
+          </div>
+        </section>
+      </div>
+    </div>
   </main>
   <script>
     const ZHUYIN_ENABLED_KEY = "wordflash_zhuyin_enabled";
+    const DISPLAY_PREFERENCES_KEY = "wordflash_display_preferences_v1";
+    const DEFAULT_DISPLAY_PREFERENCES = {
+      showUnitControl: true,
+      showFontControl: true,
+      showSpeakButton: true,
+      showManageLink: true,
+      showHint: true
+    };
     const zhuyinToggle = document.getElementById("zhuyinToggle");
     const status = document.getElementById("status");
+    const preferenceControls = {
+      showUnitControl: document.getElementById("unitControlToggle"),
+      showFontControl: document.getElementById("fontControlToggle"),
+      showSpeakButton: document.getElementById("speakButtonToggle"),
+      showManageLink: document.getElementById("manageLinkToggle"),
+      showHint: document.getElementById("hintToggle")
+    };
 
     const isZhuyinEnabled = () => localStorage.getItem(ZHUYIN_ENABLED_KEY) !== "false";
-
+    const loadDisplayPreferences = () => {
+      try {
+        return { ...DEFAULT_DISPLAY_PREFERENCES, ...JSON.parse(localStorage.getItem(DISPLAY_PREFERENCES_KEY) || "{}") };
+      } catch {
+        return { ...DEFAULT_DISPLAY_PREFERENCES };
+      }
+    };
+    const saveDisplayPreferences = (preferences) => {
+      localStorage.setItem(DISPLAY_PREFERENCES_KEY, JSON.stringify(preferences));
+    };
     const render = () => {
-      const enabled = isZhuyinEnabled();
-      zhuyinToggle.checked = enabled;
-      status.textContent = enabled ? "注音提示目前已開啟。" : "注音提示目前已關閉。";
+      const preferences = loadDisplayPreferences();
+      zhuyinToggle.checked = isZhuyinEnabled();
+      Object.entries(preferenceControls).forEach(([key, control]) => { control.checked = preferences[key]; });
+      const hiddenCount = Object.values(preferences).filter((value) => !value).length;
+      status.textContent = hiddenCount ? `已隱藏 ${hiddenCount} 項工具列或提示。` : "目前顯示所有工具列與提示。";
     };
 
     zhuyinToggle.addEventListener("change", () => {
       localStorage.setItem(ZHUYIN_ENABLED_KEY, String(zhuyinToggle.checked));
       render();
     });
-
-    window.addEventListener("storage", (event) => {
-      if (event.key === ZHUYIN_ENABLED_KEY) render();
+    Object.entries(preferenceControls).forEach(([key, control]) => {
+      control.addEventListener("change", () => {
+        const preferences = loadDisplayPreferences();
+        preferences[key] = control.checked;
+        saveDisplayPreferences(preferences);
+        render();
+      });
     });
-
+    document.getElementById("resetDisplay").addEventListener("click", () => {
+      saveDisplayPreferences({ ...DEFAULT_DISPLAY_PREFERENCES });
+      render();
+    });
+    window.addEventListener("storage", (event) => {
+      if ([ZHUYIN_ENABLED_KEY, DISPLAY_PREFERENCES_KEY].includes(event.key)) render();
+    });
     render();
   </script>
 </body>

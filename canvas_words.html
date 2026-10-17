@@ -8,6 +8,9 @@
     :root {
       color-scheme: light;
     }
+    [hidden] {
+      display: none !important;
+    }
     html, body {
       margin: 0;
       height: 100%;
@@ -225,17 +228,17 @@
   <header>
     <div class="title">WordFlash</div>
     <div class="menu">
-      <label>
+      <label id="unitControl">
         字庫
         <select id="unitSelect"></select>
       </label>
-      <label>
+      <label id="fontControl">
         字型
         <select id="fontSelect"></select>
       </label>
       <button id="speakButton" type="button">播放讀音</button>
-      <a href="settings.html">設定</a>
-      <a href="manage_words.html">字庫管理</a>
+      <a id="settingsLink" href="settings.html">設定</a>
+      <a id="manageLink" href="manage_words.html">字庫管理</a>
     </div>
   </header>
   <main>
@@ -277,6 +280,14 @@
     const STORAGE_KEY = "wordflash_units_v1";
     const FONT_KEY = "wordflash_font_family";
     const ZHUYIN_ENABLED_KEY = "wordflash_zhuyin_enabled";
+    const DISPLAY_PREFERENCES_KEY = "wordflash_display_preferences_v1";
+    const DEFAULT_DISPLAY_PREFERENCES = {
+      showUnitControl: true,
+      showFontControl: true,
+      showSpeakButton: true,
+      showManageLink: true,
+      showHint: true
+    };
     const DEFAULT_FONT = "'Noto Serif TC', 'PingFang TC', 'Heiti TC', serif";
     const AUTO_ZHUYIN_MAP = {
       "一": "ㄧ",
@@ -327,6 +338,26 @@
     };
     let fontFamily = localStorage.getItem(FONT_KEY) || DEFAULT_FONT;
     let zhuyinEnabled = localStorage.getItem(ZHUYIN_ENABLED_KEY) !== "false";
+    let displayPreferences = { ...DEFAULT_DISPLAY_PREFERENCES };
+
+    const loadDisplayPreferences = () => {
+      try {
+        return {
+          ...DEFAULT_DISPLAY_PREFERENCES,
+          ...JSON.parse(localStorage.getItem(DISPLAY_PREFERENCES_KEY) || "{}")
+        };
+      } catch {
+        return { ...DEFAULT_DISPLAY_PREFERENCES };
+      }
+    };
+
+    const applyDisplayPreferences = () => {
+      document.getElementById("unitControl").hidden = !displayPreferences.showUnitControl;
+      document.getElementById("fontControl").hidden = !displayPreferences.showFontControl;
+      speakButton.hidden = !displayPreferences.showSpeakButton;
+      document.getElementById("manageLink").hidden = !displayPreferences.showManageLink;
+      status.hidden = !displayPreferences.showHint;
+    };
 
     const shuffle = (arr) => {
       for (let i = arr.length - 1; i > 0; i -= 1) {
@@ -560,6 +591,8 @@
 
     let state = initUnits();
     initFonts();
+    displayPreferences = loadDisplayPreferences();
+    applyDisplayPreferences();
     status.textContent = "點畫布或按「播放讀音」朗讀，按下方「換字」切換下一個字";
 
     unitSelect.addEventListener("change", () => {
@@ -585,6 +618,9 @@
         fontFamily = localStorage.getItem(FONT_KEY) || DEFAULT_FONT;
       } else if (event.key === ZHUYIN_ENABLED_KEY) {
         zhuyinEnabled = localStorage.getItem(ZHUYIN_ENABLED_KEY) !== "false";
+      } else if (event.key === DISPLAY_PREFERENCES_KEY) {
+        displayPreferences = loadDisplayPreferences();
+        applyDisplayPreferences();
       } else {
         return;
       }
