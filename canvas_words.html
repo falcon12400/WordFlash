@@ -861,6 +861,7 @@
       showNext();
       startChallengeTimerTicker();
       renderPracticePanel();
+      drawCurrentWord();
       status.textContent = `已開始 ${timer.durationSeconds} 秒計時挑戰，加油！`;
     };
 
@@ -912,12 +913,22 @@
       ));
     };
 
-    const drawWord = (text, zhuyinText = "") => {
+    const drawWord = (text, zhuyinText = "", sizingZhuyinText = zhuyinText) => {
       const annotations = getZhuyinByCharacter(text, zhuyinText);
+      // Reserve the same horizontal room for annotations even when their
+      // visibility is turned off. This keeps the Chinese glyphs from jumping
+      // between two sizes when the user toggles the zhuyin hint.
+      const sizingAnnotations = getZhuyinByCharacter(text, sizingZhuyinText);
       const characterCount = Math.max([...text].length, 1);
-      const annotationCount = annotations.filter(Boolean).length;
+      const annotationCount = sizingAnnotations.filter(Boolean).length;
       const stageWidth = stage.clientWidth || 1000;
-      const size = Math.max(64, Math.min(420, Math.floor((stageWidth * 0.78) / (characterCount + annotationCount * 1.1))));
+      const stageHeight = stage.clientHeight || 700;
+      const widthLimitedSize = Math.floor((stageWidth * 0.78) / (characterCount + annotationCount * 1.1));
+      // The practice panel makes the card shorter on a phone. Cap the word by
+      // usable card height as well, so a large unannotated character is never
+      // hidden behind the card's overflow boundary.
+      const heightLimitedSize = Math.floor(stageHeight * 0.78);
+      const size = Math.max(64, Math.min(420, widthLimitedSize, heightLimitedSize));
       const word = document.createElement("span");
       word.className = "word-display";
       word.style.setProperty("--word-font", fontFamily);
@@ -957,7 +968,7 @@
 
     const drawCurrentWord = () => {
       const entry = parseEntry(currentText);
-      drawWord(entry.text, zhuyinEnabled ? entry.zhuyin : "");
+      drawWord(entry.text, zhuyinEnabled ? entry.zhuyin : "", entry.zhuyin);
     };
 
     const getSpeechConfig = (text) => {
@@ -1344,6 +1355,9 @@
     }
     applyDisplayPreferences();
     renderPracticePanel();
+    if (currentText) {
+      drawCurrentWord();
+    }
     if (!latestTimedChallengeResult) {
       status.textContent = "點畫布或按「播放讀音」朗讀，按下方「換字」切換下一個字";
     }
@@ -1446,6 +1460,9 @@
         resizeRenderFrame = null;
         if (practiceMode === "challenge" && challengeProgressDisplay !== "number") {
           renderPracticePanel();
+        }
+        if (currentText) {
+          drawCurrentWord();
         }
       });
     });
