@@ -199,7 +199,7 @@
       justify-items: center;
       gap: 1px;
     }
-    .challenge-number span, .challenge-block-label, .challenge-empty {
+    .challenge-number span, .challenge-piece-label, .challenge-empty {
       color: #5b554d;
       font-size: 13px;
     }
@@ -207,36 +207,42 @@
       font-size: 28px;
       line-height: 1.05;
     }
-    .challenge-blocks {
+    .challenge-pieces {
       display: grid;
-      justify-items: center;
-      gap: 6px;
+      justify-items: start;
+      width: 100%;
+      gap: 8px;
     }
-    .challenge-block-row {
+    .challenge-piece-row {
       display: flex;
-      justify-content: center;
-      gap: 4px;
+      align-items: end;
+      width: 100%;
+      min-height: clamp(48px, 10vw, 62px);
+      padding: 6px 6px 3px;
+      border-bottom: 4px solid #2b2b2b;
     }
-    .challenge-brick {
+    .challenge-book {
       position: relative;
-      width: clamp(22px, 5vw, 30px);
-      height: clamp(17px, 3.9vw, 23px);
+      box-sizing: border-box;
+      width: clamp(22px, 5.25vw, 29px);
+      height: clamp(42px, 9vw, 56px);
       border: 2px solid #2b2b2b;
-      border-radius: 4px;
-      background: var(--brick-color);
-      box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.48), inset 0 -3px 0 rgba(0, 0, 0, 0.12), 0 2px 0 rgba(43, 43, 43, 0.18);
+      border-right: 0;
+      border-radius: 3px 3px 0 0;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.38), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.13)), var(--piece-color);
+      box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.28), inset -3px 0 0 rgba(0, 0, 0, 0.12);
     }
-    .challenge-brick::before {
+    .challenge-book:last-child {
+      border-right: 2px solid #2b2b2b;
+    }
+    .challenge-book::before {
       position: absolute;
-      top: -6px;
-      left: 22%;
-      width: 22%;
-      height: 5px;
-      border: 2px solid #2b2b2b;
-      border-bottom: 0;
-      border-radius: 4px 4px 0 0;
-      background: var(--brick-color);
-      box-shadow: calc(180% + 2px) 0 0 -2px var(--brick-color), calc(180% + 2px) 0 0 0 #2b2b2b;
+      top: 7px;
+      right: 4px;
+      left: 4px;
+      height: 2px;
+      background: rgba(255, 249, 236, 0.66);
+      box-shadow: 0 6px 0 rgba(255, 249, 236, 0.45), 0 12px 0 rgba(255, 249, 236, 0.28);
       content: "";
     }
     .challenge-overflow {
@@ -407,7 +413,7 @@
     const CHALLENGE_PROGRESS_DISPLAY_KEY = "wordflash_challenge_progress_display_v1";
     const PRACTICE_MODES = new Set(["none", "statistics", "challenge"]);
     const CHALLENGE_PROGRESS_DISPLAYS = new Set(["number", "blocks", "both"]);
-    const MAX_VISIBLE_CHALLENGE_BLOCKS = 30;
+    const MAX_VISIBLE_CHALLENGE_PIECES = 30;
     const DEFAULT_DISPLAY_PREFERENCES = {
       showUnitControl: true,
       showFontControl: true,
@@ -707,48 +713,48 @@
       }
 
       if (showBlocks) {
-        const blocks = document.createElement("div");
-        blocks.className = "challenge-blocks";
-        blocks.setAttribute("role", "img");
-        blocks.setAttribute("aria-label", `目前連續答對 ${correctCount} 題`);
+        const pieces = document.createElement("div");
+        pieces.className = "challenge-pieces";
+        pieces.setAttribute("role", "img");
+        pieces.setAttribute("aria-label", `目前連續答對 ${correctCount} 題`);
         if (challengeProgressDisplay === "blocks") {
           const label = document.createElement("span");
-          label.className = "challenge-block-label";
+          label.className = "challenge-piece-label";
           label.setAttribute("aria-hidden", "true");
           label.textContent = "連續答對積木";
-          blocks.append(label);
+          pieces.append(label);
         }
 
         if (!correctCount) {
           const empty = document.createElement("span");
           empty.className = "challenge-empty";
           empty.setAttribute("aria-hidden", "true");
-          empty.textContent = "答對一題，就會多一塊積木";
-          blocks.append(empty);
+          empty.textContent = "答對一題，就會多一片積木";
+          pieces.append(empty);
         } else {
           const colors = ["#dce8d7", "#f3ddd4", "#d9e4ee", "#f1e5bd"];
-          const visibleCount = Math.min(correctCount, MAX_VISIBLE_CHALLENGE_BLOCKS);
+          const visibleCount = Math.min(correctCount, MAX_VISIBLE_CHALLENGE_PIECES);
           for (let start = 0; start < visibleCount; start += 10) {
             const row = document.createElement("div");
-            row.className = "challenge-block-row";
+            row.className = "challenge-piece-row";
             for (let position = start; position < Math.min(start + 10, visibleCount); position += 1) {
-              const brick = document.createElement("span");
-              brick.className = "challenge-brick";
-              brick.style.setProperty("--brick-color", colors[position % colors.length]);
-              brick.setAttribute("aria-hidden", "true");
-              row.append(brick);
+              const piece = document.createElement("span");
+              piece.className = "challenge-book";
+              piece.style.setProperty("--piece-color", colors[position % colors.length]);
+              piece.setAttribute("aria-hidden", "true");
+              row.append(piece);
             }
-            blocks.append(row);
+            pieces.append(row);
           }
-          if (correctCount > MAX_VISIBLE_CHALLENGE_BLOCKS) {
+          if (correctCount > MAX_VISIBLE_CHALLENGE_PIECES) {
             const overflow = document.createElement("span");
             overflow.className = "challenge-overflow";
             overflow.setAttribute("aria-hidden", "true");
-            overflow.textContent = `+${correctCount - MAX_VISIBLE_CHALLENGE_BLOCKS}`;
-            blocks.append(overflow);
+            overflow.textContent = `+${correctCount - MAX_VISIBLE_CHALLENGE_PIECES}`;
+            pieces.append(overflow);
           }
         }
-        progress.append(blocks);
+        progress.append(pieces);
       }
       return progress;
     };

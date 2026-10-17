@@ -38,7 +38,7 @@ test("各裝置：統計與挑戰模式會正確記錄答題", async ({ page }, 
   await page.locator("#correctButton").click();
   await page.locator("#correctButton").click();
   await page.locator("#correctButton").click();
-  await expect(page.locator(".challenge-brick")).toHaveCount(3);
+  await expect(page.locator(".challenge-book")).toHaveCount(3);
   await expect(page.locator(".challenge-number")).toHaveCount(0);
   await page.screenshot({
     path: path.join(artifactDir, `${testInfo.project.name}-challenge-blocks.png`),
@@ -50,11 +50,11 @@ test("各裝置：統計與挑戰模式會正確記錄答題", async ({ page }, 
   await page.locator('label[for="challengeDisplayBoth"]').click();
   await page.goto("/canvas_words.html");
   await expect(page.locator(".challenge-number")).toContainText("目前連續答對3");
-  await expect(page.locator(".challenge-brick")).toHaveCount(3);
+  await expect(page.locator(".challenge-book")).toHaveCount(3);
 
   await page.goto("/settings.html");
   await page.locator('label[for="challengeDisplayNumber"]').click();
   await page.goto("/canvas_words.html");
   await expect(page.locator(".challenge-number")).toContainText("目前連續答對3");
-  await expect(page.locator(".challenge-brick")).toHaveCount(0);
+  await expect(page.locator(".challenge-book")).toHaveCount(0);
 });
