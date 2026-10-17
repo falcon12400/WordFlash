@@ -194,6 +194,58 @@
     .mode-copy { display: grid; gap: 4px; }
     .mode-copy strong { font-size: 18px; }
     .mode-copy span { color: #5b554d; font-size: 15px; line-height: 1.45; }
+    .challenge-display-options {
+      margin: 0;
+      padding: 18px 22px 20px;
+      border: 0;
+      border-top: 1px solid rgba(43, 43, 43, 0.18);
+      background: rgba(239, 230, 213, 0.33);
+    }
+    .challenge-display-options legend {
+      padding: 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .challenge-display-options > p {
+      margin: 5px 0 14px;
+      color: #5b554d;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    .challenge-display-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .challenge-display-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      min-height: 72px;
+      padding: 12px;
+      border: var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      cursor: pointer;
+    }
+    .challenge-display-option input {
+      width: 20px;
+      height: 20px;
+      margin: 1px 0 0;
+      accent-color: #756c58;
+      flex: 0 0 auto;
+    }
+    .challenge-display-option span {
+      color: #5b554d;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+    .challenge-display-option strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--ink);
+      font-size: 16px;
+    }
     .data-action {
       display: flex;
       align-items: center;
@@ -219,6 +271,9 @@
       .group-heading, .group-footer, .data-action { padding-right: 16px; padding-left: 16px; }
       .future-card { margin: 16px; }
       .group-footer, .data-action { align-items: flex-start; flex-direction: column; }
+      .challenge-display-options { padding-right: 16px; padding-left: 16px; }
+      .challenge-display-list { grid-template-columns: 1fr; }
+      .challenge-display-option { min-height: 62px; }
     }
   </style>
 </head>
@@ -308,6 +363,24 @@
               <span class="mode-copy"><strong>挑戰模式</strong><span>記錄目前連續答對數；只要答錯一題，就從零重新計算。</span></span>
             </label>
           </div>
+          <fieldset class="challenge-display-options" id="challengeDisplayOptions" hidden>
+            <legend>挑戰進度顯示</legend>
+            <p>可依孩子的理解方式，選擇用數字、積木，或兩者一起看進度。</p>
+            <div class="challenge-display-list" role="radiogroup" aria-label="挑戰進度顯示方式">
+              <label class="challenge-display-option" for="challengeDisplayNumber">
+                <input id="challengeDisplayNumber" name="challengeDisplay" type="radio" value="number" />
+                <span><strong>只顯示數字</strong>簡潔顯示連續答對題數。</span>
+              </label>
+              <label class="challenge-display-option" for="challengeDisplayBlocks">
+                <input id="challengeDisplayBlocks" name="challengeDisplay" type="radio" value="blocks" />
+                <span><strong>只顯示積木</strong>每答對一題，多一塊積木。</span>
+              </label>
+              <label class="challenge-display-option" for="challengeDisplayBoth">
+                <input id="challengeDisplayBoth" name="challengeDisplay" type="radio" value="both" />
+                <span><strong>數字＋積木</strong>同時看題數與直觀進度。</span>
+              </label>
+            </div>
+          </fieldset>
           <div class="group-footer">
             <p id="practiceStatus" aria-live="polite"></p>
             <button class="reset-button" id="resetPractice" type="button">清除本模式紀錄</button>
@@ -332,6 +405,7 @@
     const DISPLAY_PREFERENCES_KEY = "wordflash_display_preferences_v1";
     const PRACTICE_MODE_KEY = "wordflash_practice_mode_v1";
     const PRACTICE_SESSION_KEY = "wordflash_practice_session_v1";
+    const CHALLENGE_PROGRESS_DISPLAY_KEY = "wordflash_challenge_progress_display_v1";
     const DEFAULT_DISPLAY_PREFERENCES = {
       showUnitControl: true,
       showFontControl: true,
@@ -344,6 +418,8 @@
     const practiceStatus = document.getElementById("practiceStatus");
     const resetPractice = document.getElementById("resetPractice");
     const practiceModeControls = [...document.querySelectorAll('input[name="practiceMode"]')];
+    const challengeDisplayOptions = document.getElementById("challengeDisplayOptions");
+    const challengeDisplayControls = [...document.querySelectorAll('input[name="challengeDisplay"]')];
     const preferenceControls = {
       showUnitControl: document.getElementById("unitControlToggle"),
       showFontControl: document.getElementById("fontControlToggle"),
@@ -367,6 +443,15 @@
       const mode = localStorage.getItem(PRACTICE_MODE_KEY);
       return ["none", "statistics", "challenge"].includes(mode) ? mode : "none";
     };
+    const loadChallengeProgressDisplay = () => {
+      const display = localStorage.getItem(CHALLENGE_PROGRESS_DISPLAY_KEY);
+      return ["number", "blocks", "both"].includes(display) ? display : "both";
+    };
+    const challengeDisplayName = (display) => ({
+      number: "只顯示數字",
+      blocks: "只顯示積木",
+      both: "數字＋積木"
+    })[display];
     const createDefaultPracticeSession = () => ({
       statistics: { correct: 0, incorrect: 0 },
       challenge: { correct: 0 }
@@ -389,9 +474,12 @@
       const preferences = loadDisplayPreferences();
       const practiceMode = loadPracticeMode();
       const session = loadPracticeSession();
+      const challengeDisplay = loadChallengeProgressDisplay();
       zhuyinToggle.checked = isZhuyinEnabled();
       Object.entries(preferenceControls).forEach(([key, control]) => { control.checked = preferences[key]; });
       practiceModeControls.forEach((control) => { control.checked = control.value === practiceMode; });
+      challengeDisplayControls.forEach((control) => { control.checked = control.value === challengeDisplay; });
+      challengeDisplayOptions.hidden = practiceMode !== "challenge";
       const hiddenCount = Object.values(preferences).filter((value) => !value).length;
       displayStatus.textContent = hiddenCount ? `已隱藏 ${hiddenCount} 項工具列或提示。` : "目前顯示所有工具列與提示。";
       if (practiceMode === "statistics") {
@@ -399,7 +487,7 @@
         const total = correct + incorrect;
         practiceStatus.textContent = total ? `目前累積：答對 ${correct} 題、答錯 ${incorrect} 題。` : "尚未記錄答題結果。";
       } else if (practiceMode === "challenge") {
-        practiceStatus.textContent = `目前連續答對 ${session.challenge.correct} 題。`;
+        practiceStatus.textContent = `目前連續答對 ${session.challenge.correct} 題；目前使用「${challengeDisplayName(challengeDisplay)}」。`;
       } else {
         practiceStatus.textContent = "純練習模式不會記錄答題結果。";
       }
@@ -424,6 +512,12 @@
         render();
       });
     });
+    challengeDisplayControls.forEach((control) => {
+      control.addEventListener("change", () => {
+        if (control.checked) localStorage.setItem(CHALLENGE_PROGRESS_DISPLAY_KEY, control.value);
+        render();
+      });
+    });
     document.getElementById("resetDisplay").addEventListener("click", () => {
       saveDisplayPreferences({ ...DEFAULT_DISPLAY_PREFERENCES });
       render();
@@ -438,7 +532,7 @@
       render();
     });
     window.addEventListener("storage", (event) => {
-      if ([ZHUYIN_ENABLED_KEY, DISPLAY_PREFERENCES_KEY, PRACTICE_MODE_KEY, PRACTICE_SESSION_KEY].includes(event.key)) render();
+      if ([ZHUYIN_ENABLED_KEY, DISPLAY_PREFERENCES_KEY, PRACTICE_MODE_KEY, PRACTICE_SESSION_KEY, CHALLENGE_PROGRESS_DISPLAY_KEY].includes(event.key)) render();
     });
     render();
   </script>

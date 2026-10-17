@@ -161,6 +161,9 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
     }
+    .practice-summary.challenge-summary {
+      grid-template-columns: 1fr;
+    }
     .practice-stat {
       display: grid;
       gap: 2px;
@@ -185,6 +188,64 @@
     }
     .answer-controls .correct-button { background: #e1ead8; }
     .answer-controls .incorrect-button { background: #f1dfd7; }
+    .challenge-progress {
+      display: grid;
+      justify-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .challenge-number {
+      display: grid;
+      justify-items: center;
+      gap: 1px;
+    }
+    .challenge-number span, .challenge-block-label, .challenge-empty {
+      color: #5b554d;
+      font-size: 13px;
+    }
+    .challenge-number strong {
+      font-size: 28px;
+      line-height: 1.05;
+    }
+    .challenge-blocks {
+      display: grid;
+      justify-items: center;
+      gap: 6px;
+    }
+    .challenge-block-row {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+    }
+    .challenge-brick {
+      position: relative;
+      width: clamp(22px, 5vw, 30px);
+      height: clamp(17px, 3.9vw, 23px);
+      border: 2px solid #2b2b2b;
+      border-radius: 4px;
+      background: var(--brick-color);
+      box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.48), inset 0 -3px 0 rgba(0, 0, 0, 0.12), 0 2px 0 rgba(43, 43, 43, 0.18);
+    }
+    .challenge-brick::before {
+      position: absolute;
+      top: -6px;
+      left: 22%;
+      width: 22%;
+      height: 5px;
+      border: 2px solid #2b2b2b;
+      border-bottom: 0;
+      border-radius: 4px 4px 0 0;
+      background: var(--brick-color);
+      box-shadow: calc(180% + 2px) 0 0 -2px var(--brick-color), calc(180% + 2px) 0 0 0 #2b2b2b;
+      content: "";
+    }
+    .challenge-overflow {
+      align-self: center;
+      padding: 2px 4px;
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+    }
     /* Phone portrait: compact controls above a card that fills the remaining view. */
     @media (max-width: 720px) and (orientation: portrait) {
       header {
@@ -246,6 +307,7 @@
         gap: 12px;
         padding: 12px;
       }
+      .challenge-number strong { font-size: 30px; }
       .answer-controls { display: grid; grid-template-columns: 1fr 1fr; }
       .answer-controls button { min-height: 52px; font-size: 19px; }
       .hint {
@@ -342,7 +404,10 @@
     const DISPLAY_PREFERENCES_KEY = "wordflash_display_preferences_v1";
     const PRACTICE_MODE_KEY = "wordflash_practice_mode_v1";
     const PRACTICE_SESSION_KEY = "wordflash_practice_session_v1";
+    const CHALLENGE_PROGRESS_DISPLAY_KEY = "wordflash_challenge_progress_display_v1";
     const PRACTICE_MODES = new Set(["none", "statistics", "challenge"]);
+    const CHALLENGE_PROGRESS_DISPLAYS = new Set(["number", "blocks", "both"]);
+    const MAX_VISIBLE_CHALLENGE_BLOCKS = 30;
     const DEFAULT_DISPLAY_PREFERENCES = {
       showUnitControl: true,
       showFontControl: true,
@@ -403,6 +468,7 @@
     let displayPreferences = { ...DEFAULT_DISPLAY_PREFERENCES };
     let practiceMode = "none";
     let practiceSession = null;
+    let challengeProgressDisplay = "both";
 
     const loadDisplayPreferences = () => {
       try {
@@ -426,6 +492,11 @@
     const loadPracticeMode = () => {
       const savedMode = localStorage.getItem(PRACTICE_MODE_KEY);
       return PRACTICE_MODES.has(savedMode) ? savedMode : "none";
+    };
+
+    const loadChallengeProgressDisplay = () => {
+      const savedDisplay = localStorage.getItem(CHALLENGE_PROGRESS_DISPLAY_KEY);
+      return CHALLENGE_PROGRESS_DISPLAYS.has(savedDisplay) ? savedDisplay : "both";
     };
 
     const createDefaultPracticeSession = () => ({
@@ -618,10 +689,75 @@
       return item;
     };
 
+    const createChallengeProgress = (correctCount) => {
+      const progress = document.createElement("div");
+      progress.className = `challenge-progress challenge-progress--${challengeProgressDisplay}`;
+      const showNumber = challengeProgressDisplay !== "blocks";
+      const showBlocks = challengeProgressDisplay !== "number";
+
+      if (showNumber) {
+        const number = document.createElement("div");
+        number.className = "challenge-number";
+        const label = document.createElement("span");
+        label.textContent = "目前連續答對";
+        const value = document.createElement("strong");
+        value.textContent = String(correctCount);
+        number.append(label, value);
+        progress.append(number);
+      }
+
+      if (showBlocks) {
+        const blocks = document.createElement("div");
+        blocks.className = "challenge-blocks";
+        blocks.setAttribute("role", "img");
+        blocks.setAttribute("aria-label", `目前連續答對 ${correctCount} 題`);
+        if (challengeProgressDisplay === "blocks") {
+          const label = document.createElement("span");
+          label.className = "challenge-block-label";
+          label.setAttribute("aria-hidden", "true");
+          label.textContent = "連續答對積木";
+          blocks.append(label);
+        }
+
+        if (!correctCount) {
+          const empty = document.createElement("span");
+          empty.className = "challenge-empty";
+          empty.setAttribute("aria-hidden", "true");
+          empty.textContent = "答對一題，就會多一塊積木";
+          blocks.append(empty);
+        } else {
+          const colors = ["#dce8d7", "#f3ddd4", "#d9e4ee", "#f1e5bd"];
+          const visibleCount = Math.min(correctCount, MAX_VISIBLE_CHALLENGE_BLOCKS);
+          for (let start = 0; start < visibleCount; start += 10) {
+            const row = document.createElement("div");
+            row.className = "challenge-block-row";
+            for (let position = start; position < Math.min(start + 10, visibleCount); position += 1) {
+              const brick = document.createElement("span");
+              brick.className = "challenge-brick";
+              brick.style.setProperty("--brick-color", colors[position % colors.length]);
+              brick.setAttribute("aria-hidden", "true");
+              row.append(brick);
+            }
+            blocks.append(row);
+          }
+          if (correctCount > MAX_VISIBLE_CHALLENGE_BLOCKS) {
+            const overflow = document.createElement("span");
+            overflow.className = "challenge-overflow";
+            overflow.setAttribute("aria-hidden", "true");
+            overflow.textContent = `+${correctCount - MAX_VISIBLE_CHALLENGE_BLOCKS}`;
+            blocks.append(overflow);
+          }
+        }
+        progress.append(blocks);
+      }
+      return progress;
+    };
+
     const renderPracticePanel = () => {
       const isPracticeActive = practiceMode !== "none";
       practicePanel.hidden = !isPracticeActive;
       nextButton.textContent = isPracticeActive ? "跳過" : "換字";
+      practiceSummary.classList.toggle("challenge-summary", practiceMode === "challenge");
       if (!isPracticeActive) return;
 
       if (practiceMode === "statistics") {
@@ -636,9 +772,7 @@
         return;
       }
 
-      practiceSummary.replaceChildren(
-        createPracticeStat("目前連續答對", String(practiceSession.challenge.correct))
-      );
+      practiceSummary.replaceChildren(createChallengeProgress(practiceSession.challenge.correct));
     };
 
     const recordAnswer = (isCorrect) => {
@@ -740,6 +874,7 @@
     displayPreferences = loadDisplayPreferences();
     practiceMode = loadPracticeMode();
     practiceSession = loadPracticeSession();
+    challengeProgressDisplay = loadChallengeProgressDisplay();
     applyDisplayPreferences();
     renderPracticePanel();
     status.textContent = "點畫布或按「播放讀音」朗讀，按下方「換字」切換下一個字";
@@ -777,6 +912,9 @@
         renderPracticePanel();
       } else if (event.key === PRACTICE_SESSION_KEY) {
         practiceSession = loadPracticeSession();
+        renderPracticePanel();
+      } else if (event.key === CHALLENGE_PROGRESS_DISPLAY_KEY) {
+        challengeProgressDisplay = loadChallengeProgressDisplay();
         renderPracticePanel();
       } else {
         return;
