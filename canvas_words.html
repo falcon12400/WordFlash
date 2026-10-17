@@ -413,7 +413,7 @@
     const CHALLENGE_PROGRESS_DISPLAY_KEY = "wordflash_challenge_progress_display_v1";
     const PRACTICE_MODES = new Set(["none", "statistics", "challenge"]);
     const CHALLENGE_PROGRESS_DISPLAYS = new Set(["number", "blocks", "both"]);
-    const MAX_VISIBLE_CHALLENGE_PIECES = 30;
+    const MAX_VISIBLE_CHALLENGE_ROWS = 3;
     const DEFAULT_DISPLAY_PREFERENCES = {
       showUnitControl: true,
       showFontControl: true,
@@ -695,6 +695,17 @@
       return item;
     };
 
+    const getChallengePiecesPerRow = () => {
+      const sample = document.createElement("span");
+      sample.className = "challenge-book";
+      sample.setAttribute("aria-hidden", "true");
+      practiceSummary.append(sample);
+      const pieceWidth = Math.ceil(sample.getBoundingClientRect().width) || 22;
+      sample.remove();
+      const rowHorizontalPadding = 12;
+      return Math.max(1, Math.floor((practiceSummary.clientWidth - rowHorizontalPadding) / pieceWidth));
+    };
+
     const createChallengeProgress = (correctCount) => {
       const progress = document.createElement("div");
       progress.className = `challenge-progress challenge-progress--${challengeProgressDisplay}`;
@@ -713,10 +724,14 @@
       }
 
       if (showBlocks) {
+        const piecesPerRow = getChallengePiecesPerRow();
+        const visibleCapacity = piecesPerRow * MAX_VISIBLE_CHALLENGE_ROWS;
         const pieces = document.createElement("div");
         pieces.className = "challenge-pieces";
         pieces.setAttribute("role", "img");
         pieces.setAttribute("aria-label", `目前連續答對 ${correctCount} 題`);
+        pieces.dataset.piecesPerRow = String(piecesPerRow);
+        pieces.dataset.visibleCapacity = String(visibleCapacity);
         if (challengeProgressDisplay === "blocks") {
           const label = document.createElement("span");
           label.className = "challenge-piece-label";
@@ -733,11 +748,11 @@
           pieces.append(empty);
         } else {
           const colors = ["#dce8d7", "#f3ddd4", "#d9e4ee", "#f1e5bd"];
-          const visibleCount = Math.min(correctCount, MAX_VISIBLE_CHALLENGE_PIECES);
-          for (let start = 0; start < visibleCount; start += 10) {
+          const visibleCount = Math.min(correctCount, visibleCapacity);
+          for (let start = 0; start < visibleCount; start += piecesPerRow) {
             const row = document.createElement("div");
             row.className = "challenge-piece-row";
-            for (let position = start; position < Math.min(start + 10, visibleCount); position += 1) {
+            for (let position = start; position < Math.min(start + piecesPerRow, visibleCount); position += 1) {
               const piece = document.createElement("span");
               piece.className = "challenge-book";
               piece.style.setProperty("--piece-color", colors[position % colors.length]);
@@ -746,11 +761,11 @@
             }
             pieces.append(row);
           }
-          if (correctCount > MAX_VISIBLE_CHALLENGE_PIECES) {
+          if (correctCount > visibleCapacity) {
             const overflow = document.createElement("span");
             overflow.className = "challenge-overflow";
             overflow.setAttribute("aria-hidden", "true");
-            overflow.textContent = `+${correctCount - MAX_VISIBLE_CHALLENGE_PIECES}`;
+            overflow.textContent = `+${correctCount - visibleCapacity}`;
             pieces.append(overflow);
           }
         }
