@@ -18,7 +18,8 @@
       font-family: "Noto Serif TC", "PingFang TC", "Heiti TC", serif;
       color: #2b2b2b;
       display: grid;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-height: 100dvh;
     }
     header {
       display: flex;
@@ -57,10 +58,19 @@
     main {
       display: grid;
       place-items: center;
-      padding: 28px 0 40px;
+      min-height: 0;
+      padding: 28px 24px 32px;
+      box-sizing: border-box;
+    }
+    .flashcard-layout {
+      width: min(92vw, 1000px);
+      display: grid;
+      grid-template-rows: auto auto auto;
+      justify-items: center;
+      gap: 16px;
     }
     .stage {
-      width: min(92vw, 1000px);
+      width: 100%;
       height: min(70vh, 700px);
       border: 6px solid #2b2b2b;
       background: #fff9ec;
@@ -110,13 +120,12 @@
       text-orientation: upright;
     }
     .hint {
-      margin-top: 18px;
+      margin: 0;
       font-size: 16px;
       letter-spacing: 0.08em;
       text-align: center;
     }
     .controls {
-      margin-top: 18px;
       display: flex;
       justify-content: center;
       gap: 12px;
@@ -132,42 +141,82 @@
       cursor: pointer;
       box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
     }
-    @media (max-width: 720px) {
+    /* Phone portrait: compact controls above a card that fills the remaining view. */
+    @media (max-width: 720px) and (orientation: portrait) {
       header {
-        flex-direction: column;
-        gap: 10px;
+        display: grid;
+        gap: 12px;
         align-items: flex-start;
-        padding: 16px;
+        padding: 12px 16px 14px;
       }
       header .title {
-        font-size: 22px;
+        font-size: 21px;
       }
       header .menu {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         width: 100%;
-        gap: 10px;
+        gap: 9px;
       }
       header .menu label {
         display: grid;
         gap: 4px;
+        grid-column: 1 / -1;
       }
       header select,
       header a,
       header button {
-        min-height: 44px;
-        padding: 9px 14px;
+        box-sizing: border-box;
+        min-width: 0;
+        min-height: 48px;
+        padding: 8px;
         font-size: 16px;
       }
+      header a,
+      header button {
+        display: grid;
+        place-items: center;
+      }
+      header select {
+        width: 100%;
+      }
+      main {
+        display: block;
+        padding: 14px 12px 16px;
+      }
+      .flashcard-layout {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        grid-template-rows: minmax(220px, 1fr) auto auto;
+        gap: 12px;
+      }
       .controls button {
-        min-height: 52px;
-        padding: 12px 36px;
+        width: 100%;
+        min-height: 56px;
+        padding: 12px 24px;
         font-size: 20px;
       }
       .hint {
-        padding: 0 16px;
-        font-size: 15px;
+        max-width: 32rem;
+        padding: 0 6px;
+        font-size: 14px;
+        line-height: 1.45;
       }
       .stage {
-        height: min(58vh, 520px);
+        min-height: 0;
+        height: 100%;
+        border-width: 5px;
+      }
+    }
+    /* Tablet and desktop: the toolbar stays horizontal and the card uses a wide reading area. */
+    @media (min-width: 721px) {
+      .flashcard-layout {
+        grid-template-rows: auto auto auto;
+      }
+      .stage {
+        width: min(88vw, 1080px);
+        height: min(68vh, 720px);
       }
     }
   </style>
@@ -190,7 +239,7 @@
     </div>
   </header>
   <main>
-    <div>
+    <div class="flashcard-layout">
       <div id="stage" class="stage" role="img" aria-label="中文字卡"></div>
       <div class="controls">
         <button id="nextButton" type="button">換字</button>

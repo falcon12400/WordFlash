@@ -14,3 +14,11 @@ npm run test:pixel-10a
 ```
 
 成功後的截圖在 `automation/artifacts/pixel-10a-display.png`。測試會啟動本機伺服器，測試的是尚未發布的專案檔案，不會改動字庫或 GitHub Pages。
+
+## iPad 橫向
+
+```powershell
+npm run test:ipad
+```
+
+成功後的截圖在 `automation/artifacts/ipad-landscape-display.png`。手機直式與 iPad 橫向使用不同的 CSS 版面規則。
