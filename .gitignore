@@ -1,0 +1,5 @@
+automation/node_modules/
+automation/test-results/
+automation/playwright-report/
+automation/artifacts/
+

@@ -1,0 +1,14 @@
+{
+  "name": "wordflash-mobile-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright mobile viewport checks for WordFlash",
+  "scripts": {
+    "test": "playwright test",
+    "test:pixel-10a": "playwright test --project=pixel-10a",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1"
+  }
+}
