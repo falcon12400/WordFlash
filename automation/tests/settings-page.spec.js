@@ -6,6 +6,8 @@ test("各裝置：設定中心會套用工具列開關", async ({ page }, testIn
   await page.goto("/settings.html");
   await expect(page.getByRole("heading", { name: "設定中心" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "設定分類" })).toBeVisible();
+  await expect(page.locator("#googleSignIn")).toBeVisible();
+  await expect(page.locator("#cloudStatus")).toContainText("尚未登入");
 
   await page.locator('label[for="unitControlToggle"]').click();
   await expect(page.locator("#unitControlToggle")).not.toBeChecked();

@@ -253,6 +253,12 @@
       gap: 18px;
       padding: 20px 22px;
     }
+    .cloud-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
     #status { margin: 0; font-size: 14px; }
     @media (max-width: 720px) {
       header { padding: 12px 16px; }
@@ -271,6 +277,7 @@
       .group-heading, .group-footer, .data-action { padding-right: 16px; padding-left: 16px; }
       .future-card { margin: 16px; }
       .group-footer, .data-action { align-items: flex-start; flex-direction: column; }
+      .cloud-actions { justify-content: flex-start; }
       .challenge-display-options { padding-right: 16px; padding-left: 16px; }
       .challenge-display-list { grid-template-columns: 1fr; }
       .challenge-display-option { min-height: 62px; }
@@ -390,7 +397,19 @@
         <section class="setting-group" id="library" aria-labelledby="libraryTitle">
           <div class="group-heading">
             <h2 id="libraryTitle">字庫與資料</h2>
-            <p class="description">管理字詞、注音和多音字選擇。</p>
+            <p class="description">管理字詞、注音和多音字選擇，也可以同步自己的字庫。</p>
+          </div>
+          <div class="data-action">
+            <div>
+              <strong>Google 帳號與雲端字庫</strong>
+              <p class="setting-note" id="cloudStatus" aria-live="polite">正在確認登入狀態…</p>
+            </div>
+            <div class="cloud-actions">
+              <button class="reset-button" id="googleSignIn" type="button">使用 Google 登入</button>
+              <button class="reset-button" id="googleSignOut" type="button" hidden>登出</button>
+              <button class="reset-button" id="uploadCloud" type="button" hidden>上傳此裝置字庫</button>
+              <button class="reset-button" id="downloadCloud" type="button" hidden>下載雲端字庫</button>
+            </div>
           </div>
           <div class="data-action">
             <div><strong>字庫管理</strong><p class="setting-note">新增或編輯字庫，並重新查詢注音。</p></div>
@@ -400,7 +419,15 @@
       </div>
     </div>
   </main>
-  <script>
+  <script type="module">
+    import {
+      loadCloudUnits,
+      saveCloudUnits,
+      signInWithGoogle,
+      signOutFromGoogle,
+      subscribeToUser
+    } from "./firebase-wordflash.js";
+
     const ZHUYIN_ENABLED_KEY = "wordflash_zhuyin_enabled";
     const DISPLAY_PREFERENCES_KEY = "wordflash_display_preferences_v1";
     const PRACTICE_MODE_KEY = "wordflash_practice_mode_v1";
@@ -417,6 +444,11 @@
     const displayStatus = document.getElementById("displayStatus");
     const practiceStatus = document.getElementById("practiceStatus");
     const resetPractice = document.getElementById("resetPractice");
+    const cloudStatus = document.getElementById("cloudStatus");
+    const googleSignIn = document.getElementById("googleSignIn");
+    const googleSignOut = document.getElementById("googleSignOut");
+    const uploadCloud = document.getElementById("uploadCloud");
+    const downloadCloud = document.getElementById("downloadCloud");
     const practiceModeControls = [...document.querySelectorAll('input[name="practiceMode"]')];
     const challengeDisplayOptions = document.getElementById("challengeDisplayOptions");
     const challengeDisplayControls = [...document.querySelectorAll('input[name="challengeDisplay"]')];
@@ -469,6 +501,33 @@
     };
     const savePracticeSession = (session) => {
       localStorage.setItem(PRACTICE_SESSION_KEY, JSON.stringify(session));
+    };
+    const loadLocalUnits = () => {
+      try {
+        return JSON.parse(localStorage.getItem("wordflash_units_v1") || "null");
+      } catch {
+        return null;
+      }
+    };
+    const saveLocalUnits = (units) => {
+      localStorage.setItem("wordflash_units_v1", JSON.stringify(units));
+    };
+    let currentUser = null;
+    let hasCloudLibrary = false;
+    const renderCloudStatus = () => {
+      const signedIn = Boolean(currentUser);
+      googleSignIn.hidden = signedIn;
+      googleSignOut.hidden = !signedIn;
+      uploadCloud.hidden = !signedIn;
+      downloadCloud.hidden = !signedIn;
+      if (!signedIn) {
+        cloudStatus.textContent = "尚未登入。字庫目前只存在這台裝置；登入後可上傳並在其他裝置下載。";
+        return;
+      }
+      const name = currentUser.displayName || currentUser.email || "Google 使用者";
+      cloudStatus.textContent = hasCloudLibrary
+        ? `已登入 ${name}，已找到你的雲端字庫。`
+        : `已登入 ${name}，尚未建立雲端字庫；可先上傳這台裝置的字庫。`;
     };
     const render = () => {
       const preferences = loadDisplayPreferences();
@@ -530,6 +589,67 @@
       session[practiceMode] = createDefaultPracticeSession()[practiceMode];
       savePracticeSession(session);
       render();
+    });
+    googleSignIn.addEventListener("click", async () => {
+      googleSignIn.disabled = true;
+      cloudStatus.textContent = "正在開啟 Google 登入…";
+      try {
+        await signInWithGoogle();
+      } catch (error) {
+        cloudStatus.textContent = `登入失敗：${error.message || "請稍後再試。"}`;
+      } finally {
+        googleSignIn.disabled = false;
+      }
+    });
+    googleSignOut.addEventListener("click", async () => {
+      await signOutFromGoogle();
+    });
+    uploadCloud.addEventListener("click", async () => {
+      const localUnits = loadLocalUnits();
+      if (!localUnits?.units || !Object.keys(localUnits.units).length) {
+        cloudStatus.textContent = "這台裝置找不到可上傳的字庫。";
+        return;
+      }
+      if (hasCloudLibrary && !window.confirm("這會以這台裝置的字庫覆蓋雲端字庫。要繼續嗎？")) return;
+      uploadCloud.disabled = true;
+      cloudStatus.textContent = "正在上傳字庫…";
+      try {
+        await saveCloudUnits(currentUser, localUnits);
+        hasCloudLibrary = true;
+        cloudStatus.textContent = "已上傳字庫；之後在字庫管理頁儲存時會自動同步。";
+      } catch (error) {
+        cloudStatus.textContent = `上傳失敗：${error.message || "請稍後再試。"}`;
+      } finally {
+        uploadCloud.disabled = false;
+      }
+    });
+    downloadCloud.addEventListener("click", async () => {
+      downloadCloud.disabled = true;
+      cloudStatus.textContent = "正在讀取雲端字庫…";
+      try {
+        const cloudUnits = await loadCloudUnits(currentUser);
+        if (!cloudUnits) {
+          hasCloudLibrary = false;
+          renderCloudStatus();
+          return;
+        }
+        if (!window.confirm("這會以雲端字庫取代這台裝置目前的字庫。要繼續嗎？")) {
+          renderCloudStatus();
+          return;
+        }
+        saveLocalUnits(cloudUnits);
+        hasCloudLibrary = true;
+        cloudStatus.textContent = "已下載雲端字庫；重新開啟顯示頁或字庫管理頁即可使用。";
+      } catch (error) {
+        cloudStatus.textContent = `下載失敗：${error.message || "請稍後再試。"}`;
+      } finally {
+        downloadCloud.disabled = false;
+      }
+    });
+    subscribeToUser(async (user) => {
+      currentUser = user;
+      hasCloudLibrary = user ? Boolean(await loadCloudUnits(user).catch(() => null)) : false;
+      renderCloudStatus();
     });
     window.addEventListener("storage", (event) => {
       if ([ZHUYIN_ENABLED_KEY, DISPLAY_PREFERENCES_KEY, PRACTICE_MODE_KEY, PRACTICE_SESSION_KEY, CHALLENGE_PROGRESS_DISPLAY_KEY].includes(event.key)) render();

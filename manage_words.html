@@ -43,6 +43,24 @@
       color: inherit;
       text-decoration: none;
     }
+    header button {
+      border: 2px solid #2b2b2b;
+      border-radius: 6px;
+      padding: 6px 10px;
+      background: #fff9ec;
+      font-family: inherit;
+      font-size: 14px;
+      color: inherit;
+      cursor: pointer;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .account-status { font-size: 13px; color: #5b554d; }
     main {
       display: grid;
       place-items: center;
@@ -119,6 +137,7 @@
         gap: 10px;
         align-items: flex-start;
       }
+      .header-actions { justify-content: flex-start; }
       .actions {
         flex-direction: column;
       }
@@ -128,7 +147,12 @@
 <body>
   <header>
     <div class="title">WordFlash</div>
-    <a href="canvas_words.html">回到顯示頁</a>
+    <div class="header-actions">
+      <span class="account-status" id="accountStatus" aria-live="polite">正在確認登入狀態…</span>
+      <button id="googleSignIn" type="button">Google 登入</button>
+      <button id="googleSignOut" type="button" hidden>登出</button>
+      <a href="canvas_words.html">回到顯示頁</a>
+    </div>
   </header>
   <main>
     <section class="panel">
@@ -157,7 +181,15 @@
     </section>
   </main>
 
-  <script>
+  <script type="module">
+    import {
+      loadCloudUnits,
+      saveCloudUnits,
+      signInWithGoogle,
+      signOutFromGoogle,
+      subscribeToUser
+    } from "./firebase-wordflash.js";
+
     const DEFAULT_WORDS = [
       "郭",
       "柚",
@@ -184,7 +216,11 @@
     const readingChoiceList = document.getElementById("readingChoiceList");
     const applyReadingsBtn = document.getElementById("applyReadings");
     const status = document.getElementById("status");
+    const accountStatus = document.getElementById("accountStatus");
+    const googleSignIn = document.getElementById("googleSignIn");
+    const googleSignOut = document.getElementById("googleSignOut");
     let pendingReadings = [];
+    let currentUser = null;
 
     const loadUnits = () => {
       try {
@@ -198,6 +234,12 @@
 
     const saveUnits = (data) => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      if (currentUser) {
+        saveCloudUnits(currentUser, data).catch((error) => {
+          console.error("WordFlash cloud sync failed", error);
+          status.textContent = "已儲存在這台裝置，但雲端同步失敗；請稍後再試。";
+        });
+      }
     };
 
     const normalizeWords = (text) => text
@@ -476,6 +518,48 @@
       saveUnits(state);
       hideReadingChoices();
       status.textContent = "已套用選擇並儲存多音字注音。";
+    });
+
+    const renderAccount = () => {
+      const signedIn = Boolean(currentUser);
+      googleSignIn.hidden = signedIn;
+      googleSignOut.hidden = !signedIn;
+      accountStatus.textContent = signedIn
+        ? `已登入：${currentUser.displayName || currentUser.email || "Google 使用者"}`
+        : "未登入：字庫只會儲存在這台裝置";
+    };
+    googleSignIn.addEventListener("click", async () => {
+      googleSignIn.disabled = true;
+      accountStatus.textContent = "正在開啟 Google 登入…";
+      try {
+        await signInWithGoogle();
+      } catch (error) {
+        accountStatus.textContent = `登入失敗：${error.message || "請稍後再試。"}`;
+      } finally {
+        googleSignIn.disabled = false;
+      }
+    });
+    googleSignOut.addEventListener("click", () => signOutFromGoogle());
+    subscribeToUser(async (user) => {
+      currentUser = user;
+      renderAccount();
+      if (!user) return;
+      try {
+        const cloudUnits = await loadCloudUnits(user);
+        if (!cloudUnits) {
+          status.textContent = "已登入 Google；儲存字庫後會自動建立雲端備份。";
+          return;
+        }
+        state = cloudUnits;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        refreshUnitSelect(state.units, state.current);
+        unitWords.value = state.units[state.current].join("\n");
+        hideReadingChoices();
+        status.textContent = "已載入你的雲端字庫；在此頁儲存後會自動同步。";
+      } catch (error) {
+        console.error("WordFlash cloud load failed", error);
+        status.textContent = "Google 已登入，但暫時無法讀取雲端字庫。";
+      }
     });
   </script>
 </body>

@@ -363,6 +363,8 @@
       <button id="speakButton" type="button">播放讀音</button>
       <a id="settingsLink" href="settings.html">設定</a>
       <a id="manageLink" href="manage_words.html">字庫管理</a>
+      <button id="googleSignIn" type="button">Google 登入</button>
+      <button id="googleSignOut" type="button" hidden>登出</button>
     </div>
   </header>
   <main>
@@ -382,7 +384,15 @@
     </div>
   </main>
 
-  <script>
+  <script type="module">
+    import {
+      loadCloudUnits,
+      saveCloudUnits,
+      signInWithGoogle,
+      signOutFromGoogle,
+      subscribeToUser
+    } from "./firebase-wordflash.js";
+
     const DEFAULT_WORDS = [
       "郭",
       "柚",
@@ -408,6 +418,8 @@
     const practiceSummary = document.getElementById("practiceSummary");
     const correctButton = document.getElementById("correctButton");
     const incorrectButton = document.getElementById("incorrectButton");
+    const googleSignIn = document.getElementById("googleSignIn");
+    const googleSignOut = document.getElementById("googleSignOut");
     let index = 0;
     let wordList = [];
     let remaining = [];
@@ -483,6 +495,7 @@
     let practiceMode = "none";
     let practiceSession = null;
     let challengeProgressDisplay = "both";
+    let currentUser = null;
 
     const loadDisplayPreferences = () => {
       try {
@@ -837,6 +850,12 @@
 
     const saveUnits = (data) => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      if (currentUser) {
+        saveCloudUnits(currentUser, data).catch((error) => {
+          console.error("WordFlash cloud sync failed", error);
+          status.textContent = "已儲存在這台裝置，但雲端同步失敗；請稍後再試。";
+        });
+      }
     };
 
     const startWithWords = (words) => {
@@ -927,6 +946,45 @@
     nextButton.addEventListener("click", showNext);
     correctButton.addEventListener("click", () => recordAnswer(true));
     incorrectButton.addEventListener("click", () => recordAnswer(false));
+
+    const renderAccount = () => {
+      const signedIn = Boolean(currentUser);
+      googleSignIn.hidden = signedIn;
+      googleSignOut.hidden = !signedIn;
+      googleSignOut.textContent = signedIn ? `登出 ${currentUser.displayName || "Google"}` : "登出";
+    };
+    googleSignIn.addEventListener("click", async () => {
+      googleSignIn.disabled = true;
+      status.textContent = "正在開啟 Google 登入…";
+      try {
+        await signInWithGoogle();
+      } catch (error) {
+        status.textContent = `登入失敗：${error.message || "請稍後再試。"}`;
+      } finally {
+        googleSignIn.disabled = false;
+      }
+    });
+    googleSignOut.addEventListener("click", () => signOutFromGoogle());
+    subscribeToUser(async (user) => {
+      currentUser = user;
+      renderAccount();
+      if (!user) return;
+      try {
+        const cloudUnits = await loadCloudUnits(user);
+        if (!cloudUnits) {
+          status.textContent = "已登入 Google；請到設定頁上傳這台裝置的字庫。";
+          return;
+        }
+        state = cloudUnits;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        refreshUnitSelect(state.units, state.current);
+        startWithWords(state.units[state.current]);
+        status.textContent = "已載入你的雲端字庫。";
+      } catch (error) {
+        console.error("WordFlash cloud load failed", error);
+        status.textContent = "Google 已登入，但暫時無法讀取雲端字庫。";
+      }
+    });
 
     window.addEventListener("storage", (event) => {
       if (event.key === FONT_KEY) {
