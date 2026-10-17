@@ -175,6 +175,25 @@
     }
     .future-card h3 { margin-bottom: 5px; font-size: 18px; }
     .future-card p { margin-bottom: 0; }
+    .mode-list { display: grid; }
+    .mode-option {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 17px 22px;
+      cursor: pointer;
+    }
+    .mode-option + .mode-option { border-top: 1px solid rgba(43, 43, 43, 0.18); }
+    .mode-option input {
+      width: 22px;
+      height: 22px;
+      margin: 0;
+      accent-color: #756c58;
+      flex: 0 0 auto;
+    }
+    .mode-copy { display: grid; gap: 4px; }
+    .mode-copy strong { font-size: 18px; }
+    .mode-copy span { color: #5b554d; font-size: 15px; line-height: 1.45; }
     .data-action {
       display: flex;
       align-items: center;
@@ -265,7 +284,7 @@
             </label>
           </div>
           <div class="group-footer">
-            <p id="status" aria-live="polite"></p>
+            <p id="displayStatus" aria-live="polite"></p>
             <button class="reset-button" id="resetDisplay" type="button">恢復預設顯示</button>
           </div>
         </section>
@@ -273,11 +292,25 @@
         <section class="setting-group" id="practice" aria-labelledby="practiceTitle">
           <div class="group-heading">
             <h2 id="practiceTitle">練習與紀錄</h2>
-            <p class="description">這一組保留給答題模式與學習數據，避免未來和外觀設定混在一起。</p>
+            <p class="description">選擇孩子練習時要不要記錄答題結果。切換模式不會清除另一種模式的紀錄。</p>
           </div>
-          <div class="future-card">
-            <h3>下一階段功能</h3>
-            <p class="future-note">之後會在此加入「純練習、統計、挑戰」模式。統計模式會累積答對、答錯與正確率；挑戰模式則會在答錯時重置連續答對數。功能尚未啟用前，不會出現無效的開關。</p>
+          <div class="mode-list" role="radiogroup" aria-label="練習模式">
+            <label class="mode-option" for="practiceNone">
+              <input id="practiceNone" name="practiceMode" type="radio" value="none" />
+              <span class="mode-copy"><strong>純練習</strong><span>只顯示字卡與既有工具，不顯示答題按鈕或任何統計。</span></span>
+            </label>
+            <label class="mode-option" for="practiceStatistics">
+              <input id="practiceStatistics" name="practiceMode" type="radio" value="statistics" />
+              <span class="mode-copy"><strong>統計模式</strong><span>由陪讀者按「答對／答錯」，持續記錄答對、答錯與正確率。</span></span>
+            </label>
+            <label class="mode-option" for="practiceChallenge">
+              <input id="practiceChallenge" name="practiceMode" type="radio" value="challenge" />
+              <span class="mode-copy"><strong>挑戰模式</strong><span>記錄目前連續答對數；只要答錯一題，就從零重新計算。</span></span>
+            </label>
+          </div>
+          <div class="group-footer">
+            <p id="practiceStatus" aria-live="polite"></p>
+            <button class="reset-button" id="resetPractice" type="button">清除本模式紀錄</button>
           </div>
         </section>
 
@@ -297,6 +330,8 @@
   <script>
     const ZHUYIN_ENABLED_KEY = "wordflash_zhuyin_enabled";
     const DISPLAY_PREFERENCES_KEY = "wordflash_display_preferences_v1";
+    const PRACTICE_MODE_KEY = "wordflash_practice_mode_v1";
+    const PRACTICE_SESSION_KEY = "wordflash_practice_session_v1";
     const DEFAULT_DISPLAY_PREFERENCES = {
       showUnitControl: true,
       showFontControl: true,
@@ -305,7 +340,10 @@
       showHint: true
     };
     const zhuyinToggle = document.getElementById("zhuyinToggle");
-    const status = document.getElementById("status");
+    const displayStatus = document.getElementById("displayStatus");
+    const practiceStatus = document.getElementById("practiceStatus");
+    const resetPractice = document.getElementById("resetPractice");
+    const practiceModeControls = [...document.querySelectorAll('input[name="practiceMode"]')];
     const preferenceControls = {
       showUnitControl: document.getElementById("unitControlToggle"),
       showFontControl: document.getElementById("fontControlToggle"),
@@ -325,12 +363,47 @@
     const saveDisplayPreferences = (preferences) => {
       localStorage.setItem(DISPLAY_PREFERENCES_KEY, JSON.stringify(preferences));
     };
+    const loadPracticeMode = () => {
+      const mode = localStorage.getItem(PRACTICE_MODE_KEY);
+      return ["none", "statistics", "challenge"].includes(mode) ? mode : "none";
+    };
+    const createDefaultPracticeSession = () => ({
+      statistics: { correct: 0, incorrect: 0 },
+      challenge: { correct: 0 }
+    });
+    const loadPracticeSession = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(PRACTICE_SESSION_KEY) || "{}");
+        return {
+          statistics: { ...createDefaultPracticeSession().statistics, ...saved.statistics },
+          challenge: { ...createDefaultPracticeSession().challenge, ...saved.challenge }
+        };
+      } catch {
+        return createDefaultPracticeSession();
+      }
+    };
+    const savePracticeSession = (session) => {
+      localStorage.setItem(PRACTICE_SESSION_KEY, JSON.stringify(session));
+    };
     const render = () => {
       const preferences = loadDisplayPreferences();
+      const practiceMode = loadPracticeMode();
+      const session = loadPracticeSession();
       zhuyinToggle.checked = isZhuyinEnabled();
       Object.entries(preferenceControls).forEach(([key, control]) => { control.checked = preferences[key]; });
+      practiceModeControls.forEach((control) => { control.checked = control.value === practiceMode; });
       const hiddenCount = Object.values(preferences).filter((value) => !value).length;
-      status.textContent = hiddenCount ? `已隱藏 ${hiddenCount} 項工具列或提示。` : "目前顯示所有工具列與提示。";
+      displayStatus.textContent = hiddenCount ? `已隱藏 ${hiddenCount} 項工具列或提示。` : "目前顯示所有工具列與提示。";
+      if (practiceMode === "statistics") {
+        const { correct, incorrect } = session.statistics;
+        const total = correct + incorrect;
+        practiceStatus.textContent = total ? `目前累積：答對 ${correct} 題、答錯 ${incorrect} 題。` : "尚未記錄答題結果。";
+      } else if (practiceMode === "challenge") {
+        practiceStatus.textContent = `目前連續答對 ${session.challenge.correct} 題。`;
+      } else {
+        practiceStatus.textContent = "純練習模式不會記錄答題結果。";
+      }
+      resetPractice.disabled = practiceMode === "none";
     };
 
     zhuyinToggle.addEventListener("change", () => {
@@ -345,12 +418,27 @@
         render();
       });
     });
+    practiceModeControls.forEach((control) => {
+      control.addEventListener("change", () => {
+        if (control.checked) localStorage.setItem(PRACTICE_MODE_KEY, control.value);
+        render();
+      });
+    });
     document.getElementById("resetDisplay").addEventListener("click", () => {
       saveDisplayPreferences({ ...DEFAULT_DISPLAY_PREFERENCES });
       render();
     });
+    resetPractice.addEventListener("click", () => {
+      const practiceMode = loadPracticeMode();
+      if (practiceMode === "none") return;
+      if (!window.confirm("要清除目前練習模式的紀錄嗎？")) return;
+      const session = loadPracticeSession();
+      session[practiceMode] = createDefaultPracticeSession()[practiceMode];
+      savePracticeSession(session);
+      render();
+    });
     window.addEventListener("storage", (event) => {
-      if ([ZHUYIN_ENABLED_KEY, DISPLAY_PREFERENCES_KEY].includes(event.key)) render();
+      if ([ZHUYIN_ENABLED_KEY, DISPLAY_PREFERENCES_KEY, PRACTICE_MODE_KEY, PRACTICE_SESSION_KEY].includes(event.key)) render();
     });
     render();
   </script>

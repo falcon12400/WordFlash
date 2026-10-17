@@ -24,3 +24,5 @@ npm run test:ipad
 成功後的截圖在 `automation/artifacts/ipad-landscape-display.png`。手機直式與 iPad 橫向使用不同的 CSS 版面規則。
 
 測試也會驗證設定中心及「字庫切換」工具列開關，並輸出各裝置的設定頁截圖。
+
+另外會驗證統計模式的答對／答錯／正確率累積，以及挑戰模式答錯歸零的規則。
