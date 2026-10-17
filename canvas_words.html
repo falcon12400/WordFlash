@@ -949,7 +949,8 @@
 
     const renderAccount = () => {
       const signedIn = Boolean(currentUser);
-      googleSignIn.hidden = signedIn;
+      googleSignIn.hidden = false;
+      googleSignIn.textContent = signedIn ? "切換 Google 帳號" : "Google 登入";
       googleSignOut.hidden = !signedIn;
       googleSignOut.textContent = signedIn ? `登出 ${currentUser.displayName || "Google"}` : "登出";
     };

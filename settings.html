@@ -12,6 +12,7 @@
       --line: 2px solid var(--ink);
     }
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
     html { scroll-behavior: smooth; }
     body {
       min-height: 100dvh;
@@ -253,6 +254,26 @@
       gap: 18px;
       padding: 20px 22px;
     }
+    .quick-controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      padding: 20px 22px;
+    }
+    .quick-field { display: grid; gap: 7px; }
+    .quick-field label { font-size: 17px; font-weight: 700; }
+    .quick-field span { color: #5b554d; font-size: 14px; line-height: 1.45; }
+    .quick-field select {
+      width: 100%;
+      min-height: 46px;
+      padding: 8px 10px;
+      border: var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: inherit;
+      font: inherit;
+      font-size: 16px;
+    }
     .cloud-actions {
       display: flex;
       flex-wrap: wrap;
@@ -278,6 +299,7 @@
       .future-card { margin: 16px; }
       .group-footer, .data-action { align-items: flex-start; flex-direction: column; }
       .cloud-actions { justify-content: flex-start; }
+      .quick-controls { grid-template-columns: 1fr; padding-right: 16px; padding-left: 16px; }
       .challenge-display-options { padding-right: 16px; padding-left: 16px; }
       .challenge-display-list { grid-template-columns: 1fr; }
       .challenge-display-option { min-height: 62px; }
@@ -292,16 +314,38 @@
   <main>
     <div class="page-heading">
       <h1>設定中心</h1>
-      <p>調整顯示頁外觀與工具列。設定只會儲存在這台裝置的瀏覽器中，不會改動字庫內容。</p>
+      <p>常用切換放在最前面；練習、顯示與帳號同步設定則依使用頻率分組整理。</p>
     </div>
     <div class="settings-layout">
       <nav class="section-nav" aria-label="設定分類">
+        <a href="#quick">快速切換</a>
+        <a href="#practice">練習與紀錄</a>
         <a href="#display">字卡顯示</a>
         <a href="#toolbar">工具列</a>
-        <a href="#practice">練習與紀錄</a>
-        <a href="#library">字庫與資料</a>
+        <a href="#manage">字庫管理</a>
+        <a href="#cloud">帳號與同步</a>
       </nav>
       <div class="settings-content">
+        <section class="setting-group" id="quick" aria-labelledby="quickTitle">
+          <div class="group-heading">
+            <h2 id="quickTitle">快速切換</h2>
+            <p class="description">這些設定會立即套用到顯示頁，適合每次練習前快速調整。</p>
+          </div>
+          <div class="quick-controls">
+            <div class="quick-field">
+              <label for="quickUnitSelect">目前字庫</label>
+              <select id="quickUnitSelect" aria-describedby="quickUnitNote"></select>
+              <span id="quickUnitNote">切換後會成為顯示頁目前使用的字庫。</span>
+            </div>
+            <div class="quick-field">
+              <label for="quickFontSelect">顯示字型</label>
+              <select id="quickFontSelect" aria-describedby="quickFontNote"></select>
+              <span id="quickFontNote">可隨時換成孩子較容易閱讀的字型。</span>
+            </div>
+          </div>
+          <div class="group-footer"><p id="quickStatus" aria-live="polite"></p></div>
+        </section>
+
         <section class="setting-group" id="display" aria-labelledby="displayTitle">
           <div class="group-heading">
             <h2 id="displayTitle">字卡顯示</h2>
@@ -394,26 +438,35 @@
           </div>
         </section>
 
-        <section class="setting-group" id="library" aria-labelledby="libraryTitle">
+        <section class="setting-group" id="manage" aria-labelledby="manageTitle">
           <div class="group-heading">
-            <h2 id="libraryTitle">字庫與資料</h2>
-            <p class="description">管理字詞、注音和多音字選擇，也可以同步自己的字庫。</p>
+            <h2 id="manageTitle">字庫管理</h2>
+            <p class="description">新增、編輯字詞，處理注音與多音字選擇。</p>
           </div>
           <div class="data-action">
-            <div>
-              <strong>Google 帳號與雲端字庫</strong>
-              <p class="setting-note" id="cloudStatus" aria-live="polite">正在確認登入狀態…</p>
-            </div>
+            <div><strong>編輯字庫內容</strong><p class="setting-note">新增或編輯字庫，並重新查詢注音。</p></div>
+            <a class="secondary-link" href="manage_words.html">開啟字庫管理</a>
+          </div>
+        </section>
+
+        <section class="setting-group" id="cloud" aria-labelledby="cloudTitle">
+          <div class="group-heading">
+            <h2 id="cloudTitle">帳號與雲端同步</h2>
+            <p class="description">帳號用來區分每個人的字庫；同步則決定這台裝置與雲端哪一份資料要互相更新。</p>
+          </div>
+          <div class="data-action">
+            <div><strong>Google 帳號</strong><p class="setting-note" id="accountStatus" aria-live="polite">正在確認登入狀態…</p></div>
             <div class="cloud-actions">
               <button class="reset-button" id="googleSignIn" type="button">使用 Google 登入</button>
-              <button class="reset-button" id="googleSignOut" type="button" hidden>登出</button>
+              <button class="reset-button" id="googleSignOut" type="button" hidden>登出這台裝置</button>
+            </div>
+          </div>
+          <div class="data-action">
+            <div><strong>雲端字庫</strong><p class="setting-note" id="cloudStatus" aria-live="polite">登入後可上傳或下載字庫。</p></div>
+            <div class="cloud-actions">
               <button class="reset-button" id="uploadCloud" type="button" hidden>上傳此裝置字庫</button>
               <button class="reset-button" id="downloadCloud" type="button" hidden>下載雲端字庫</button>
             </div>
-          </div>
-          <div class="data-action">
-            <div><strong>字庫管理</strong><p class="setting-note">新增或編輯字庫，並重新查詢注音。</p></div>
-            <a class="secondary-link" href="manage_words.html">開啟字庫管理</a>
           </div>
         </section>
       </div>
@@ -444,6 +497,10 @@
     const displayStatus = document.getElementById("displayStatus");
     const practiceStatus = document.getElementById("practiceStatus");
     const resetPractice = document.getElementById("resetPractice");
+    const quickUnitSelect = document.getElementById("quickUnitSelect");
+    const quickFontSelect = document.getElementById("quickFontSelect");
+    const quickStatus = document.getElementById("quickStatus");
+    const accountStatus = document.getElementById("accountStatus");
     const cloudStatus = document.getElementById("cloudStatus");
     const googleSignIn = document.getElementById("googleSignIn");
     const googleSignOut = document.getElementById("googleSignOut");
@@ -512,22 +569,70 @@
     const saveLocalUnits = (units) => {
       localStorage.setItem("wordflash_units_v1", JSON.stringify(units));
     };
+    const FONT_KEY = "wordflash_font_family";
+    const FONT_OPTIONS = [
+      { label: "微軟正黑體", value: "'Microsoft JhengHei', 'PingFang TC', sans-serif" },
+      { label: "新細明體", value: "'PMingLiU', 'MingLiU', serif" },
+      { label: "標楷體", value: "'標楷體-繁', 'BiauKaiTC-Regular', 'BiauKai', 'DFKai-SB', 'KaiU', serif" },
+      { label: "仿宋", value: "'FangSong', 'STFangsong', serif" },
+      { label: "黑體", value: "'Heiti TC', 'PingFang TC', sans-serif" },
+      { label: "Times New Roman", value: "'Times New Roman', Times, serif" },
+      { label: "Georgia", value: "Georgia, serif" },
+      { label: "Arial", value: "Arial, Helvetica, sans-serif" },
+      { label: "Helvetica", value: "Helvetica, Arial, sans-serif" },
+      { label: "Verdana", value: "Verdana, Geneva, sans-serif" }
+    ];
+    const refreshQuickControls = () => {
+      const unitsState = loadLocalUnits();
+      const unitNames = Object.keys(unitsState?.units || {});
+      quickUnitSelect.replaceChildren();
+      if (!unitNames.length) {
+        quickUnitSelect.disabled = true;
+        quickStatus.textContent = "尚未建立字庫，請先到字庫管理頁新增內容。";
+      } else {
+        quickUnitSelect.disabled = false;
+        unitNames.forEach((name) => {
+          const option = document.createElement("option");
+          option.value = name;
+          option.textContent = name;
+          quickUnitSelect.append(option);
+        });
+        quickUnitSelect.value = unitsState.current && unitsState.units[unitsState.current]
+          ? unitsState.current
+          : unitNames[0];
+        quickStatus.textContent = `目前使用「${quickUnitSelect.value}」。`;
+      }
+      quickFontSelect.replaceChildren();
+      FONT_OPTIONS.forEach((font) => {
+        const option = document.createElement("option");
+        option.value = font.value;
+        option.textContent = font.label;
+        quickFontSelect.append(option);
+      });
+      const savedFont = localStorage.getItem(FONT_KEY) || FONT_OPTIONS[0].value;
+      quickFontSelect.value = FONT_OPTIONS.some((font) => font.value === savedFont)
+        ? savedFont
+        : FONT_OPTIONS[0].value;
+    };
     let currentUser = null;
     let hasCloudLibrary = false;
     const renderCloudStatus = () => {
       const signedIn = Boolean(currentUser);
-      googleSignIn.hidden = signedIn;
+      googleSignIn.hidden = false;
+      googleSignIn.textContent = signedIn ? "切換 Google 帳號" : "使用 Google 登入";
       googleSignOut.hidden = !signedIn;
       uploadCloud.hidden = !signedIn;
       downloadCloud.hidden = !signedIn;
       if (!signedIn) {
-        cloudStatus.textContent = "尚未登入。字庫目前只存在這台裝置；登入後可上傳並在其他裝置下載。";
+        accountStatus.textContent = "尚未登入。登入後可讓不同帳號各自使用自己的字庫。";
+        cloudStatus.textContent = "尚未連線到雲端字庫。登入後可上傳或下載。";
         return;
       }
       const name = currentUser.displayName || currentUser.email || "Google 使用者";
+      accountStatus.textContent = `目前使用：${name}`;
       cloudStatus.textContent = hasCloudLibrary
-        ? `已登入 ${name}，已找到你的雲端字庫。`
-        : `已登入 ${name}，尚未建立雲端字庫；可先上傳這台裝置的字庫。`;
+        ? "已找到這個帳號的雲端字庫。"
+        : "這個帳號尚未有雲端字庫；可先上傳這台裝置的字庫。";
     };
     const render = () => {
       const preferences = loadDisplayPreferences();
@@ -592,17 +697,35 @@
     });
     googleSignIn.addEventListener("click", async () => {
       googleSignIn.disabled = true;
-      cloudStatus.textContent = "正在開啟 Google 登入…";
+      accountStatus.textContent = currentUser ? "正在開啟帳號選擇…" : "正在開啟 Google 登入…";
       try {
         await signInWithGoogle();
       } catch (error) {
-        cloudStatus.textContent = `登入失敗：${error.message || "請稍後再試。"}`;
+        accountStatus.textContent = `登入失敗：${error.message || "請稍後再試。"}`;
       } finally {
         googleSignIn.disabled = false;
       }
     });
     googleSignOut.addEventListener("click", async () => {
       await signOutFromGoogle();
+    });
+    quickUnitSelect.addEventListener("change", async () => {
+      const unitsState = loadLocalUnits();
+      if (!unitsState?.units?.[quickUnitSelect.value]) return;
+      unitsState.current = quickUnitSelect.value;
+      saveLocalUnits(unitsState);
+      quickStatus.textContent = `已切換為「${unitsState.current}」。`;
+      if (currentUser) {
+        try {
+          await saveCloudUnits(currentUser, unitsState);
+        } catch (error) {
+          quickStatus.textContent = "已切換這台裝置的字庫，但雲端同步失敗。";
+        }
+      }
+    });
+    quickFontSelect.addEventListener("change", () => {
+      localStorage.setItem(FONT_KEY, quickFontSelect.value);
+      quickStatus.textContent = "已更新顯示字型。";
     });
     uploadCloud.addEventListener("click", async () => {
       const localUnits = loadLocalUnits();
@@ -653,7 +776,9 @@
     });
     window.addEventListener("storage", (event) => {
       if ([ZHUYIN_ENABLED_KEY, DISPLAY_PREFERENCES_KEY, PRACTICE_MODE_KEY, PRACTICE_SESSION_KEY, CHALLENGE_PROGRESS_DISPLAY_KEY].includes(event.key)) render();
+      if (["wordflash_units_v1", FONT_KEY].includes(event.key)) refreshQuickControls();
     });
+    refreshQuickControls();
     render();
   </script>
 </body>
