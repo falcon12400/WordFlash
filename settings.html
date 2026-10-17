@@ -13,6 +13,17 @@
     }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
     html { scroll-behavior: smooth; }
     body {
       min-height: 100dvh;
@@ -213,6 +224,56 @@
       font-size: 15px;
       line-height: 1.45;
     }
+    .challenge-timer-options {
+      margin: 0;
+      padding: 18px 22px 20px;
+      border: 0;
+      border-top: 1px solid rgba(43, 43, 43, 0.18);
+      background: rgba(225, 234, 216, 0.26);
+    }
+    .challenge-timer-options legend {
+      padding: 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .challenge-timer-options > p {
+      margin: 5px 0 14px;
+      color: #5b554d;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    .timer-setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 0;
+    }
+    .timer-setting-row + .timer-setting-row {
+      border-top: 1px solid rgba(43, 43, 43, 0.14);
+    }
+    .timer-setting-copy { display: grid; gap: 4px; }
+    .timer-setting-copy strong { font-size: 17px; }
+    .timer-setting-copy span { color: #5b554d; font-size: 14px; line-height: 1.4; }
+    .timer-duration-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      font-size: 16px;
+    }
+    .timer-duration-field input {
+      width: 86px;
+      min-height: 42px;
+      padding: 6px 8px;
+      border: var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: inherit;
+      font: inherit;
+      text-align: center;
+    }
+    .timer-duration-field input:disabled { opacity: 0.55; }
     .challenge-display-list {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -301,8 +362,10 @@
       .cloud-actions { justify-content: flex-start; }
       .quick-controls { grid-template-columns: 1fr; padding-right: 16px; padding-left: 16px; }
       .challenge-display-options { padding-right: 16px; padding-left: 16px; }
+      .challenge-timer-options { padding-right: 16px; padding-left: 16px; }
       .challenge-display-list { grid-template-columns: 1fr; }
       .challenge-display-option { min-height: 62px; }
+      .timer-setting-row { align-items: flex-start; flex-direction: column; gap: 10px; }
     }
   </style>
 </head>
@@ -432,9 +495,37 @@
               </label>
             </div>
           </fieldset>
+          <fieldset class="challenge-timer-options" id="challengeTimerOptions" hidden>
+            <legend>計時挑戰</legend>
+            <p>開啟後，顯示頁會先出現「開始挑戰」按鈕；倒數結束時會自動保存本次成績。</p>
+            <div class="timer-setting-row">
+              <div class="timer-setting-copy">
+                <strong>使用倒數計時</strong>
+                <span>未開啟時，挑戰模式維持原本不限時的連續答對練習。</span>
+              </div>
+              <label class="switch" for="challengeTimerEnabled">
+                <input id="challengeTimerEnabled" type="checkbox" />
+                <span class="slider" aria-hidden="true"></span>
+                <span class="sr-only">使用倒數計時</span>
+              </label>
+            </div>
+            <div class="timer-setting-row">
+              <div class="timer-setting-copy">
+                <strong>每輪時間</strong>
+                <span>可設定 10 至 3,600 秒；開始後不能在中途更改本輪時間。</span>
+              </div>
+              <label class="timer-duration-field" for="challengeDurationSeconds">
+                <input id="challengeDurationSeconds" type="number" min="10" max="3600" step="10" inputmode="numeric" />
+                秒
+              </label>
+            </div>
+          </fieldset>
           <div class="group-footer">
             <p id="practiceStatus" aria-live="polite"></p>
-            <button class="reset-button" id="resetPractice" type="button">清除本模式紀錄</button>
+            <div class="cloud-actions">
+              <a class="secondary-link" href="challenge_records.html">查看挑戰紀錄</a>
+              <button class="reset-button" id="resetPractice" type="button">清除本模式紀錄</button>
+            </div>
           </div>
         </section>
 
@@ -486,6 +577,9 @@
     const PRACTICE_MODE_KEY = "wordflash_practice_mode_v1";
     const PRACTICE_SESSION_KEY = "wordflash_practice_session_v1";
     const CHALLENGE_PROGRESS_DISPLAY_KEY = "wordflash_challenge_progress_display_v1";
+    const CHALLENGE_TIMER_KEY = "wordflash_challenge_timer_v1";
+    const TIMED_CHALLENGE_RUN_KEY = "wordflash_timed_challenge_run_v1";
+    const DEFAULT_CHALLENGE_TIMER = { enabled: false, durationSeconds: 60 };
     const DEFAULT_DISPLAY_PREFERENCES = {
       showUnitControl: true,
       showFontControl: true,
@@ -509,6 +603,9 @@
     const practiceModeControls = [...document.querySelectorAll('input[name="practiceMode"]')];
     const challengeDisplayOptions = document.getElementById("challengeDisplayOptions");
     const challengeDisplayControls = [...document.querySelectorAll('input[name="challengeDisplay"]')];
+    const challengeTimerOptions = document.getElementById("challengeTimerOptions");
+    const challengeTimerEnabled = document.getElementById("challengeTimerEnabled");
+    const challengeDurationSeconds = document.getElementById("challengeDurationSeconds");
     const preferenceControls = {
       showUnitControl: document.getElementById("unitControlToggle"),
       showFontControl: document.getElementById("fontControlToggle"),
@@ -535,6 +632,45 @@
     const loadChallengeProgressDisplay = () => {
       const display = localStorage.getItem(CHALLENGE_PROGRESS_DISPLAY_KEY);
       return ["number", "blocks", "both"].includes(display) ? display : "both";
+    };
+    const normalizeChallengeDuration = (value) => {
+      const seconds = Math.round(Number(value));
+      return Number.isFinite(seconds) ? Math.min(3600, Math.max(10, seconds)) : DEFAULT_CHALLENGE_TIMER.durationSeconds;
+    };
+    const loadChallengeTimer = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(CHALLENGE_TIMER_KEY) || "{}");
+        return {
+          enabled: saved.enabled === true,
+          durationSeconds: normalizeChallengeDuration(saved.durationSeconds)
+        };
+      } catch {
+        return { ...DEFAULT_CHALLENGE_TIMER };
+      }
+    };
+    const saveChallengeTimer = (timer) => {
+      localStorage.setItem(CHALLENGE_TIMER_KEY, JSON.stringify({
+        enabled: timer.enabled === true,
+        durationSeconds: normalizeChallengeDuration(timer.durationSeconds)
+      }));
+    };
+    const loadTimedChallengeRun = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(TIMED_CHALLENGE_RUN_KEY) || "null");
+        if (!saved || saved.status !== "running" || typeof saved.unitName !== "string") return null;
+        const endsAtMs = Number(saved.endsAtMs);
+        // An expired run is finalized when the display page is opened again.
+        // It must not keep the settings page locked in the meantime.
+        return Number.isFinite(endsAtMs) && endsAtMs > Date.now()
+          ? {
+            unitName: saved.unitName,
+            endsAtMs,
+            currentStreak: Math.max(0, Math.floor(Number(saved.currentStreak) || 0))
+          }
+          : null;
+      } catch {
+        return null;
+      }
     };
     const challengeDisplayName = (display) => ({
       number: "只顯示數字",
@@ -639,11 +775,23 @@
       const practiceMode = loadPracticeMode();
       const session = loadPracticeSession();
       const challengeDisplay = loadChallengeProgressDisplay();
+      const challengeTimer = loadChallengeTimer();
+      const timedRun = loadTimedChallengeRun();
+      const timedRunActive = Boolean(timedRun && timedRun.endsAtMs > Date.now());
       zhuyinToggle.checked = isZhuyinEnabled();
       Object.entries(preferenceControls).forEach(([key, control]) => { control.checked = preferences[key]; });
-      practiceModeControls.forEach((control) => { control.checked = control.value === practiceMode; });
+      practiceModeControls.forEach((control) => {
+        control.checked = control.value === practiceMode;
+        control.disabled = timedRunActive;
+      });
       challengeDisplayControls.forEach((control) => { control.checked = control.value === challengeDisplay; });
       challengeDisplayOptions.hidden = practiceMode !== "challenge";
+      challengeTimerOptions.hidden = practiceMode !== "challenge";
+      challengeTimerEnabled.checked = challengeTimer.enabled;
+      challengeDurationSeconds.value = String(challengeTimer.durationSeconds);
+      challengeTimerEnabled.disabled = timedRunActive;
+      challengeDurationSeconds.disabled = !challengeTimer.enabled || timedRunActive;
+      quickUnitSelect.disabled = !quickUnitSelect.options.length || timedRunActive;
       const hiddenCount = Object.values(preferences).filter((value) => !value).length;
       displayStatus.textContent = hiddenCount ? `已隱藏 ${hiddenCount} 項工具列或提示。` : "目前顯示所有工具列與提示。";
       if (practiceMode === "statistics") {
@@ -651,11 +799,19 @@
         const total = correct + incorrect;
         practiceStatus.textContent = total ? `目前累積：答對 ${correct} 題、答錯 ${incorrect} 題。` : "尚未記錄答題結果。";
       } else if (practiceMode === "challenge") {
-        practiceStatus.textContent = `目前連續答對 ${session.challenge.correct} 題；目前使用「${challengeDisplayName(challengeDisplay)}」。`;
+        const progressStatus = timedRunActive
+          ? `「${timedRun.unitName}」本輪目前連續答對 ${timedRun.currentStreak} 題；`
+          : `目前連續答對 ${session.challenge.correct} 題；`;
+        const timerStatus = timedRunActive
+          ? `「${timedRun.unitName}」的計時挑戰正在進行，結束前暫時不能變更字庫、模式或計時設定。`
+          : challengeTimer.enabled
+          ? `計時挑戰每輪 ${challengeTimer.durationSeconds} 秒，會在時間到時自動保存成績。`
+          : "不限時挑戰不會建立挑戰紀錄。";
+        practiceStatus.textContent = `${progressStatus}目前使用「${challengeDisplayName(challengeDisplay)}」。${timerStatus}`;
       } else {
         practiceStatus.textContent = "純練習模式不會記錄答題結果。";
       }
-      resetPractice.disabled = practiceMode === "none";
+      resetPractice.disabled = practiceMode === "none" || timedRunActive;
     };
 
     zhuyinToggle.addEventListener("change", () => {
@@ -672,6 +828,7 @@
     });
     practiceModeControls.forEach((control) => {
       control.addEventListener("change", () => {
+        if (loadTimedChallengeRun()) return;
         if (control.checked) localStorage.setItem(PRACTICE_MODE_KEY, control.value);
         render();
       });
@@ -682,13 +839,27 @@
         render();
       });
     });
+    challengeTimerEnabled.addEventListener("change", () => {
+      if (loadTimedChallengeRun()) return;
+      const timer = loadChallengeTimer();
+      timer.enabled = challengeTimerEnabled.checked;
+      saveChallengeTimer(timer);
+      render();
+    });
+    challengeDurationSeconds.addEventListener("change", () => {
+      if (loadTimedChallengeRun()) return;
+      const timer = loadChallengeTimer();
+      timer.durationSeconds = normalizeChallengeDuration(challengeDurationSeconds.value);
+      saveChallengeTimer(timer);
+      render();
+    });
     document.getElementById("resetDisplay").addEventListener("click", () => {
       saveDisplayPreferences({ ...DEFAULT_DISPLAY_PREFERENCES });
       render();
     });
     resetPractice.addEventListener("click", () => {
       const practiceMode = loadPracticeMode();
-      if (practiceMode === "none") return;
+      if (practiceMode === "none" || loadTimedChallengeRun()) return;
       if (!window.confirm("要清除目前練習模式的紀錄嗎？")) return;
       const session = loadPracticeSession();
       session[practiceMode] = createDefaultPracticeSession()[practiceMode];
@@ -710,6 +881,11 @@
       await signOutFromGoogle();
     });
     quickUnitSelect.addEventListener("change", async () => {
+      if (loadTimedChallengeRun()) {
+        quickStatus.textContent = "計時挑戰進行中，請等本輪結束後再切換字庫。";
+        render();
+        return;
+      }
       const unitsState = loadLocalUnits();
       if (!unitsState?.units?.[quickUnitSelect.value]) return;
       unitsState.current = quickUnitSelect.value;
@@ -775,7 +951,7 @@
       renderCloudStatus();
     });
     window.addEventListener("storage", (event) => {
-      if ([ZHUYIN_ENABLED_KEY, DISPLAY_PREFERENCES_KEY, PRACTICE_MODE_KEY, PRACTICE_SESSION_KEY, CHALLENGE_PROGRESS_DISPLAY_KEY].includes(event.key)) render();
+      if ([ZHUYIN_ENABLED_KEY, DISPLAY_PREFERENCES_KEY, PRACTICE_MODE_KEY, PRACTICE_SESSION_KEY, CHALLENGE_PROGRESS_DISPLAY_KEY, CHALLENGE_TIMER_KEY, TIMED_CHALLENGE_RUN_KEY].includes(event.key)) render();
       if (["wordflash_units_v1", FONT_KEY].includes(event.key)) refreshQuickControls();
     });
     refreshQuickControls();

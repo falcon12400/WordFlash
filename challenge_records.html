@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WordFlash - 挑戰紀錄</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #2b2b2b;
+      --paper: #fff9ec;
+      --soft-paper: rgba(255, 249, 236, 0.9);
+      --line: 2px solid var(--ink);
+      --muted: #5b554d;
+      --green: #e1ead8;
+      --blue: #dce8f1;
+      --peach: #f1dfd7;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100dvh;
+      margin: 0;
+      background: radial-gradient(circle at top, #f7f4e8 0%, #efe6d5 45%, #e8dcc8 100%);
+      color: var(--ink);
+      font-family: "Noto Serif TC", "PingFang TC", "Heiti TC", serif;
+    }
+
+    button, select { font: inherit; }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 64px;
+      padding: 12px 24px;
+      border-bottom: var(--line);
+      background: rgba(255, 249, 236, 0.92);
+      backdrop-filter: blur(6px);
+    }
+
+    .brand {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .header-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+
+    .header-links a,
+    .delete-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 7px 12px;
+      border: var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: inherit;
+      font-size: 15px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .header-links a:hover,
+    .header-links a:focus-visible,
+    .delete-button:hover,
+    .delete-button:focus-visible {
+      background: #efe6d5;
+      outline: none;
+    }
+
+    main {
+      width: min(1000px, 100%);
+      margin: 0 auto;
+      padding: 34px 24px 48px;
+    }
+
+    h1, h2, p { margin-top: 0; }
+
+    .page-heading {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+      font-size: clamp(28px, 4vw, 38px);
+    }
+
+    .page-heading p,
+    .section-heading p,
+    .empty-state p,
+    .record-note {
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .unit-picker {
+      display: grid;
+      gap: 7px;
+      padding: 14px;
+      border: var(--line);
+      border-radius: 12px;
+      background: var(--soft-paper);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+    }
+
+    .unit-picker label {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .unit-picker select {
+      width: 100%;
+      min-height: 44px;
+      padding: 8px 10px;
+      border: var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: inherit;
+    }
+
+    .records-card {
+      overflow: hidden;
+      border: var(--line);
+      border-radius: 12px;
+      background: var(--soft-paper);
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 21px 22px 17px;
+      border-bottom: 1px solid rgba(43, 43, 43, 0.24);
+    }
+
+    .section-heading h2 { margin-bottom: 5px; font-size: 23px; }
+    .section-heading p { margin-bottom: 0; }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      padding: 20px 22px;
+      border-bottom: 1px solid rgba(43, 43, 43, 0.18);
+      background: rgba(239, 230, 213, 0.33);
+    }
+
+    .summary-card {
+      display: grid;
+      align-content: start;
+      gap: 4px;
+      min-height: 104px;
+      padding: 15px;
+      border: var(--line);
+      border-radius: 9px;
+      background: var(--paper);
+    }
+
+    .summary-card:nth-child(1) { background: #f8edcf; }
+    .summary-card:nth-child(2) { background: var(--green); }
+    .summary-card:nth-child(3) { background: var(--blue); }
+
+    .summary-label { color: var(--muted); font-size: 14px; }
+    .summary-value { font-size: clamp(25px, 4vw, 34px); font-weight: 700; line-height: 1.15; }
+    .summary-detail { color: var(--muted); font-size: 14px; line-height: 1.45; }
+
+    .records-area { padding: 20px 22px 22px; }
+
+    .records-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .records-toolbar h3 { margin: 0; font-size: 19px; }
+
+    .delete-button {
+      min-height: 38px;
+      border-color: #7e4439;
+      background: #fff3ef;
+      color: #65362d;
+    }
+
+    .delete-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: var(--line);
+      border-radius: 9px;
+      background: var(--paper);
+    }
+
+    table {
+      width: 100%;
+      min-width: 640px;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 13px 14px;
+      border-bottom: 1px solid rgba(43, 43, 43, 0.2);
+      vertical-align: middle;
+    }
+
+    th {
+      color: #4d473f;
+      background: #f3ead8;
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    td { font-size: 15px; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:nth-child(even) { background: rgba(239, 230, 213, 0.28); }
+
+    .time-detail { display: grid; gap: 2px; }
+    .time-detail small { color: var(--muted); font-size: 13px; }
+
+    .score-cell { font-size: 19px; font-weight: 700; }
+
+    .result-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 4px 9px;
+      border: 1px solid currentColor;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .result-completed { color: #3f6240; background: #e7f0df; }
+    .result-time-up { color: #665126; background: #f8edcf; }
+    .result-incorrect { color: #7e4439; background: #f5e1da; }
+    .result-other { color: #4d5f70; background: #e0eaf2; }
+
+    .empty-state {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      padding: 46px 20px;
+      border: 2px dashed #756d62;
+      border-radius: 9px;
+      background: rgba(255, 249, 236, 0.58);
+      text-align: center;
+    }
+
+    .empty-state strong { font-size: 20px; }
+    .empty-state p { max-width: 34rem; margin: 0; }
+
+    .record-note {
+      margin: 16px 0 0;
+      font-size: 14px;
+    }
+
+    @media (max-width: 720px) {
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 12px 16px;
+      }
+
+      .header-links { width: 100%; }
+      .header-links a { flex: 1 1 0; }
+      main { padding: 24px 16px 36px; }
+
+      .page-heading { grid-template-columns: 1fr; gap: 16px; margin-bottom: 18px; }
+      .section-heading { align-items: flex-start; flex-direction: column; padding: 18px 16px 15px; }
+      .summary-grid { grid-template-columns: 1fr; padding: 16px; }
+      .summary-card { min-height: 82px; }
+      .records-area { padding: 16px; }
+      .records-toolbar { align-items: flex-start; flex-direction: column; }
+      .delete-button { width: 100%; min-height: 46px; }
+      th, td { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">WordFlash</div>
+    <nav class="header-links" aria-label="頁面導覽">
+      <a href="canvas_words.html">回到顯示頁</a>
+      <a href="settings.html">設定</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="page-heading">
+      <div>
+        <h1>挑戰紀錄</h1>
+        <p>每個字庫各自保留挑戰成果，方便回顧孩子曾經完成的練習與最佳成績。</p>
+      </div>
+      <div class="unit-picker">
+        <label for="unitSelect">查看字庫</label>
+        <select id="unitSelect" aria-describedby="unitHelp"></select>
+        <span id="unitHelp" class="summary-detail">選擇字庫即可查看該字庫的挑戰結果。</span>
+      </div>
+    </div>
+
+    <section class="records-card" aria-labelledby="recordsTitle">
+      <div class="section-heading">
+        <div>
+          <h2 id="recordsTitle">字庫挑戰成果</h2>
+          <p id="selectedUnitDescription">讀取中…</p>
+        </div>
+      </div>
+
+      <div class="summary-grid" id="summaryGrid" aria-live="polite">
+        <div class="summary-card">
+          <span class="summary-label">挑戰次數</span>
+          <strong class="summary-value" id="challengeCount">—</strong>
+          <span class="summary-detail">此字庫已結束的挑戰</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">最佳連勝</span>
+          <strong class="summary-value" id="bestCorrect">—</strong>
+          <span class="summary-detail" id="bestCorrectDetail">尚無紀錄</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">最近最高連勝</span>
+          <strong class="summary-value" id="recentCorrect">—</strong>
+          <span class="summary-detail" id="recentDetail">尚無紀錄</span>
+        </div>
+      </div>
+
+      <div class="records-area">
+        <div class="records-toolbar">
+          <h3>完成紀錄</h3>
+          <button class="delete-button" id="deleteCurrentUnit" type="button">刪除此字庫紀錄</button>
+        </div>
+
+        <div id="recordsContent"></div>
+        <p class="record-note">只有計時挑戰時間到時會建立紀錄。紀錄目前儲存在這台裝置的瀏覽器中；清除瀏覽器網站資料後會一併移除。</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = "wordflash_challenge_records_v1";
+      const unitSelect = document.getElementById("unitSelect");
+      const selectedUnitDescription = document.getElementById("selectedUnitDescription");
+      const challengeCount = document.getElementById("challengeCount");
+      const bestCorrect = document.getElementById("bestCorrect");
+      const bestCorrectDetail = document.getElementById("bestCorrectDetail");
+      const recentCorrect = document.getElementById("recentCorrect");
+      const recentDetail = document.getElementById("recentDetail");
+      const recordsContent = document.getElementById("recordsContent");
+      const deleteCurrentUnit = document.getElementById("deleteCurrentUnit");
+
+      let data = readRecords();
+
+      function readRecords() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          if (!saved || typeof saved !== "object" || !saved.units || typeof saved.units !== "object") {
+            return { version: 1, units: {} };
+          }
+
+          const units = {};
+          Object.entries(saved.units).forEach(([unitName, records]) => {
+            if (typeof unitName === "string" && Array.isArray(records)) {
+              units[unitName] = records.filter(record => record && typeof record === "object");
+            }
+          });
+          return { version: 1, units };
+        } catch (error) {
+          console.warn("Unable to read WordFlash challenge records", error);
+          return { version: 1, units: {} };
+        }
+      }
+
+      function saveRecords() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      }
+
+      function getUnitNames() {
+        return Object.keys(data.units).sort((a, b) => a.localeCompare(b, "zh-Hant"));
+      }
+
+      function normalizedRecords(unitName) {
+        const records = Array.isArray(data.units[unitName]) ? data.units[unitName] : [];
+        return records.slice().sort((first, second) => getDateValue(second.completedAt) - getDateValue(first.completedAt));
+      }
+
+      function getDateValue(value) {
+        const parsed = new Date(value).getTime();
+        return Number.isFinite(parsed) ? parsed : 0;
+      }
+
+      function toSafeNumber(value) {
+        const number = Number(value);
+        return Number.isFinite(number) && number >= 0 ? Math.floor(number) : 0;
+      }
+
+      function formatDate(value) {
+        const date = new Date(value);
+        if (!Number.isFinite(date.getTime())) return "日期不明";
+        return new Intl.DateTimeFormat("zh-TW", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit"
+        }).format(date);
+      }
+
+      function formatSeconds(value) {
+        const seconds = toSafeNumber(value);
+        const minutes = Math.floor(seconds / 60);
+        const remainder = seconds % 60;
+        if (minutes === 0) return `${remainder} 秒`;
+        return `${minutes} 分 ${remainder.toString().padStart(2, "0")} 秒`;
+      }
+
+      function getResult(record) {
+        const reason = String(record.reason || "").toLowerCase();
+        if (["completed", "complete", "finished", "finish", "success"].includes(reason)) {
+          return { label: "完成挑戰", className: "result-completed" };
+        }
+        if (["time_up", "timeout", "timeup", "time-up"].includes(reason)) {
+          return { label: "時間到", className: "result-time-up" };
+        }
+        if (["incorrect", "wrong", "mistake", "failed", "failure"].includes(reason)) {
+          return { label: "答錯結束", className: "result-incorrect" };
+        }
+        return { label: reason ? record.reason : "已結束", className: "result-other" };
+      }
+
+      function createCell(text, className = "") {
+        const cell = document.createElement("td");
+        if (className) cell.className = className;
+        cell.textContent = text;
+        return cell;
+      }
+
+      function renderOptions(preferredUnit) {
+        const unitNames = getUnitNames();
+        unitSelect.replaceChildren();
+
+        if (unitNames.length === 0) {
+          const option = new Option("尚無挑戰紀錄", "");
+          unitSelect.add(option);
+          unitSelect.disabled = true;
+          return "";
+        }
+
+        unitSelect.disabled = false;
+        unitNames.forEach(unitName => unitSelect.add(new Option(unitName, unitName)));
+        const activeUnit = unitNames.includes(preferredUnit) ? preferredUnit : unitNames[0];
+        unitSelect.value = activeUnit;
+        return activeUnit;
+      }
+
+      function renderSummary(records) {
+        if (records.length === 0) {
+          challengeCount.textContent = "0";
+          bestCorrect.textContent = "—";
+          bestCorrectDetail.textContent = "尚無紀錄";
+          recentCorrect.textContent = "—";
+          recentDetail.textContent = "尚無紀錄";
+          return;
+        }
+
+        const best = records.reduce((highest, record) => Math.max(highest, toSafeNumber(record.correct)), 0);
+        const latest = records[0];
+        const latestResult = getResult(latest);
+        challengeCount.textContent = String(records.length);
+        bestCorrect.textContent = `${best} 題`;
+        bestCorrectDetail.textContent = "單次挑戰最高連勝數";
+        recentCorrect.textContent = `${toSafeNumber(latest.correct)} 題`;
+        recentDetail.textContent = `${latestResult.label}・${formatDate(latest.completedAt)}`;
+      }
+
+      function renderTable(records) {
+        if (records.length === 0) {
+          const emptyState = document.createElement("div");
+          emptyState.className = "empty-state";
+          const title = document.createElement("strong");
+          title.textContent = "這個字庫還沒有挑戰紀錄";
+          const description = document.createElement("p");
+          description.textContent = "完成一次計時挑戰後，成果會顯示在這裡。";
+          emptyState.append(title, description);
+          recordsContent.replaceChildren(emptyState);
+          return;
+        }
+
+        const tableWrap = document.createElement("div");
+        tableWrap.className = "table-wrap";
+        const table = document.createElement("table");
+        table.setAttribute("aria-label", "挑戰完成紀錄");
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        ["完成時間", "時間設定", "最高連勝", "結果"].forEach(label => {
+          const heading = document.createElement("th");
+          heading.scope = "col";
+          heading.textContent = label;
+          headerRow.append(heading);
+        });
+        thead.append(headerRow);
+
+        const tbody = document.createElement("tbody");
+        records.forEach(record => {
+          const row = document.createElement("tr");
+          row.append(createCell(formatDate(record.completedAt)));
+
+          const timeCell = document.createElement("td");
+          timeCell.className = "time-detail";
+          const configured = document.createElement("span");
+          const duration = toSafeNumber(record.durationSeconds);
+          configured.textContent = duration > 0 ? formatSeconds(duration) : "未設定計時";
+          timeCell.append(configured);
+          const elapsed = toSafeNumber(record.elapsedSeconds);
+          if (elapsed > 0) {
+            const elapsedDetail = document.createElement("small");
+            elapsedDetail.textContent = `實際 ${formatSeconds(elapsed)}`;
+            timeCell.append(elapsedDetail);
+          }
+          row.append(timeCell);
+          row.append(createCell(`${toSafeNumber(record.correct)} 題`, "score-cell"));
+
+          const resultCell = document.createElement("td");
+          const result = getResult(record);
+          const badge = document.createElement("span");
+          badge.className = `result-badge ${result.className}`;
+          badge.textContent = result.label;
+          resultCell.append(badge);
+          row.append(resultCell);
+          tbody.append(row);
+        });
+
+        table.append(thead, tbody);
+        tableWrap.append(table);
+        recordsContent.replaceChildren(tableWrap);
+      }
+
+      function render(preferredUnit = unitSelect.value) {
+        const activeUnit = renderOptions(preferredUnit);
+        const records = activeUnit ? normalizedRecords(activeUnit) : [];
+        selectedUnitDescription.textContent = activeUnit
+          ? `「${activeUnit}」的挑戰成果會與其他字庫分開計算。`
+          : "尚未儲存任何挑戰紀錄。";
+        deleteCurrentUnit.disabled = !activeUnit || records.length === 0;
+        renderSummary(records);
+        renderTable(records);
+      }
+
+      unitSelect.addEventListener("change", () => render(unitSelect.value));
+
+      deleteCurrentUnit.addEventListener("click", () => {
+        const unitName = unitSelect.value;
+        const records = normalizedRecords(unitName);
+        if (!unitName || records.length === 0) return;
+        const confirmed = window.confirm(`確定要刪除「${unitName}」的 ${records.length} 筆挑戰紀錄嗎？這項操作無法復原。`);
+        if (!confirmed) return;
+        delete data.units[unitName];
+        saveRecords();
+        render();
+      });
+
+      window.addEventListener("storage", event => {
+        if (event.key !== STORAGE_KEY) return;
+        data = readRecords();
+        render(unitSelect.value);
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>

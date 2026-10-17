@@ -40,26 +40,49 @@ test("各裝置：統計與挑戰模式會正確記錄答題", async ({ page }, 
   await page.locator("#correctButton").click();
   await expect(page.locator(".challenge-book")).toHaveCount(3);
   await expect(page.locator(".challenge-number")).toHaveCount(0);
+  const normalVisibleCapacity = Number(await page.locator(".challenge-pieces").getAttribute("data-normal-visible-capacity"));
+  await expect(page.locator(".challenge-pieces")).toHaveAttribute("data-mode", "normal");
   await page.screenshot({
     path: path.join(artifactDir, `${testInfo.project.name}-challenge-blocks.png`),
     fullPage: false,
     scale: "device"
   });
 
+  await page.evaluate((correct) => {
+    localStorage.setItem("wordflash_practice_session_v1", JSON.stringify({
+      statistics: { correct: 0, incorrect: 0 },
+      challenge: { correct }
+    }));
+  }, normalVisibleCapacity);
+  await page.reload();
+  await expect(page.locator(".challenge-pieces")).toHaveAttribute("data-mode", "normal");
+  await expect(page.locator(".challenge-book")).toHaveCount(normalVisibleCapacity);
+
+  await page.evaluate((correct) => {
+    localStorage.setItem("wordflash_practice_session_v1", JSON.stringify({
+      statistics: { correct: 0, incorrect: 0 },
+      challenge: { correct }
+    }));
+  }, normalVisibleCapacity + 1);
+  await page.reload();
+  await expect(page.locator(".challenge-pieces")).toHaveAttribute("data-mode", "compact");
+  await expect(page.locator(".challenge-book")).toHaveCount(normalVisibleCapacity + 1);
+
   await page.evaluate(() => {
     localStorage.setItem("wordflash_practice_session_v1", JSON.stringify({
       statistics: { correct: 0, incorrect: 0 },
-      challenge: { correct: 52 }
+      challenge: { correct: 1000 }
     }));
   });
   await page.reload();
-  const visibleCapacity = Number(await page.locator(".challenge-pieces").getAttribute("data-visible-capacity"));
-  await expect(page.locator(".challenge-book")).toHaveCount(Math.min(52, visibleCapacity));
+  const compactVisibleCapacity = Number(await page.locator(".challenge-pieces").getAttribute("data-visible-capacity"));
+  await expect(page.locator(".challenge-pieces")).toHaveAttribute("data-mode", "compact");
+  expect(compactVisibleCapacity).toBeGreaterThanOrEqual(normalVisibleCapacity * 3.5);
+  await expect(page.locator(".challenge-piece-row")).toHaveCount(3);
+  await expect(page.locator(".challenge-book")).toHaveCount(compactVisibleCapacity);
   const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(pageWidth).toBeLessThanOrEqual(testInfo.project.use.viewport.width);
-  if (52 > visibleCapacity) {
-    await expect(page.locator(".challenge-overflow")).toHaveText(`+${52 - visibleCapacity}`);
-  }
+  await expect(page.locator(".challenge-overflow")).toHaveText(`+${1000 - compactVisibleCapacity}`);
   await page.screenshot({
     path: path.join(artifactDir, `${testInfo.project.name}-challenge-capacity.png`),
     fullPage: false,
@@ -69,12 +92,12 @@ test("各裝置：統計與挑戰模式會正確記錄答題", async ({ page }, 
   await page.goto("/settings.html");
   await page.locator('label[for="challengeDisplayBoth"]').click();
   await page.goto("/canvas_words.html");
-  await expect(page.locator(".challenge-number")).toContainText("目前連續答對52");
-  await expect(page.locator(".challenge-book")).toHaveCount(Math.min(52, visibleCapacity));
+  await expect(page.locator(".challenge-number")).toContainText("目前連續答對1000");
+  await expect(page.locator(".challenge-book")).toHaveCount(compactVisibleCapacity);
 
   await page.goto("/settings.html");
   await page.locator('label[for="challengeDisplayNumber"]').click();
   await page.goto("/canvas_words.html");
-  await expect(page.locator(".challenge-number")).toContainText("目前連續答對52");
+  await expect(page.locator(".challenge-number")).toContainText("目前連續答對1000");
   await expect(page.locator(".challenge-book")).toHaveCount(0);
 });

@@ -190,6 +190,61 @@
     }
     .answer-controls .correct-button { background: #e1ead8; }
     .answer-controls .incorrect-button { background: #f1dfd7; }
+    .answer-controls button:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
+    }
+    .challenge-timer {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 2px solid #2b2b2b;
+      border-radius: 8px;
+      background: #f8edcf;
+    }
+    .challenge-timer-copy {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+    .challenge-timer-copy span { font-size: 13px; color: #5b554d; }
+    .challenge-timer-copy strong { font-size: 18px; line-height: 1.15; }
+    .challenge-timer-value {
+      min-width: 4.2ch;
+      font-family: system-ui, sans-serif;
+      font-size: 29px;
+      font-weight: 700;
+      line-height: 1;
+      text-align: right;
+    }
+    .challenge-start-button {
+      min-height: 46px;
+      padding: 8px 14px;
+      border: 2px solid #2b2b2b;
+      border-radius: 8px;
+      background: #e1ead8;
+      color: inherit;
+      font: inherit;
+      font-size: 17px;
+      cursor: pointer;
+    }
+    .challenge-finished-note {
+      display: grid;
+      gap: 3px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 9px 12px;
+      border: 2px solid #2b2b2b;
+      border-radius: 8px;
+      background: #dce8d7;
+      text-align: center;
+    }
+    .challenge-finished-note span { color: #4c5945; font-size: 13px; }
+    .challenge-finished-note strong { font-size: 19px; }
     .challenge-progress {
       display: grid;
       justify-items: center;
@@ -229,6 +284,34 @@
       padding: 6px 6px 3px;
       border-bottom: 4px solid #2b2b2b;
     }
+    /*
+       A full three-shelf bookcase changes into three compact bookcase bays.
+       Each bay holds two half-height shelves, so books are half-width and
+       half-height while the overall challenge panel remains the same height.
+       That gives roughly four times the normal capacity without adding a
+       fourth full-size row or making the page wider.
+    */
+    .challenge-pieces--compact {
+      gap: 4px;
+    }
+    .challenge-piece-row--compact {
+      display: grid;
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      gap: 2px;
+      min-height: clamp(48px, 10vw, 62px);
+      padding: 0;
+      border-bottom: 0;
+    }
+    .challenge-piece-shelf--compact {
+      display: flex;
+      align-items: end;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      min-height: clamp(23px, 5vw, 31px);
+      padding: 2px 3px 1px;
+      border-bottom: 2px solid #2b2b2b;
+    }
     .challenge-book {
       position: relative;
       box-sizing: border-box;
@@ -240,8 +323,19 @@
       background: linear-gradient(90deg, rgba(255, 255, 255, 0.38), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.13)), var(--piece-color);
       box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.28), inset -3px 0 0 rgba(0, 0, 0, 0.12);
     }
+    .challenge-book--compact {
+      width: clamp(11px, 2.625vw, 14.5px);
+      height: clamp(21px, 4.5vw, 28px);
+      border-width: 1px;
+      border-right: 0;
+      border-radius: 2px 2px 0 0;
+      box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.28), inset -1px 0 0 rgba(0, 0, 0, 0.12);
+    }
     .challenge-book:last-child {
       border-right: 2px solid #2b2b2b;
+    }
+    .challenge-book--compact:last-child {
+      border-right-width: 1px;
     }
     .challenge-book::before {
       position: absolute;
@@ -252,6 +346,13 @@
       background: rgba(255, 249, 236, 0.66);
       box-shadow: 0 6px 0 rgba(255, 249, 236, 0.45), 0 12px 0 rgba(255, 249, 236, 0.28);
       content: "";
+    }
+    .challenge-book--compact::before {
+      top: 3px;
+      right: 2px;
+      left: 2px;
+      height: 1px;
+      box-shadow: 0 3px 0 rgba(255, 249, 236, 0.45), 0 6px 0 rgba(255, 249, 236, 0.28);
     }
     .challenge-overflow {
       align-self: center;
@@ -324,6 +425,13 @@
       .challenge-number strong { font-size: 30px; }
       .answer-controls { display: grid; grid-template-columns: 1fr 1fr; }
       .answer-controls button { min-height: 52px; font-size: 19px; }
+      .challenge-timer { grid-template-columns: 1fr; gap: 8px; }
+      .challenge-timer--running {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+      }
+      .challenge-timer--running .challenge-timer-value { text-align: right; }
+      .challenge-start-button { width: 100%; min-height: 50px; }
       .hint {
         max-width: 32rem;
         padding: 0 6px;
@@ -363,8 +471,6 @@
       <button id="speakButton" type="button">播放讀音</button>
       <a id="settingsLink" href="settings.html">設定</a>
       <a id="manageLink" href="manage_words.html">字庫管理</a>
-      <button id="googleSignIn" type="button">Google 登入</button>
-      <button id="googleSignOut" type="button" hidden>登出</button>
     </div>
   </header>
   <main>
@@ -388,8 +494,6 @@
     import {
       loadCloudUnits,
       saveCloudUnits,
-      signInWithGoogle,
-      signOutFromGoogle,
       subscribeToUser
     } from "./firebase-wordflash.js";
 
@@ -418,8 +522,6 @@
     const practiceSummary = document.getElementById("practiceSummary");
     const correctButton = document.getElementById("correctButton");
     const incorrectButton = document.getElementById("incorrectButton");
-    const googleSignIn = document.getElementById("googleSignIn");
-    const googleSignOut = document.getElementById("googleSignOut");
     let index = 0;
     let wordList = [];
     let remaining = [];
@@ -431,9 +533,13 @@
     const PRACTICE_MODE_KEY = "wordflash_practice_mode_v1";
     const PRACTICE_SESSION_KEY = "wordflash_practice_session_v1";
     const CHALLENGE_PROGRESS_DISPLAY_KEY = "wordflash_challenge_progress_display_v1";
+    const CHALLENGE_TIMER_KEY = "wordflash_challenge_timer_v1";
+    const TIMED_CHALLENGE_RUN_KEY = "wordflash_timed_challenge_run_v1";
+    const CHALLENGE_RECORDS_KEY = "wordflash_challenge_records_v1";
     const PRACTICE_MODES = new Set(["none", "statistics", "challenge"]);
     const CHALLENGE_PROGRESS_DISPLAYS = new Set(["number", "blocks", "both"]);
     const MAX_VISIBLE_CHALLENGE_ROWS = 3;
+    const DEFAULT_CHALLENGE_TIMER = { enabled: false, durationSeconds: 60 };
     const DEFAULT_DISPLAY_PREFERENCES = {
       showUnitControl: true,
       showFontControl: true,
@@ -496,6 +602,9 @@
     let practiceSession = null;
     let challengeProgressDisplay = "both";
     let currentUser = null;
+    let timerIntervalId = null;
+    let resizeRenderFrame = null;
+    let latestTimedChallengeResult = null;
 
     const loadDisplayPreferences = () => {
       try {
@@ -526,6 +635,96 @@
       return CHALLENGE_PROGRESS_DISPLAYS.has(savedDisplay) ? savedDisplay : "both";
     };
 
+    const normalizeChallengeDuration = (value) => {
+      const seconds = Math.round(Number(value));
+      return Number.isFinite(seconds) ? Math.min(3600, Math.max(10, seconds)) : DEFAULT_CHALLENGE_TIMER.durationSeconds;
+    };
+
+    const loadChallengeTimer = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(CHALLENGE_TIMER_KEY) || "{}");
+        return {
+          enabled: saved.enabled === true,
+          durationSeconds: normalizeChallengeDuration(saved.durationSeconds)
+        };
+      } catch {
+        return { ...DEFAULT_CHALLENGE_TIMER };
+      }
+    };
+
+    const isTimedRunStatus = (value) => value === "running" || value === "finished";
+
+    const normalizeTimedRun = (value) => {
+      if (!value || typeof value !== "object" || !isTimedRunStatus(value.status)) return null;
+      const unitName = typeof value.unitName === "string" ? value.unitName.trim() : "";
+      const startedAtMs = Number(value.startedAtMs);
+      const endsAtMs = Number(value.endsAtMs);
+      if (!unitName || !Number.isFinite(startedAtMs) || !Number.isFinite(endsAtMs) || endsAtMs <= startedAtMs) return null;
+      return {
+        version: 1,
+        id: typeof value.id === "string" && value.id ? value.id : createTimedRunId(),
+        unitName,
+        durationSeconds: normalizeChallengeDuration(value.durationSeconds),
+        startedAtMs,
+        endsAtMs,
+        status: value.status,
+        currentStreak: Math.max(0, Math.floor(Number(value.currentStreak) || 0)),
+        bestStreak: Math.max(0, Math.floor(Number(value.bestStreak) || 0)),
+        correctCount: Math.max(0, Math.floor(Number(value.correctCount) || 0)),
+        incorrectCount: Math.max(0, Math.floor(Number(value.incorrectCount) || 0)),
+        finishedAtMs: Number.isFinite(Number(value.finishedAtMs)) ? Number(value.finishedAtMs) : null
+      };
+    };
+
+    const createTimedRunId = () => (
+      globalThis.crypto?.randomUUID?.() || `timed-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    );
+
+    const loadTimedChallengeRun = () => {
+      try {
+        return normalizeTimedRun(JSON.parse(localStorage.getItem(TIMED_CHALLENGE_RUN_KEY) || "null"));
+      } catch {
+        return null;
+      }
+    };
+
+    const saveTimedChallengeRun = (run) => {
+      localStorage.setItem(TIMED_CHALLENGE_RUN_KEY, JSON.stringify(run));
+    };
+
+    const clearTimedChallengeRun = () => {
+      localStorage.removeItem(TIMED_CHALLENGE_RUN_KEY);
+    };
+
+    const loadChallengeRecords = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(CHALLENGE_RECORDS_KEY) || "null");
+        if (!saved || typeof saved !== "object" || !saved.units || typeof saved.units !== "object") {
+          return { version: 1, units: {} };
+        }
+        const units = Object.entries(saved.units).reduce((result, [name, records]) => {
+          if (typeof name === "string" && Array.isArray(records)) result[name] = records.filter((record) => record && typeof record === "object");
+          return result;
+        }, {});
+        return { version: 1, units };
+      } catch {
+        return { version: 1, units: {} };
+      }
+    };
+
+    const saveChallengeRecords = (records) => {
+      localStorage.setItem(CHALLENGE_RECORDS_KEY, JSON.stringify(records));
+    };
+
+    const getTimedChallengeRemainingSeconds = (run) => Math.max(0, Math.ceil((run.endsAtMs - Date.now()) / 1000));
+
+    const formatTimer = (seconds) => {
+      const wholeSeconds = Math.max(0, Math.floor(seconds));
+      const minutes = Math.floor(wholeSeconds / 60);
+      const remainder = String(wholeSeconds % 60).padStart(2, "0");
+      return `${minutes}:${remainder}`;
+    };
+
     const createDefaultPracticeSession = () => ({
       statistics: { correct: 0, incorrect: 0 },
       challenge: { correct: 0 }
@@ -551,6 +750,118 @@
 
     const savePracticeSession = () => {
       localStorage.setItem(PRACTICE_SESSION_KEY, JSON.stringify(practiceSession));
+    };
+
+    const stopChallengeTimerTicker = () => {
+      if (timerIntervalId !== null) {
+        window.clearInterval(timerIntervalId);
+        timerIntervalId = null;
+      }
+    };
+
+    const upsertTimedChallengeRecord = (run) => {
+      const records = loadChallengeRecords();
+      const completedAtMs = run.finishedAtMs || Date.now();
+      const record = {
+        id: run.id,
+        unitName: run.unitName,
+        completedAt: new Date(completedAtMs).toISOString(),
+        durationSeconds: run.durationSeconds,
+        elapsedSeconds: run.durationSeconds,
+        correct: run.bestStreak,
+        totalCorrect: run.correctCount,
+        incorrect: run.incorrectCount,
+        reason: "time_up"
+      };
+      const existing = Array.isArray(records.units[run.unitName]) ? records.units[run.unitName] : [];
+      const indexOfExisting = existing.findIndex((item) => item?.id === run.id);
+      if (indexOfExisting >= 0) {
+        existing[indexOfExisting] = record;
+      } else {
+        existing.unshift(record);
+      }
+      records.units[run.unitName] = existing
+        .sort((first, second) => new Date(second.completedAt).getTime() - new Date(first.completedAt).getTime())
+        .slice(0, 50);
+      saveChallengeRecords(records);
+      return record;
+    };
+
+    const finishTimedChallenge = (suppliedRun = loadTimedChallengeRun()) => {
+      if (!suppliedRun) return null;
+      const run = { ...suppliedRun };
+      if (run.status === "running") {
+        run.status = "finished";
+        run.finishedAtMs = Date.now();
+        saveTimedChallengeRun(run);
+      }
+      const record = upsertTimedChallengeRecord(run);
+      latestTimedChallengeResult = record;
+      clearTimedChallengeRun();
+      stopChallengeTimerTicker();
+      renderPracticePanel();
+      status.textContent = `時間到！本輪最高連續答對 ${record.correct} 題，已保存到「${record.unitName}」的挑戰紀錄。`;
+      return record;
+    };
+
+    const startChallengeTimerTicker = () => {
+      if (timerIntervalId !== null) return;
+      timerIntervalId = window.setInterval(() => {
+        const run = loadTimedChallengeRun();
+        if (!run) {
+          stopChallengeTimerTicker();
+          return;
+        }
+        if (run.status === "finished" || getTimedChallengeRemainingSeconds(run) <= 0) {
+          finishTimedChallenge(run);
+          return;
+        }
+        renderPracticePanel();
+      }, 250);
+    };
+
+    const reconcileTimedChallenge = () => {
+      const run = loadTimedChallengeRun();
+      if (!run) {
+        stopChallengeTimerTicker();
+        return null;
+      }
+      if (run.status === "finished" || getTimedChallengeRemainingSeconds(run) <= 0) {
+        finishTimedChallenge(run);
+        return null;
+      }
+      startChallengeTimerTicker();
+      return run;
+    };
+
+    const startTimedChallenge = () => {
+      const timer = loadChallengeTimer();
+      if (practiceMode !== "challenge" || !timer.enabled) return;
+      const existingRun = loadTimedChallengeRun();
+      if (existingRun?.status === "running") return;
+      if (existingRun) finishTimedChallenge(existingRun);
+      const now = Date.now();
+      const run = {
+        version: 1,
+        id: createTimedRunId(),
+        unitName: state.current,
+        durationSeconds: timer.durationSeconds,
+        startedAtMs: now,
+        endsAtMs: now + timer.durationSeconds * 1000,
+        status: "running",
+        currentStreak: 0,
+        bestStreak: 0,
+        correctCount: 0,
+        incorrectCount: 0,
+        finishedAtMs: null
+      };
+      latestTimedChallengeResult = null;
+      saveTimedChallengeRun(run);
+      refillRemaining();
+      showNext();
+      startChallengeTimerTicker();
+      renderPracticePanel();
+      status.textContent = `已開始 ${timer.durationSeconds} 秒計時挑戰，加油！`;
     };
 
     const shuffle = (arr) => {
@@ -716,14 +1027,14 @@
       return item;
     };
 
-    const getChallengePiecesPerRow = () => {
+    const getChallengePiecesPerRow = ({ compact = false } = {}) => {
       const sample = document.createElement("span");
-      sample.className = "challenge-book";
+      sample.className = compact ? "challenge-book challenge-book--compact" : "challenge-book";
       sample.setAttribute("aria-hidden", "true");
       practiceSummary.append(sample);
       const pieceWidth = Math.ceil(sample.getBoundingClientRect().width) || 22;
       sample.remove();
-      const rowHorizontalInsets = 16;
+      const rowHorizontalInsets = compact ? 8 : 16;
       return Math.max(1, Math.floor((practiceSummary.clientWidth - rowHorizontalInsets) / pieceWidth));
     };
 
@@ -745,14 +1056,22 @@
       }
 
       if (showBlocks) {
-        const piecesPerRow = getChallengePiecesPerRow();
-        const visibleCapacity = piecesPerRow * MAX_VISIBLE_CHALLENGE_ROWS;
+        const normalPiecesPerRow = getChallengePiecesPerRow();
+        const normalVisibleCapacity = normalPiecesPerRow * MAX_VISIBLE_CHALLENGE_ROWS;
+        const useCompactBookcase = correctCount > normalVisibleCapacity;
+        const shelvesPerCompactRow = 2;
+        const piecesPerRow = useCompactBookcase
+          ? getChallengePiecesPerRow({ compact: true })
+          : normalPiecesPerRow;
+        const visibleCapacity = piecesPerRow * MAX_VISIBLE_CHALLENGE_ROWS * (useCompactBookcase ? shelvesPerCompactRow : 1);
         const pieces = document.createElement("div");
-        pieces.className = "challenge-pieces";
+        pieces.className = `challenge-pieces${useCompactBookcase ? " challenge-pieces--compact" : ""}`;
         pieces.setAttribute("role", "img");
-        pieces.setAttribute("aria-label", `目前連續答對 ${correctCount} 題`);
+        pieces.setAttribute("aria-label", `目前連續答對 ${correctCount} 題${useCompactBookcase ? "，以縮小書架顯示" : ""}`);
         pieces.dataset.piecesPerRow = String(piecesPerRow);
         pieces.dataset.visibleCapacity = String(visibleCapacity);
+        pieces.dataset.normalVisibleCapacity = String(normalVisibleCapacity);
+        pieces.dataset.mode = useCompactBookcase ? "compact" : "normal";
         if (challengeProgressDisplay === "blocks") {
           const label = document.createElement("span");
           label.className = "challenge-piece-label";
@@ -770,15 +1089,29 @@
         } else {
           const colors = ["#dce8d7", "#f3ddd4", "#d9e4ee", "#f1e5bd"];
           const visibleCount = Math.min(correctCount, visibleCapacity);
-          for (let start = 0; start < visibleCount; start += piecesPerRow) {
+          const shelvesPerRow = useCompactBookcase ? shelvesPerCompactRow : 1;
+          for (let rowIndex = 0; rowIndex < MAX_VISIBLE_CHALLENGE_ROWS; rowIndex += 1) {
+            const rowStart = rowIndex * piecesPerRow * shelvesPerRow;
+            if (rowStart >= visibleCount) break;
             const row = document.createElement("div");
-            row.className = "challenge-piece-row";
-            for (let position = start; position < Math.min(start + piecesPerRow, visibleCount); position += 1) {
-              const piece = document.createElement("span");
-              piece.className = "challenge-book";
-              piece.style.setProperty("--piece-color", colors[position % colors.length]);
-              piece.setAttribute("aria-hidden", "true");
-              row.append(piece);
+            row.className = `challenge-piece-row${useCompactBookcase ? " challenge-piece-row--compact" : ""}`;
+            for (let shelfIndex = 0; shelfIndex < shelvesPerRow; shelfIndex += 1) {
+              const shelfStart = rowStart + (shelfIndex * piecesPerRow);
+              if (shelfStart >= visibleCount) break;
+              const shelf = useCompactBookcase ? document.createElement("div") : row;
+              if (useCompactBookcase) {
+                shelf.className = "challenge-piece-shelf--compact";
+              }
+              for (let position = shelfStart; position < Math.min(shelfStart + piecesPerRow, visibleCount); position += 1) {
+                const piece = document.createElement("span");
+                piece.className = `challenge-book${useCompactBookcase ? " challenge-book--compact" : ""}`;
+                piece.style.setProperty("--piece-color", colors[position % colors.length]);
+                piece.setAttribute("aria-hidden", "true");
+                shelf.append(piece);
+              }
+              if (useCompactBookcase) {
+                row.append(shelf);
+              }
             }
             pieces.append(row);
           }
@@ -795,11 +1128,62 @@
       return progress;
     };
 
+    const createTimedChallengeControls = (run, timer) => {
+      const items = [];
+      const panel = document.createElement("div");
+      panel.className = `challenge-timer${run?.status === "running" ? " challenge-timer--running" : ""}`;
+      const copy = document.createElement("div");
+      copy.className = "challenge-timer-copy";
+      const label = document.createElement("span");
+      const value = document.createElement("strong");
+
+      if (run?.status === "running") {
+        label.textContent = `「${run.unitName}」計時挑戰`;
+        value.textContent = "倒數中";
+        copy.append(label, value);
+        const timerValue = document.createElement("output");
+        timerValue.className = "challenge-timer-value";
+        timerValue.setAttribute("aria-label", `剩餘 ${getTimedChallengeRemainingSeconds(run)} 秒`);
+        timerValue.textContent = formatTimer(getTimedChallengeRemainingSeconds(run));
+        panel.append(copy, timerValue);
+      } else {
+        label.textContent = "準備開始計時挑戰";
+        value.textContent = `每輪 ${timer.durationSeconds} 秒；答錯會讓連勝歸零。`;
+        copy.append(label, value);
+        const start = document.createElement("button");
+        start.className = "challenge-start-button";
+        start.type = "button";
+        start.dataset.action = "start-timed-challenge";
+        start.textContent = `開始 ${timer.durationSeconds} 秒挑戰`;
+        panel.append(copy, start);
+      }
+      items.push(panel);
+
+      if (!run && latestTimedChallengeResult) {
+        const result = document.createElement("div");
+        result.className = "challenge-finished-note";
+        const label = document.createElement("span");
+        label.textContent = `已保存到「${latestTimedChallengeResult.unitName}」的挑戰紀錄`;
+        const score = document.createElement("strong");
+        score.textContent = `本輪最高連續答對 ${latestTimedChallengeResult.correct} 題`;
+        result.append(label, score);
+        items.push(result);
+      }
+      return items;
+    };
+
     const renderPracticePanel = () => {
       const isPracticeActive = practiceMode !== "none";
+      const timer = loadChallengeTimer();
+      const timedRun = loadTimedChallengeRun();
+      const isTimedRunActive = timedRun?.status === "running";
+      const isTimedChallenge = timer.enabled || isTimedRunActive;
       practicePanel.hidden = !isPracticeActive;
-      nextButton.textContent = isPracticeActive ? "跳過" : "換字";
+      nextButton.textContent = isPracticeActive && !(practiceMode === "challenge" && isTimedChallenge && !isTimedRunActive) ? "跳過" : "換字";
       practiceSummary.classList.toggle("challenge-summary", practiceMode === "challenge");
+      correctButton.disabled = practiceMode === "challenge" && isTimedChallenge && !isTimedRunActive;
+      incorrectButton.disabled = practiceMode === "challenge" && isTimedChallenge && !isTimedRunActive;
+      unitSelect.disabled = Boolean(isTimedRunActive);
       if (!isPracticeActive) return;
 
       if (practiceMode === "statistics") {
@@ -814,7 +1198,11 @@
         return;
       }
 
-      practiceSummary.replaceChildren(createChallengeProgress(practiceSession.challenge.correct));
+      const score = isTimedChallenge ? (isTimedRunActive ? timedRun.currentStreak : 0) : practiceSession.challenge.correct;
+      const challengeItems = isTimedChallenge
+        ? [...createTimedChallengeControls(timedRun, timer), createChallengeProgress(score)]
+        : [createChallengeProgress(score)];
+      practiceSummary.replaceChildren(...challengeItems);
     };
 
     const recordAnswer = (isCorrect) => {
@@ -822,12 +1210,37 @@
       if (practiceMode === "statistics") {
         const key = isCorrect ? "correct" : "incorrect";
         practiceSession.statistics[key] += 1;
-      } else if (isCorrect) {
-        practiceSession.challenge.correct += 1;
+        savePracticeSession();
       } else {
-        practiceSession.challenge.correct = 0;
+        const timer = loadChallengeTimer();
+        const timedRun = loadTimedChallengeRun();
+        const isTimedChallenge = timer.enabled || timedRun?.status === "running";
+        if (isTimedChallenge) {
+          if (!timedRun || timedRun.status !== "running") {
+            status.textContent = "請先按「開始挑戰」，再記錄答對或答錯。";
+            return;
+          }
+          if (getTimedChallengeRemainingSeconds(timedRun) <= 0) {
+            finishTimedChallenge(timedRun);
+            return;
+          }
+          if (isCorrect) {
+            timedRun.currentStreak += 1;
+            timedRun.bestStreak = Math.max(timedRun.bestStreak, timedRun.currentStreak);
+            timedRun.correctCount += 1;
+          } else {
+            timedRun.currentStreak = 0;
+            timedRun.incorrectCount += 1;
+          }
+          saveTimedChallengeRun(timedRun);
+        } else if (isCorrect) {
+          practiceSession.challenge.correct += 1;
+          savePracticeSession();
+        } else {
+          practiceSession.challenge.correct = 0;
+          savePracticeSession();
+        }
       }
-      savePracticeSession();
       renderPracticePanel();
       showNext();
       status.textContent = isCorrect ? "已記錄答對，已換下一題。" : "已記錄答錯，已換下一題。";
@@ -923,11 +1336,24 @@
     practiceMode = loadPracticeMode();
     practiceSession = loadPracticeSession();
     challengeProgressDisplay = loadChallengeProgressDisplay();
+    const recoveredTimedRun = reconcileTimedChallenge();
+    if (recoveredTimedRun?.status === "running" && state.units[recoveredTimedRun.unitName] && state.current !== recoveredTimedRun.unitName) {
+      state.current = recoveredTimedRun.unitName;
+      refreshUnitSelect(state.units, state.current);
+      startWithWords(state.units[state.current]);
+    }
     applyDisplayPreferences();
     renderPracticePanel();
-    status.textContent = "點畫布或按「播放讀音」朗讀，按下方「換字」切換下一個字";
+    if (!latestTimedChallengeResult) {
+      status.textContent = "點畫布或按「播放讀音」朗讀，按下方「換字」切換下一個字";
+    }
 
     unitSelect.addEventListener("change", () => {
+      if (loadTimedChallengeRun()?.status === "running") {
+        unitSelect.value = state.current;
+        status.textContent = "計時挑戰進行中，請等本輪結束後再切換字庫。";
+        return;
+      }
       const name = unitSelect.value;
       state.current = name;
       saveUnits(state);
@@ -946,34 +1372,20 @@
     nextButton.addEventListener("click", showNext);
     correctButton.addEventListener("click", () => recordAnswer(true));
     incorrectButton.addEventListener("click", () => recordAnswer(false));
-
-    const renderAccount = () => {
-      const signedIn = Boolean(currentUser);
-      googleSignIn.hidden = false;
-      googleSignIn.textContent = signedIn ? "切換 Google 帳號" : "Google 登入";
-      googleSignOut.hidden = !signedIn;
-      googleSignOut.textContent = signedIn ? `登出 ${currentUser.displayName || "Google"}` : "登出";
-    };
-    googleSignIn.addEventListener("click", async () => {
-      googleSignIn.disabled = true;
-      status.textContent = "正在開啟 Google 登入…";
-      try {
-        await signInWithGoogle();
-      } catch (error) {
-        status.textContent = `登入失敗：${error.message || "請稍後再試。"}`;
-      } finally {
-        googleSignIn.disabled = false;
-      }
+    practiceSummary.addEventListener("click", (event) => {
+      const startButton = event.target.closest('[data-action="start-timed-challenge"]');
+      if (startButton) startTimedChallenge();
     });
-    googleSignOut.addEventListener("click", () => signOutFromGoogle());
     subscribeToUser(async (user) => {
       currentUser = user;
-      renderAccount();
       if (!user) return;
       try {
         const cloudUnits = await loadCloudUnits(user);
         if (!cloudUnits) {
           status.textContent = "已登入 Google；請到設定頁上傳這台裝置的字庫。";
+          return;
+        }
+        if (loadTimedChallengeRun()?.status === "running") {
           return;
         }
         state = cloudUnits;
@@ -984,6 +1396,17 @@
       } catch (error) {
         console.error("WordFlash cloud load failed", error);
         status.textContent = "Google 已登入，但暫時無法讀取雲端字庫。";
+      }
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        const run = loadTimedChallengeRun();
+        if (run && (run.status === "finished" || getTimedChallengeRemainingSeconds(run) <= 0)) {
+          finishTimedChallenge(run);
+        } else if (run?.status === "running") {
+          renderPracticePanel();
+        }
       }
     });
 
@@ -1004,12 +1427,27 @@
       } else if (event.key === CHALLENGE_PROGRESS_DISPLAY_KEY) {
         challengeProgressDisplay = loadChallengeProgressDisplay();
         renderPracticePanel();
+      } else if (event.key === CHALLENGE_TIMER_KEY) {
+        renderPracticePanel();
+      } else if (event.key === TIMED_CHALLENGE_RUN_KEY) {
+        reconcileTimedChallenge();
+        renderPracticePanel();
       } else {
         return;
       }
       if (currentText) {
         drawCurrentWord();
       }
+    });
+
+    window.addEventListener("resize", () => {
+      if (resizeRenderFrame !== null) return;
+      resizeRenderFrame = window.requestAnimationFrame(() => {
+        resizeRenderFrame = null;
+        if (practiceMode === "challenge" && challengeProgressDisplay !== "number") {
+          renderPracticePanel();
+        }
+      });
     });
   </script>
 </body>

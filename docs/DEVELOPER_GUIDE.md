@@ -14,9 +14,10 @@
 | 檔案 | 主要責任 |
 |---|---|
 | `index.html` | 將網站根目錄導向 `canvas_words.html`。 |
-| `canvas_words.html` | 顯示字卡、朗讀、字庫／字型切換、注音排版、練習模式、挑戰積木及登入按鈕。 |
+| `canvas_words.html` | 顯示字卡、朗讀、字庫／字型切換、注音排版、練習模式、挑戰書架與計時挑戰；不提供帳號操作按鈕。 |
 | `manage_words.html` | 字庫 CRUD、自動查詢注音、多音字選擇與雲端字庫載入。 |
-| `settings.html` | 快速切換、顯示偏好、練習偏好、資料清除、雲端上傳／下載與帳號管理。 |
+| `settings.html` | 快速切換、顯示偏好、練習／計時挑戰偏好、資料清除、挑戰紀錄入口、雲端上傳／下載與帳號管理。 |
+| `challenge_records.html` | 從本機讀取計時挑戰紀錄，依字庫呈現摘要／明細，並刪除選取字庫的紀錄。 |
 | `firebase-wordflash.js` | Firebase 初始化、Google Auth、字庫正規化與 Realtime Database 讀寫。 |
 | `database.rules.json` | Realtime Database 的使用者隔離規則。 |
 | `firebase.json` | Firebase CLI 部署資料庫規則的設定。 |
@@ -28,7 +29,8 @@
 瀏覽器 localStorage
  ├─ 字庫 ──────────────────────── canvas / manage / settings
  ├─ 顯示偏好、字型、注音開關 ─── canvas / settings
- └─ 練習模式與紀錄 ───────────── canvas / settings
+ ├─ 練習模式與不限時進度 ─────── canvas / settings
+ └─ 計時設定、進行中挑戰、紀錄 ─ canvas / settings / challenge_records
 
 Firebase Auth ──────────────── Google 帳號登入狀態
 Firebase Realtime Database ── 該帳號的字庫備份
@@ -47,6 +49,9 @@ Web Speech API ────────────── canvas 的朗讀
 | `wordflash_practice_mode_v1` | `none`、`statistics`、`challenge` | 顯示頁、設定頁 |
 | `wordflash_practice_session_v1` | 統計與挑戰進度 | 顯示頁、設定頁 |
 | `wordflash_challenge_progress_display_v1` | `number`、`blocks`、`both` | 顯示頁、設定頁 |
+| `wordflash_challenge_timer_v1` | `{ enabled, durationSeconds }` 計時挑戰設定；時間限制為 10–3,600 秒 | 顯示頁、設定頁 |
+| `wordflash_timed_challenge_run_v1` | 進行中的計時挑戰：字庫快照、起訖時間、目前／最佳連勝與答題數 | 顯示頁、設定頁 |
+| `wordflash_challenge_records_v1` | `{ version, units }`；各字庫各自保存已結束的計時挑戰紀錄 | 顯示頁、挑戰紀錄頁 |
 
 字庫格式示例：
 
@@ -61,7 +66,7 @@ Web Speech API ────────────── canvas 的朗讀
 
 每個字庫項目都是一行文字；`|` 右側為手動指定的注音，中文字的音節以空白分隔。顯示頁會以中文字符數檢查音節數，數量不相符時不顯示注音，避免注音錯位。
 
-### 練習資料
+### 練習資料與計時挑戰
 
 ```json
 {
@@ -71,6 +76,10 @@ Web Speech API ────────────── canvas 的朗讀
 ```
 
 此資料目前只存在 localStorage，未寫入 Firebase。同一瀏覽器的不同分頁會經由 `storage` event 更新畫面。
+
+計時挑戰另有三份本機資料：設定、進行中的一輪，以及已完成紀錄。顯示頁以 `endsAtMs` 和目前時間計算剩餘秒數，而不是累減計時器；重新整理頁面後，仍能判斷是否已逾時。逾時時會用該輪的 `id` 去重，只保存一次紀錄。已完成項目的主要分數欄位是 `correct`，代表本輪的**最佳連勝**，不是總答對數；另外會保存 `totalCorrect`、`incorrect`、`durationSeconds`、`completedAt` 與 `reason: "time_up"`。
+
+計時挑戰開始後，顯示頁鎖定目前字庫；設定頁也鎖定字庫、模式和計時設定。`challenge_records.html` 以 `units[字庫名稱]` 分組顯示，刪除操作也只刪除選取字庫的計時紀錄。這些資料全部仍在 localStorage，不能因 Google 登入或上傳／下載字庫而跨裝置同步。
 
 ## 注音與字卡顯示
 
@@ -136,12 +145,17 @@ firebase deploy --only database
 - 在字庫管理頁儲存：若已登入，會同步更新雲端字庫。
 - 顯示頁與字庫管理頁偵測到登入帳號且雲端已有字庫時，會載入雲端字庫到本機。
 - 設定頁的「下載雲端字庫」會先詢問，才以雲端版本取代本機版本。
+- 帳號的登入、切換和登出控制只在設定頁；顯示頁仍可訂閱登入狀態以載入字庫，但不顯示帳號按鈕。
+
+計時挑戰與挑戰紀錄不會寫入 Firebase。若未來要同步它們，必須先設計資料擁有權、跨裝置衝突與進行中倒數的處理方式，不可直接沿用字庫的上傳／下載流程。
 
 目前不同入口的行為並非完全一致。尤其設定頁切換字庫時，登入狀態下會寫入雲端；日後若調整同步，應先在 `docs/MAINTENANCE_TODO.md` 決定覆蓋／合併規則，再修改程式。
 
 ## 響應式版面與挑戰積木
 
-顯示頁對手機直式與平板橫式使用不同 CSS 規則。挑戰積木實際是無間距的「書背」方塊：程式讀取單一本積木的真實寬度，計算每列可容納數量，最多顯示三列，再用 `+N` 表示其餘數量。此計算避免連勝數較大時產生水平捲動。
+顯示頁對手機直式與平板橫式使用不同 CSS 規則。挑戰積木實際是無間距的「書背」方塊：程式讀取單一本積木的真實寬度，計算每列可容納數量。
+
+一般狀態最多顯示三層完整書架。連勝超過一般書架容量時，會切換為三個緊密書架區，每區有兩層半高書架，書本的寬與高都約縮為一半，因此在相同面積約可容納四倍書本。緊密書架也滿後才顯示 `+N`。容量隨視窗寬度改變，修改書本尺寸、間距或書架 CSS 後，必須確認切換前後都沒有水平捲動或高度溢出。
 
 修改相關 CSS 或積木尺寸後，必須檢查窄螢幕及長連勝數的畫面。
 
@@ -161,7 +175,8 @@ npm test
 
 - Pixel 10a 直式與 iPad 橫式。
 - 顯示頁可開啟、主要按鈕存在、頁面沒有水平溢出。
-- 統計模式、挑戰歸零、數字／積木顯示與大數量上限。
+- 統計模式、挑戰歸零、數字／書架顯示，以及一般三層滿後的緊密半尺寸書架與大數量上限。
+- 計時挑戰的 10–3,600 秒設定、開始前鎖定答題、時間到只保存一次最佳連勝、依字庫的挑戰紀錄與窄螢幕不溢出。
 - 設定頁快速切換字庫、工具列開關與分組畫面。
 
 截圖輸出於 `automation/artifacts/`，且已被 `.gitignore` 排除。這些是人工檢視素材，不是像素級視覺比對基準。

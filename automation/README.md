@@ -13,7 +13,7 @@ cd automation
 npm run test:pixel-10a
 ```
 
-成功後的截圖在 `automation/artifacts/pixel-10a-display.png`。測試會啟動本機伺服器，測試的是尚未發布的專案檔案，不會改動字庫或 GitHub Pages。
+成功後的基本顯示頁截圖在 `automation/artifacts/pixel-10a-display.png`；計時挑戰與挑戰紀錄截圖則為 `pixel-10a-timed-challenge.png`、`pixel-10a-challenge-records.png`。測試會啟動本機伺服器，測試的是尚未發布的專案檔案，不會改動字庫或 GitHub Pages。
 
 ## iPad 橫向
 
@@ -21,8 +21,10 @@ npm run test:pixel-10a
 npm run test:ipad
 ```
 
-成功後的截圖在 `automation/artifacts/ipad-landscape-display.png`。手機直式與 iPad 橫向使用不同的 CSS 版面規則。
+成功後的基本顯示頁截圖在 `automation/artifacts/ipad-landscape-display.png`；計時挑戰與挑戰紀錄截圖則為 `ipad-landscape-timed-challenge.png`、`ipad-landscape-challenge-records.png`。手機直式與 iPad 橫向使用不同的 CSS 版面規則。
 
 測試也會驗證設定中心及「字庫切換」工具列開關，並輸出各裝置的設定頁截圖。
 
-另外會驗證統計模式的答對／答錯／正確率累積、挑戰模式答錯歸零，以及挑戰進度的數字／積木顯示；積木版截圖會輸出為 `*-challenge-blocks.png`。
+另外會驗證統計模式的答對／答錯／正確率累積、挑戰模式答錯歸零，以及挑戰進度的數字／書架顯示；積木版截圖會輸出為 `*-challenge-blocks.png`。書架測試會確認三層一般尺寸滿後切換為緊密半尺寸書架，且不會出現水平溢出。
+
+計時挑戰測試會確認：設定頁可設定 10 至 3,600 秒、開始前答題按鈕鎖定、開始後字庫鎖定、時間到只保存一次本輪最佳連勝，以及 `challenge_records.html` 會依字庫分開顯示紀錄。Google 帳號按鈕刻意不在顯示頁測試目標中，帳號操作仍屬設定頁功能。
