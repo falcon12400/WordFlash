@@ -1,56 +1,28 @@
 # WordFlash
-WordFlash 是一個輕量的字卡練習網頁，支援多單元字庫與字型切換，適合中文或英文單字練習。
 
-未登入時，字庫會保留在目前瀏覽器中；登入 Google 帳號後，可以把自己的字庫安全同步到 Firebase Realtime Database。
+WordFlash 是給親子共讀與識字練習使用的繁體中文／英文閃卡網頁。它可顯示大字、播放讀音、提供可切換的注音提示，並支援字庫管理、練習紀錄與 Google 雲端字庫。
+
+- 線上網站：<https://falcon12400.github.io/WordFlash/>
+- 正式版本：[v1.0.0](https://github.com/falcon12400/WordFlash/releases/tag/v1.0.0)
+- 原始碼：<https://github.com/falcon12400/WordFlash>
+
+## 文件入口
+
+| 文件 | 適合對象 | 內容 |
+|---|---|---|
+| [使用說明](docs/USER_GUIDE.md) | 家長、陪讀者 | 字卡操作、字庫編輯、注音、多音字、練習模式與雲端字庫 |
+| [開發與維護說明](docs/DEVELOPER_GUIDE.md) | 後續維護者 | 頁面架構、資料流、Firebase、外部 API、測試與發布流程 |
+| [維護待辦](docs/MAINTENANCE_TODO.md) | 專案擁有者 | 已知限制、需要決定的事項、未來可做項目與發版檢查表 |
+| [自動化測試說明](automation/README.md) | 維護者 | Pixel 10a 與 iPad 橫向的 Playwright 測試 |
 
 ## 主要頁面
 
-- `index.html`
-  - 專案入口頁，會自動跳轉到 `canvas_words.html`
+- `canvas_words.html`：孩子使用的顯示頁。
+- `manage_words.html`：編輯字庫、補注音與選擇多音字讀音。
+- `settings.html`：快速切換字庫／字型、設定顯示與練習模式、管理帳號與同步。
 
-- `canvas_words.html`
-  - 大字顯示頁
-  - 用來給小朋友練習看字、翻字卡、切換字庫與字型
-  - 支援純練習、統計、挑戰三種模式
+## 目前的資料同步範圍
 
-- `manage_words.html`
-  - 字庫管理頁
-  - 用來編輯或整理字庫內容；儲存時會自動查詢未標註項目的注音
+Google 登入後，可將字庫同步到 Firebase Realtime Database。字型、注音開關、工具列設定、統計答題紀錄與挑戰連勝數目前仍只儲存在該裝置的瀏覽器中；換裝置後不會自動延續。
 
-- `settings.html`
-  - 設定頁
-  - 可開啟或關閉字卡注音與工具列控制項
-  - 可選擇純練習、統計或挑戰模式，並清除目前模式的紀錄
-  - 可使用 Google 登入、上傳此裝置字庫，或下載自己的雲端字庫
-
-## 練習模式
-
-- 純練習：只顯示字卡與既有工具，不紀錄結果。
-- 統計模式：由陪讀者按「答對／答錯」，累積答對、答錯與正確率。
-- 挑戰模式：記錄目前連續答對數；答錯時歸零重新計算。
-  - 可在設定頁選擇以數字、積木，或數字＋積木顯示進度；積木採無間隙的直立書背／骨牌排列，會依裝置寬度自動計算每列數量，最多顯示三列後以文字補上其餘題數。
-
-## 線上網址
-
-- GitHub Pages：`https://falcon12400.github.io/WordFlash/`
-- 顯示頁：`https://falcon12400.github.io/WordFlash/canvas_words.html`
-- 管理頁：`https://falcon12400.github.io/WordFlash/manage_words.html`
-
-## 本機位置
-
-- `D:\VSCode\WordFlash`
-
-## Firebase 字庫同步
-
-- Firebase 專案：`wordflash-53976`
-- 登入方式：Google
-- 雲端資料路徑：`wordflashUsers/{uid}/library`
-- 使用者只能讀寫自己的 `{uid}` 節點；規則保存在 `database.rules.json`。
-- 第一次使用時，請到設定頁使用 Google 登入，再按「上傳此裝置字庫」。之後在字庫管理頁儲存內容，會自動同步。
-
-## 維護提示
-
-- 如果要改畫面顯示或練習互動，先看 `canvas_words.html`
-- 如果要改字庫管理或自動注音查詢流程，先看 `manage_words.html`
-- 如果要改注音提示的顯示設定，先看 `settings.html` 與 `canvas_words.html`
-- 這個專案目前是純 HTML 檔案，不是 React / Vite 專案
+詳細操作請見[使用說明](docs/USER_GUIDE.md)，資料與同步機制請見[開發與維護說明](docs/DEVELOPER_GUIDE.md)。
