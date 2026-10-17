@@ -55,6 +55,8 @@ test("各裝置：統計與挑戰模式會正確記錄答題", async ({ page }, 
   await page.reload();
   const visibleCapacity = Number(await page.locator(".challenge-pieces").getAttribute("data-visible-capacity"));
   await expect(page.locator(".challenge-book")).toHaveCount(Math.min(52, visibleCapacity));
+  const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(pageWidth).toBeLessThanOrEqual(testInfo.project.use.viewport.width);
   if (52 > visibleCapacity) {
     await expect(page.locator(".challenge-overflow")).toHaveText(`+${52 - visibleCapacity}`);
   }
