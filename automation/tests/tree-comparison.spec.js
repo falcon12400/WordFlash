@@ -25,6 +25,22 @@ test('各介面的資料夾加號可新增子資料夾', async ({ page }) => {
   }
 });
 
+test('Wunderbaum 加號靠左且不遮擋名稱', async ({ page }, testInfo) => {
+  await page.goto('/tree_comparison.html');
+  await page.evaluate(() => localStorage.setItem('wordflash_tree_trial_v1', JSON.stringify({folders:[{id:'f1',name:'中文',parent:''},{id:'f2',name:'英文',parent:''}],units:[]})));
+  await page.reload();
+  await page.locator('[data-engine="wunder"]').click();
+  const button=page.getByRole('button',{name:'在 中文 新增資料夾'});
+  const row=page.locator('.wb-row').filter({has:button});
+  const next=page.locator('.wb-row').filter({has:page.getByRole('button',{name:'在 英文 新增資料夾'})});
+  const plus=await button.boundingBox(), title=await row.locator('.wb-title').boundingBox(), following=await next.boundingBox(), container=await row.locator('.wb-node').boundingBox();
+  expect(plus.x+plus.width).toBeLessThanOrEqual(title.x);
+  expect(plus.y+plus.height).toBeLessThanOrEqual(following.y);
+  expect(plus.y).toBeGreaterThanOrEqual(container.y);
+  expect(plus.y+plus.height).toBeLessThanOrEqual(container.y+container.height);
+  await page.screenshot({path:`artifacts/${testInfo.project.name}-wunderbaum-left-plus.png`,fullPage:true});
+});
+
 test('三種目錄操作共用試用副本，不修改正式資料', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('wordflash_units_v1', JSON.stringify({current:'甲',units:{甲:['茶'],乙:['書']}})));
   await page.goto('/tree_comparison.html');
