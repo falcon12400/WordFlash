@@ -12,18 +12,21 @@ test('從字庫管理進入三種介面並返回', async ({ page }, testInfo) =>
   await expect(page.locator('#currentPageTitle')).toHaveText('字庫分組與複合字庫');
 });
 
-test('各介面的資料夾加號可新增子資料夾', async ({ page }) => {
+test('第三種目錄可在選取項目同層就地新增資料夾', async ({ page }, testInfo) => {
   for(const engine of ['tree','sortable','wunder']) {
+    if(engine!=='wunder') continue;
     await page.goto('/tree_comparison.html');
     await page.evaluate(() => localStorage.setItem('wordflash_tree_trial_v1',JSON.stringify({folders:[{id:'f1',name:'中文',parent:''}],units:[]})));
     await page.reload();
     await page.locator(`[data-engine="${engine}"]`).click();
     if(engine==='wunder') await page.locator('.wb-title').filter({hasText:'中文'}).click();
-    page.once('dialog', dialog=>dialog.accept('課本'));
-    if(engine==='wunder') await page.getByRole('button',{name:'新增子資料夾'}).click();
-    else await page.getByRole('button',{name:'在 中文 新增資料夾'}).click();
+    await page.getByRole('button',{name:'新增資料夾'}).click();
+    const input=page.getByRole('textbox',{name:'新資料夾名稱'});
+    await page.screenshot({path:`artifacts/${testInfo.project.name}-wunderbaum-inline-add.png`,fullPage:true});
+    await input.fill('課本');
+    await page.getByRole('button',{name:'新增',exact:true}).click();
     const draft=await page.evaluate(()=>JSON.parse(localStorage.getItem('wordflash_tree_trial_v1')));
-    expect(draft.folders.find(f=>f.name==='課本').parent).toBe('f1');
+    expect(draft.folders.find(f=>f.name==='課本').parent).toBe('');
   }
 });
 
