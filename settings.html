@@ -609,6 +609,7 @@
           </div>
         </section>
         <section class="setting-group" id="organizerPage" hidden><iframe class="embedded-page" title="字庫分組與複合字庫" src="library_organizer.html?embedded=1"></iframe></section>
+        <section class="setting-group" id="treeTrialPage" hidden><div class="data-action"><a class="secondary-link" href="#organizer" data-page="organizer">返回字庫分組</a></div><iframe class="embedded-page" title="字庫目錄試用比較" data-src="tree_comparison.html?embedded=1"></iframe></section>
         <section class="setting-group" id="addPage" hidden><iframe class="embedded-page" title="新增字庫" data-src="manage_words.html?embedded=1&amp;view=add"></iframe></section>
         <section class="setting-group" id="managePage" hidden><div class="data-action"><div><strong>字庫分組與複合字庫</strong><p class="setting-note">整理資料夾或設定一起練習的字庫。</p></div><a class="secondary-link" href="#organizer" data-page="organizer">管理分組與複合字庫</a></div><iframe class="embedded-page" title="字庫管理" data-src="manage_words.html?embedded=1&amp;view=manage"></iframe></section>
         <section class="setting-group" id="wordsPage" hidden><iframe class="embedded-page" title="單字統計與設定" data-src="manage_words.html?embedded=1&amp;view=words"></iframe></section>
@@ -1068,15 +1069,15 @@
     });
     const nav = document.getElementById("settingsNav");
     const toggle = document.getElementById("navToggle");
-    const titles = { home:"設定首頁", practice:"切換練習模式", organizer:"字庫分組與複合字庫", add:"新增字庫", manage:"字庫管理", words:"單字統計與設定", cloud:"帳號與同步" };
-    const groups = { home:["quick", "display", "toolbar"], practice:["practice"], organizer:["organizerPage"], add:["addPage"], manage:["managePage"], words:["wordsPage"], cloud:["cloud"] };
+    const titles = { home:"設定首頁", practice:"切換練習模式", organizer:"字庫分組與複合字庫", treeTrial:"目錄介面試用", add:"新增字庫", manage:"字庫管理", words:"單字統計與設定", cloud:"帳號與同步" };
+    const groups = { home:["quick", "display", "toolbar"], practice:["practice"], organizer:["organizerPage"], treeTrial:["treeTrialPage"], add:["addPage"], manage:["managePage"], words:["wordsPage"], cloud:["cloud"] };
     let activePage = "home";
     function showPage(page) {
       page = groups[page] ? page : "home";
       document.querySelectorAll(".settings-content > section").forEach(section => { section.hidden = !groups[page].includes(section.id); });
       const frame = document.querySelector(`#${groups[page][0]} iframe`);
       if (frame?.dataset.src) frame.src = frame.dataset.src;
-      nav.querySelectorAll("a").forEach(link => link.toggleAttribute("aria-current", link.dataset.page === (page === "organizer" ? "manage" : page)));
+      nav.querySelectorAll("a").forEach(link => link.toggleAttribute("aria-current", link.dataset.page === (["organizer", "treeTrial"].includes(page) ? "manage" : page)));
       nav.querySelectorAll("a[aria-current]").forEach(link => link.setAttribute("aria-current", "page"));
       document.getElementById("currentPageTitle").textContent = titles[page];
       nav.classList.remove("open"); toggle.setAttribute("aria-expanded", "false");

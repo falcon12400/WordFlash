@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WordFlash - 三種目錄試用</title>
+  <link rel="stylesheet" href="vendor/tree-element/tree_element.css">
+  <link rel="stylesheet" href="vendor/wunderbaum/wunderbaum.css">
+  <style>
+    * { box-sizing:border-box } body { margin:0; padding:20px; background:#fff9ec; color:#292929; font-family:"Noto Serif TC","PingFang TC",serif } h1 { font-size:24px } p { line-height:1.6 } button,select { font:inherit; min-height:44px; border:2px solid #333; border-radius:8px; background:#fffaf0; padding:8px 12px; color:inherit } button { cursor:pointer } .notice { background:#edf2e6; border-radius:8px; padding:12px } .bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0 } .bar button[aria-pressed=true] { background:#d9e4d5; font-weight:bold } #tree { padding:12px; border:1px solid #aaa08e; border-radius:8px; min-height:180px; overflow:auto } #tree .wunderbaum { min-height:160px; height:auto; max-height:600px } .hint { color:#5a554f } .sortable-list { list-style:none; padding-left:20px; min-height:20px; margin:2px 0; border-left:1px solid #ccc1ad } .sortable-list.root { border:0; padding-left:0 } .sort-row { display:flex; align-items:center; min-height:44px; gap:6px } .sort-title { border:0; padding:6px; text-align:left; flex:1 } .handle { touch-action:none; padding:8px; cursor:grab } .empty { color:#777; padding:5px; font-size:14px; pointer-events:none } .tree-element-title, .wb-title { cursor:pointer } .tree-element-title { touch-action:none } .tree-element-element { min-height:40px; display:flex; align-items:center } .wunderbaum { min-height:180px } [hidden] { display:none !important } @media(max-width:600px) { body { padding:14px } .bar button { flex:1 } }
+  </style>
+  <script src="vendor/tree-element/tree_element.debug.js"></script>
+  <style>.sortable-list:empty { min-height:44px; border:1px dashed #b4a88f; border-radius:6px; margin:4px 0 8px 20px; }</style>
+  <script src="vendor/sortablejs/Sortable.min.js"></script>
+  <script src="vendor/wunderbaum/wunderbaum.umd.min.js"></script>
+</head>
+<body>
+  <p id="back"><a href="settings.html#organizer">返回字庫分組</a></p>
+  <h1>三種字庫目錄試用</h1>
+  <p class="notice"><strong>這是試用副本。</strong>首次從本機字庫和分組建立；三種介面共用副本。拖曳、改名、新增都不會改動正式字庫、紀錄或雲端。可隨時重新複製。</p>
+  <div class="bar" role="group" aria-label="選擇目錄介面">
+    <button type="button" data-engine="tree">Tree-element</button><button type="button" data-engine="sortable">SortableJS</button><button type="button" data-engine="wunder">Wunderbaum</button>
+  </div>
+  <p id="engineNote" class="hint"></p>
+  <p class="hint">點名稱可改名；選取資料夾後按「在選取位置新增資料夾」。觸控拖曳可試著長按；也可使用下方的「移動到」選單。</p>
+  <div class="bar"><button id="addRoot" type="button">新增最外層資料夾</button><button id="addChild" type="button">在選取位置新增資料夾</button><button id="reset" type="button">重新複製正式字庫</button></div>
+  <p id="selected" aria-live="polite">尚未選取項目</p>
+  <div class="bar"><label for="moveTarget">移動到</label><select id="moveTarget"></select><button id="moveButton" type="button">移動選取項目</button></div>
+  <div id="tree" aria-label="試用字庫樹狀目錄"></div>
+  <p id="status" role="status" class="hint"></p>
+  <script type="module">
+    import * as study from './study-data.js';
+    const $ = id => document.getElementById(id), KEY='wordflash_tree_trial_v1';
+    if (new URLSearchParams(location.search).has('embedded')) $('back').hidden=true;
+    const unique = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+    const read = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
+    function copySource() { const source=read('wordflash_units_v1',{}), org=study.organizer(); return { folders:org.folders.map(f=>({id:f.id,name:f.name,parent:f.parent||''})), units:Object.keys(source.units||{}).map(name=>({id:unique(),name,folder:org.assignments[name]||''})) }; }
+    let data=read(KEY,null); if (!data || !Array.isArray(data.folders) || !Array.isArray(data.units)) { data=copySource(); localStorage.setItem(KEY,JSON.stringify(data)); }
+    let engine='tree', selected=null, instance=null, sortables=[], treeEvents=null;
+    const save=()=>localStorage.setItem(KEY,JSON.stringify(data));
+    const folders=p=>data.folders.filter(f=>(f.parent||'')===p);
+    const units=p=>data.units.filter(u=>(data.folders.some(f=>f.id===u.folder)?u.folder:'')===p);
+    const folderIds=id=>[id,...folders(id).flatMap(f=>folderIds(f.id))];
+    const decode=key=>{ if(key==='root') return {kind:'root',id:''}; if(typeof key!=='string') return null; const [kind,...rest]=key.split(':'); return {kind,id:rest.join(':')}; };
+    const find = key => { const d=decode(key); return d?.kind==='f' ? data.folders.find(x=>x.id===d.id) : d?.kind==='u' ? data.units.find(x=>x.id===d.id) : null; };
+    function choose(key) { selected=key; const node=find(key); $('selected').textContent=key==='root' ? '目前選取：未分類' : node ? `目前選取：${node.name}` : '尚未選取項目'; $('addChild').disabled=decode(key)?.kind!=='f'; $('moveButton').disabled=!node; }
+    function rename(key) { choose(key); const node=find(key); if(!node) return; const next=prompt('修改名稱',node.name)?.trim(); if(!next || next===node.name) return; if(decode(key).kind==='u' && data.units.some(u=>u.id!==node.id && u.name===next)) { $('status').textContent='試用副本已有同名字庫。'; return; } node.name=next; save(); render(); $('status').textContent='已修改試用副本的名稱。'; }
+    function move(key, target) { const d=decode(key), node=find(key); if(!node || !['f','u'].includes(d.kind) || (target && !data.folders.some(f=>f.id===target))) return false; if(d.kind==='f' && folderIds(d.id).includes(target)) { $('status').textContent='不能將資料夾移到自己或自己的子資料夾。'; return false; } if(d.kind==='f') node.parent=target; else node.folder=target; save(); $('status').textContent='已移動試用副本；正式字庫沒有變動。'; return true; }
+    function nested(kind) {
+      function build(parent) { return [...folders(parent).map(f=>({name:`📁 ${f.name}`,title:`📁 ${f.name}`,id:`f:${f.id}`,key:`f:${f.id}`,type:'folder',folder:true,expanded:true,children:build(f.id)})),...units(parent).map(u=>({name:`📖 ${u.name}`,title:`📖 ${u.name}`,id:`u:${u.id}`,key:`u:${u.id}`,type:'unit'}))]; }
+      return [{name:'📁 未分類',title:'📁 未分類',id:'root',key:'root',type:'folder',folder:true,expanded:true,children:units('').map(u=>({name:`📖 ${u.name}`,title:`📖 ${u.name}`,id:`u:${u.id}`,key:`u:${u.id}`,type:'unit'}))},...folders('').map(f=>({name:`📁 ${f.name}`,title:`📁 ${f.name}`,id:`f:${f.id}`,key:`f:${f.id}`,type:'folder',folder:true,expanded:true,children:build(f.id)}))];
+    }
+    function refreshTargets() { const sel=$('moveTarget'); sel.replaceChildren(new Option('未分類','')); function add(parent,prefix){ folders(parent).forEach(f=>{sel.add(new Option(prefix+f.name,f.id)); add(f.id,prefix+'　');}); } add('',''); }
+    function folderPlus(folderId, name) { const b=document.createElement('button'); b.type='button'; b.textContent='＋'; b.title=`在 ${name} 新增資料夾`; b.setAttribute('aria-label',b.title); b.style.cssText='min-height:32px;min-width:38px;padding:2px 6px;margin-left:6px'; b.addEventListener('click',e=>{ e.stopPropagation(); add(folderId); }); return b; }
+    function treeElement() { const el=$('tree'); treeEvents=new AbortController(); instance=new TreeElement({htmlElement:el,data:nested(),autoOpen:true,dragAndDrop:true,onCanMove:n=>n.id!=='root',onCanMoveTo:(node,target,position)=>position==='inside' && (target.id==='root'||String(target.id).startsWith('f:')) && !(String(node.id).startsWith('f:') && folderIds(decode(node.id).id).includes(decode(target.id).id)),onCreateLi:(node,li)=>{ const title=li.querySelector('.tree-element-title'); if(title) { title.addEventListener('click',event=>{event.stopPropagation(); rename(String(node.id));}); const d=decode(String(node.id)); if(d?.kind==='f') title.after(folderPlus(d.id,find(String(node.id))?.name || '資料夾')); } }}); el.addEventListener('tree.move',event=>{ event.preventDefault(); const info=event.detail.moveInfo; if(move(String(info.movedNode.id),decode(String(info.targetNode.id)).id)) setTimeout(render,0); },{signal:treeEvents.signal}); }
+    function sortableTree() { const el=$('tree'); function list(parent,root=false,unitsOnly=false) { const ul=document.createElement('ul'); ul.className='sortable-list'+(root?' root':''); ul.dataset.folder=parent; const entries=[...(unitsOnly ? [] : folders(parent).map(f=>({kind:'f',node:f}))),...units(parent).map(u=>({kind:'u',node:u}))]; entries.forEach(({kind,node})=>{ const li=document.createElement('li'); li.dataset.key=`${kind}:${node.id}`; const row=document.createElement('div'); row.className='sort-row'; const handle=document.createElement('span'); handle.className='handle'; handle.textContent='☰'; handle.setAttribute('aria-label','拖曳'); const title=document.createElement('button'); title.type='button'; title.className='sort-title'; title.textContent=`${kind==='f'?'📁':'📖'} ${node.name}`; title.onclick=()=>rename(li.dataset.key); row.append(handle,title); if(kind==='f') row.append(folderPlus(node.id,node.name)); li.append(row); if(kind==='f') li.append(list(node.id)); ul.append(li); }); return ul; }
+      const root=document.createElement('div'); const label=document.createElement('strong'); label.textContent='📁 未分類'; root.append(label,list('',false,true)); const dirs=document.createElement('ul'); dirs.className='sortable-list root'; folders('').forEach(f=>{ const li=document.createElement('li'); li.dataset.key=`f:${f.id}`; const row=document.createElement('div'); row.className='sort-row'; const handle=document.createElement('span'); handle.className='handle'; handle.textContent='☰'; const title=document.createElement('button'); title.type='button'; title.className='sort-title'; title.textContent=`📁 ${f.name}`; title.onclick=()=>rename(li.dataset.key); row.append(handle,title,folderPlus(f.id,f.name)); li.append(row,list(f.id)); dirs.append(li); }); root.append(dirs); el.append(root); el.querySelectorAll('.sortable-list').forEach(ul=>sortables.push(Sortable.create(ul,{group:'wordflash-trial',handle:'.handle',animation:120,delay:180,delayOnTouchOnly:true,onEnd:e=>{ const target=e.to.dataset.folder; if(target===undefined || !move(e.item.dataset.key,target)) { render(); return; } render(); }}))); }
+    function wunderbaum() { instance=new mar10.Wunderbaum({element:$('tree'),source:nested(),render:e=>{ const d=decode(String(e.node.key)); if(d?.kind==='f' && !e.nodeElem.querySelector('.folder-plus')) { const b=folderPlus(d.id,find(String(e.node.key))?.name || '資料夾'); b.className='folder-plus'; b.style.cssText+=';position:absolute;right:4px;top:-5px;z-index:2'; e.nodeElem.append(b); } },click:e=>{ if(e.event.target.closest('.wb-title')) { rename(String(e.node.key)); return false; } },dnd:{dragStart:e=>e.node.key!=='root',dragEnter:e=>e.node.type==='folder'?'over':false,drop:e=>{ const key=String(e.sourceNode?.key||''); const target=decode(String(e.node.key)); if(target && move(key,target.id)) setTimeout(render,0); }}}); }
+    function render() { treeEvents?.abort(); treeEvents=null; if(instance) { if(engine==='tree' && instance.deinit) instance.deinit(); else if(instance.destroy) instance.destroy(); instance=null; } sortables.forEach(s=>s.destroy()); sortables=[]; $('tree').replaceChildren(); document.querySelectorAll('[data-engine]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.engine===engine))); $('engineNote').textContent=engine==='tree'?'Tree-element：樹狀目錄，支援滑鼠及觸控拖曳。':engine==='sortable'?'SortableJS：抓住 ☰ 拖曳到資料夾。':'Wunderbaum：原生拖曳；手機上若拖不動，可使用「移動到」選單。'; refreshTargets(); choose(selected); try { if(engine==='tree') treeElement(); else if(engine==='sortable') sortableTree(); else wunderbaum(); } catch(error) { $('status').textContent=`介面載入失敗：${error.message}`; } }
+    document.querySelectorAll('[data-engine]').forEach(b=>b.onclick=()=>{ if(instance) { if(instance.deinit) instance.deinit(); else if(instance.destroy) instance.destroy(); instance=null; } engine=b.dataset.engine; render(); });
+    function add(parent) { const name=prompt('新資料夾名稱')?.trim(); if(!name)return; const f={id:unique(),name,parent}; data.folders.push(f); selected=`f:${f.id}`; save(); render(); $('status').textContent='已在試用副本新增資料夾。'; }
+    $('addRoot').onclick=()=>add(''); $('addChild').onclick=()=>{ const d=decode(selected); if(d?.kind==='f') add(d.id); }; $('moveButton').onclick=()=>{ if(move(selected,$('moveTarget').value)) render(); };
+    $('reset').onclick=()=>{ if(!confirm('以目前正式字庫重新建立試用副本？目前的試用變更會被取代。')) return; data=copySource(); selected=null; save(); render(); $('status').textContent='已重新複製正式字庫。'; };
+    render();
+  </script>
+</body>
+</html>
