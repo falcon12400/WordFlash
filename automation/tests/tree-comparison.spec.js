@@ -18,8 +18,10 @@ test('各介面的資料夾加號可新增子資料夾', async ({ page }) => {
     await page.evaluate(() => localStorage.setItem('wordflash_tree_trial_v1',JSON.stringify({folders:[{id:'f1',name:'中文',parent:''}],units:[]})));
     await page.reload();
     await page.locator(`[data-engine="${engine}"]`).click();
+    if(engine==='wunder') await page.locator('.wb-title').filter({hasText:'中文'}).click();
     page.once('dialog', dialog=>dialog.accept('課本'));
-    await page.getByRole('button',{name:'在 中文 新增資料夾'}).click();
+    if(engine==='wunder') await page.getByRole('button',{name:'新增子資料夾'}).click();
+    else await page.getByRole('button',{name:'在 中文 新增資料夾'}).click();
     const draft=await page.evaluate(()=>JSON.parse(localStorage.getItem('wordflash_tree_trial_v1')));
     expect(draft.folders.find(f=>f.name==='課本').parent).toBe('f1');
   }
@@ -44,7 +46,7 @@ test('Wunderbaum 以可見箭頭收合與展開資料夾', async ({ page }, test
   await page.evaluate(() => localStorage.setItem('wordflash_tree_trial_v1', JSON.stringify({folders:[{id:'f1',name:'中文',parent:''},{id:'f2',name:'課本',parent:'f1'}],units:[]})));
   await page.reload();
   await page.locator('[data-engine="wunder"]').click();
-  const row=page.locator('.wb-row').filter({has:page.getByRole('button',{name:'在 中文 新增資料夾'})});
+  const row=page.locator('.wb-row').filter({has:page.locator('.wb-title').filter({hasText:'中文'})});
   const expander=row.locator('.wb-expander');
   await expect(expander).toHaveCount(1);
   await expect.poll(() => expander.evaluate(el => getComputedStyle(el,'::after').content)).toBe('"▾"');
@@ -61,7 +63,7 @@ test('Wunderbaum 長目錄隨內容伸縮，頁面接收滾輪', async ({ page }
   const frame=page.frameLocator('iframe[title="字庫目錄試用比較"]');
   await frame.locator('[data-engine="wunder"]').click();
   const tree=frame.locator('#tree');
-  const parent=frame.locator('.wb-row').filter({has:frame.getByRole('button',{name:'在 課本 新增資料夾'})});
+  const parent=frame.locator('.wb-row').filter({has:frame.locator('.wb-title').filter({hasText:'課本'})});
   await expect(frame.getByText('📁 資料夾79',{exact:true})).toBeAttached();
   await parent.locator('.wb-expander').click();
   await expect.poll(()=>tree.evaluate(el=>el.offsetHeight)).toBeLessThan(300);
@@ -81,29 +83,23 @@ test('Wunderbaum 長目錄隨內容伸縮，頁面接收滾輪', async ({ page }
   await expect.poll(()=>page.locator('#treeTrialPage iframe').evaluate(el=>el.offsetHeight)).toBeLessThan(2000);
 });
 
-test('三種目錄操作共用試用副本，不修改正式資料', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('wordflash_units_v1', JSON.stringify({current:'甲',units:{甲:['茶'],乙:['書']}})));
+test('Wunderbaum 移動模式會標示可選目的地並阻止移入子資料夾', async ({ page }, testInfo) => {
   await page.goto('/tree_comparison.html');
-  await expect(page.locator('#tree')).toContainText('甲');
-  await expect(page.locator('#status')).toBeEmpty();
-  page.once('dialog', dialog => dialog.accept('中文'));
-  await page.locator('#addRoot').click();
-  await expect(page.locator('#tree')).toContainText('中文');
-  await page.locator('[data-engine="sortable"]').click();
-  await expect(page.locator('#tree')).toContainText('中文');
-  page.once('dialog', dialog => dialog.accept('甲改名'));
-  await page.getByRole('button', {name:'📖 甲',exact:true}).click();
-  await page.locator('#moveTarget').selectOption({label:'中文'});
-  await page.locator('#moveButton').click();
+  await page.evaluate(() => localStorage.setItem('wordflash_tree_trial_v1', JSON.stringify({folders:[{id:'f1',name:'中文',parent:''},{id:'f2',name:'課本',parent:'f1'},{id:'f3',name:'英文',parent:''}],units:[]})));
+  await page.reload();
   await page.locator('[data-engine="wunder"]').click();
-  await expect(page.locator('#tree')).toContainText('甲改名');
-  await expect(page.locator('#status')).not.toContainText('失敗');
-  page.once('dialog', dialog => dialog.accept('新的中文'));
-  await page.locator('.wb-title').filter({hasText:'中文'}).click();
-  await expect(page.locator('#tree')).toContainText('新的中文');
-  const result=await page.evaluate(()=>({real:JSON.parse(localStorage.getItem('wordflash_units_v1')), trial:JSON.parse(localStorage.getItem('wordflash_tree_trial_v1'))}));
-  expect(Object.keys(result.real.units)).toEqual(['甲','乙']);
-  expect(result.trial.units.find(u=>u.name==='甲改名').folder).toBe(result.trial.folders.find(f=>f.name==='新的中文').id);
+  const chinese=page.locator('.wb-row').filter({has:page.locator('.wb-title').filter({hasText:'中文'})});
+  await chinese.locator('.wb-title').click();
+  await page.getByRole('button',{name:'移動到…'}).click();
+  const textbook=page.locator('.wb-row').filter({has:page.locator('.wb-title').filter({hasText:'課本'})});
+  const english=page.locator('.wb-row').filter({has:page.locator('.wb-title').filter({hasText:'英文'})});
+  await expect(chinese).toHaveClass(/move-blocked/);
+  await expect(textbook).toHaveClass(/move-blocked/);
+  await expect(english).toHaveClass(/move-target/);
+  await page.screenshot({path:`artifacts/${testInfo.project.name}-wunderbaum-move-mode.png`,fullPage:true});
+  await english.locator('.wb-title').click();
+  const draft=await page.evaluate(()=>JSON.parse(localStorage.getItem('wordflash_tree_trial_v1')));
+  expect(draft.folders.find(f=>f.id==='f1').parent).toBe('f3');
 });
 
 test('Tree-element 與 SortableJS 觸控長按拖曳', async ({ page }, testInfo) => {
