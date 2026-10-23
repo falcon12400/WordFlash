@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 test("各裝置：統計與挑戰模式會正確記錄答題", async ({ page }, testInfo) => {
-  await page.goto("/settings.html");
+  await page.goto("/settings.html#practice");
   await page.locator('label[for="practiceStatistics"]').click();
   await page.goto("/canvas_words.html");
 
@@ -22,7 +22,7 @@ test("各裝置：統計與挑戰模式會正確記錄答題", async ({ page }, 
     scale: "device"
   });
 
-  await page.goto("/settings.html");
+  await page.goto("/settings.html#practice");
   await page.locator('label[for="practiceChallenge"]').click();
   await page.goto("/canvas_words.html");
   await page.locator("#correctButton").click();
@@ -31,7 +31,7 @@ test("各裝置：統計與挑戰模式會正確記錄答題", async ({ page }, 
   await page.locator("#incorrectButton").click();
   await expect(page.locator("#practiceSummary")).toContainText("目前連續答對0");
 
-  await page.goto("/settings.html");
+  await page.goto("/settings.html#practice");
   await expect(page.locator("#challengeDisplayOptions")).toBeVisible();
   await page.locator('label[for="challengeDisplayBlocks"]').click();
   await page.goto("/canvas_words.html");
@@ -89,13 +89,13 @@ test("各裝置：統計與挑戰模式會正確記錄答題", async ({ page }, 
     scale: "device"
   });
 
-  await page.goto("/settings.html");
+  await page.goto("/settings.html#practice");
   await page.locator('label[for="challengeDisplayBoth"]').click();
   await page.goto("/canvas_words.html");
   await expect(page.locator(".challenge-number")).toContainText("目前連續答對1000");
   await expect(page.locator(".challenge-book")).toHaveCount(compactVisibleCapacity);
 
-  await page.goto("/settings.html");
+  await page.goto("/settings.html#practice");
   await page.locator('label[for="challengeDisplayNumber"]').click();
   await page.goto("/canvas_words.html");
   await expect(page.locator(".challenge-number")).toContainText("目前連續答對1000");

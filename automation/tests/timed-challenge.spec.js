@@ -21,7 +21,7 @@ test("各裝置：計時挑戰會鎖定字庫並依字庫保存一次紀錄", as
     }
   });
 
-  await page.goto("/settings.html");
+  await page.goto("/settings.html#practice");
   await expect(page.locator("#challengeTimerOptions")).toBeVisible();
   await page.locator('label[for="challengeTimerEnabled"]').click();
   await expect(page.locator("#challengeTimerEnabled")).toBeChecked();
@@ -50,6 +50,7 @@ test("各裝置：計時挑戰會鎖定字庫並依字庫保存一次紀錄", as
   await expect(settingsPage.locator("#quickUnitSelect")).toBeDisabled();
   await expect(settingsPage.locator("#practiceChallenge")).toBeDisabled();
   await expect(settingsPage.locator("#challengeTimerEnabled")).toBeDisabled();
+  await settingsPage.goto("/settings.html#practice");
   await expect(settingsPage.locator("#practiceStatus")).toContainText("本輪目前連續答對 2 題");
   await settingsPage.close();
 

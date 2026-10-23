@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WordFlash - 字庫管理</title>
   <style>
+    [hidden] { display: none !important; }
     :root {
       color-scheme: light;
     }
@@ -174,7 +175,7 @@
         <label for="unitSelect">字庫</label>
         <select id="unitSelect"></select>
       </div>
-      <div class="actions">
+      <div class="actions" id="unitActions">
         <button id="addUnit" type="button">新增字庫</button>
         <button id="deleteUnit" type="button">刪除字庫</button>
       </div>
@@ -195,11 +196,11 @@
         <div id="studyList" class="study-list"></div>
         <p id="studyListStatus" aria-live="polite"></p>
       </section>
-      <div class="field">
+      <div class="field" id="wordEditor">
         <label for="unitWords">字庫內容（每行一個字或詞，可用「文字|注音」手動指定）</label>
         <textarea id="unitWords" rows="8"></textarea>
       </div>
-      <div class="actions">
+      <div class="actions" id="wordEditorActions">
         <button id="saveUnit" type="button">儲存字庫</button>
         <button id="refreshZhuyin" type="button">重新查詢注音</button>
       </div>
@@ -403,6 +404,17 @@
     };
 
     let state = initUnits();
+    const view = new URLSearchParams(location.search);
+    if (view.has("embedded")) {
+      document.querySelector("body > header").hidden = true;
+      document.querySelector("main").style.padding = "16px";
+      if (view.get("view") === "manage") document.querySelector(".study-panel").hidden = true;
+      if (view.get("view") === "words") {
+        ["unitActions", "wordEditor", "wordEditorActions", "readingChoices", "status"].forEach(id => document.getElementById(id).hidden = true);
+      }
+    }
+    window.wordflashHasUnsavedChanges = () => view.get("view") !== "words" && unitWords.value !== (state.units[unitSelect.value] || []).join("\n");
+    window.addEventListener("beforeunload", event => { if (window.wordflashHasUnsavedChanges()) { event.preventDefault(); event.returnValue = ""; } });
 
     const studyList = document.getElementById("studyList");
     const studySearch = document.getElementById("studySearch");
@@ -477,10 +489,12 @@
 
     unitSelect.addEventListener("change", () => {
       const name = unitSelect.value;
+      if (view.get("view") !== "words" && unitWords.value !== (state.units[state.current] || []).join("\n") && !confirm("尚有未儲存的字庫內容，確定要切換嗎？")) { unitSelect.value = state.current; return; }
       state.current = name;
       unitWords.value = state.units[name].join("\n");
       saveUnits(state);
       hideReadingChoices();
+      renderWordList();
       status.textContent = "切換字庫完成。";
     });
 
@@ -508,6 +522,7 @@
         status.textContent = "至少保留一個字庫。";
         return;
       }
+      if (!window.confirm(`確定要刪除字庫「${name}」？此操作會刪除字庫內容。`)) return;
       delete state.units[name];
       state.current = Object.keys(state.units)[0];
       saveUnits(state);

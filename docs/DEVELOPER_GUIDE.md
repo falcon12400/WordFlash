@@ -2,6 +2,10 @@
 
 本文件面向需要維護 WordFlash 的人。專案以靜態 HTML、原生 JavaScript 與 CSS 製作，沒有打包流程、框架或伺服器端程式。
 
+## 設定導覽與字庫分組
+
+`settings.html` 提供依方向切換的設定目錄，並嵌入既有 `manage_words.html` 和 `library_organizer.html`；字庫管理頁仍可獨立開啟。分組及複合字庫保存在 `wordflash_library_organizer_v1`，包括資料夾 ID／父 ID、字庫名稱對應資料夾及具名組合快照，並不屬於 Firebase 同步範圍。切換組合仍使用 `wordflash_selected_units_v1`。字庫被刪除或雲端資料覆蓋後，組合可能引用不存在的名稱：管理頁會提示，切換時只使用仍存在的字庫，沒有有效字庫則拒絕切換。這些資料不會修改原字庫內容。
+
 ## 專案原則
 
 - 優先維持低複雜度：這是小型、功能已穩定的個人專案，不需要為了結構而全面改寫。

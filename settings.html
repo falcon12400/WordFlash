@@ -375,10 +375,29 @@
       .timer-setting-row { align-items: flex-start; flex-direction: column; gap: 10px; }
     }
   </style>
+  <style>
+    .nav-toggle { display:none; min-height:44px; padding:8px 14px; font:inherit; border:var(--line); border-radius:8px; background:var(--paper); }
+    .section-nav a[aria-current="page"] { background:#e5ddca; font-weight:bold; }
+    .embedded-page { width:100%; min-height:650px; border:0; }
+    .page-heading { display:none; }
+    @media (orientation: portrait) {
+      body > header { position:sticky; top:0; z-index:20; height:64px; min-height:64px; }
+      body > header .brand, body > header .back-link { display:none; }
+      #currentPageTitle { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .nav-toggle { white-space:nowrap; flex-shrink:0; }
+      .nav-toggle { display:inline-block; }
+      .settings-layout { display:block; }
+      .section-nav { display:none; position:fixed; z-index:19; top:64px; left:0; right:0; max-height:calc(100dvh - 64px); overflow:auto; white-space:normal; grid-auto-flow:row; background:var(--paper); }
+      .section-nav.open { display:grid; }
+    }
+    @media (orientation: landscape) { .settings-layout { grid-template-columns:210px minmax(0, 1fr); } .section-nav { display:grid; position:sticky; grid-auto-flow:row; white-space:normal; } }
+  </style>
 </head>
 <body>
   <header>
     <div class="brand">WordFlash</div>
+    <span id="currentPageTitle">設定首頁</span>
+    <button class="nav-toggle" id="navToggle" type="button" aria-controls="settingsNav" aria-expanded="false">目錄 ☰</button>
     <a class="back-link" href="canvas_words.html">回到顯示頁</a>
   </header>
   <main>
@@ -387,13 +406,14 @@
       <p>常用切換放在最前面；練習、顯示與帳號同步設定則依使用頻率分組整理。</p>
     </div>
     <div class="settings-layout">
-      <nav class="section-nav" aria-label="設定分類">
-        <a href="#quick">快速切換</a>
-        <a href="#practice">練習與紀錄</a>
-        <a href="#display">字卡顯示</a>
-        <a href="#toolbar">工具列</a>
-        <a href="#manage">字庫管理</a>
-        <a href="#cloud">帳號與同步</a>
+      <nav class="section-nav" id="settingsNav" aria-label="設定分類">
+        <a href="#home" data-page="home">設定首頁</a>
+        <a href="#practice" data-page="practice">練習與紀錄</a>
+        <a href="#organizer" data-page="organizer">字庫分組與複合字庫</a>
+        <a href="#manage" data-page="manage">字庫管理</a>
+        <a href="#words" data-page="words">單字練習設定</a>
+        <a href="#cloud" data-page="cloud">帳號與同步</a>
+        <a href="canvas_words.html" id="navBack">回到顯示頁</a>
       </nav>
       <div class="settings-content">
         <section class="setting-group" id="quick" aria-labelledby="quickTitle">
@@ -403,9 +423,10 @@
           </div>
           <div class="quick-controls">
             <div class="quick-field">
-              <label for="quickUnitSelect">快速切換單一字庫</label>
+              <label for="quickUnitSelect">字庫選擇</label>
               <select id="quickUnitSelect" aria-describedby="quickUnitNote"></select>
-              <span id="quickUnitNote">切換後僅使用選定的字庫；多字庫請在下方勾選。</span>
+              <span id="quickUnitNote">選擇單一字庫或已儲存的複合字庫。</span>
+              <a class="secondary-link" href="#organizer" data-page="organizer">管理分組與複合字庫</a>
             </div>
             <div class="quick-field">
               <label for="quickFontSelect">顯示字型</label>
@@ -413,7 +434,7 @@
               <span id="quickFontNote">可隨時換成孩子較容易閱讀的字型。</span>
             </div>
           </div>
-          <div class="unit-selection">
+          <div class="unit-selection" hidden>
             <strong>練習字庫（可複選）</strong>
             <div id="practiceUnitChoices" class="unit-selection-list"></div>
             <p id="practiceUnitSummary" aria-live="polite"></p>
@@ -579,6 +600,9 @@
             </div>
           </div>
         </section>
+        <section class="setting-group" id="organizerPage" hidden><iframe class="embedded-page" title="字庫分組與複合字庫" src="library_organizer.html?embedded=1"></iframe></section>
+        <section class="setting-group" id="managePage" hidden><iframe class="embedded-page" title="字庫管理" data-src="manage_words.html?embedded=1&amp;view=manage"></iframe></section>
+        <section class="setting-group" id="wordsPage" hidden><iframe class="embedded-page" title="單字練習設定" data-src="manage_words.html?embedded=1&amp;view=words"></iframe></section>
       </div>
     </div>
   </main>
@@ -758,7 +782,18 @@
           option.textContent = name;
           quickUnitSelect.append(option);
         });
-        if (selected.length > 1) {
+        const presets = study.organizer().presets;
+        if (presets.length) {
+          const group = document.createElement("optgroup");
+          group.label = "複合字庫";
+          presets.forEach(preset => group.append(new Option(preset.name, `preset:${preset.id}`)));
+          quickUnitSelect.append(group);
+        }
+        const activePreset = localStorage.getItem("wordflash_active_preset_v1");
+        const matchingPreset = presets.find(p => p.id === activePreset && p.units.filter(n => unitNames.includes(n)).length === selected.length && selected.every(n => p.units.includes(n)));
+        if (matchingPreset) {
+          quickUnitSelect.value = `preset:${matchingPreset.id}`;
+        } else if (selected.length > 1) {
           quickUnitSelect.add(new Option(`已選 ${selected.length} 個字庫`, "__wordflash_combined__"));
           quickUnitSelect.value = "__wordflash_combined__";
         } else {
@@ -940,19 +975,15 @@
         return;
       }
       const unitsState = loadLocalUnits();
-      if (!unitsState?.units?.[quickUnitSelect.value]) return;
-      unitsState.current = quickUnitSelect.value;
-      study.saveSelectedUnits([unitsState.current]);
+      const preset = study.organizer().presets.find(p => `preset:${p.id}` === quickUnitSelect.value);
+      const names = preset ? preset.units.filter(name => Object.hasOwn(unitsState?.units || {}, name)) : (Object.hasOwn(unitsState?.units || {}, quickUnitSelect.value) ? [quickUnitSelect.value] : []);
+      if (!names.length) { refreshQuickControls(); quickStatus.textContent = "此複合字庫沒有有效的字庫，請先編輯。"; return; }
+      unitsState.current = names[0];
+      study.saveSelectedUnits(names);
+      if (preset) localStorage.setItem("wordflash_active_preset_v1", preset.id);
       saveLocalUnits(unitsState);
       refreshQuickControls();
-      quickStatus.textContent = `已切換為「${unitsState.current}」。`;
-      if (currentUser) {
-        try {
-          await saveCloudUnits(currentUser, unitsState);
-        } catch (error) {
-          quickStatus.textContent = "已切換這台裝置的字庫，但雲端同步失敗。";
-        }
-      }
+      quickStatus.textContent = preset && names.length !== preset.units.length ? "部分字庫已刪除，請編輯此複合字庫。" : `已切換為「${preset?.name || unitsState.current}」。`;
     });
     practiceUnitChoices.addEventListener("change", event => {
       if (loadTimedChallengeRun()) { refreshQuickControls(); return; }
@@ -1024,8 +1055,45 @@
     });
     window.addEventListener("storage", (event) => {
       if ([ZHUYIN_ENABLED_KEY, DISPLAY_PREFERENCES_KEY, PRACTICE_MODE_KEY, PRACTICE_SESSION_KEY, CHALLENGE_PROGRESS_DISPLAY_KEY, CHALLENGE_TIMER_KEY, TIMED_CHALLENGE_RUN_KEY].includes(event.key)) render();
-      if (["wordflash_units_v1", FONT_KEY, study.SELECTION_KEY, study.DISABLED_KEY, study.WORD_STATS_KEY].includes(event.key)) refreshQuickControls();
+      if (["wordflash_units_v1", FONT_KEY, study.SELECTION_KEY, study.DISABLED_KEY, study.WORD_STATS_KEY, study.ORGANIZER_KEY].includes(event.key)) refreshQuickControls();
     });
+    const nav = document.getElementById("settingsNav");
+    const toggle = document.getElementById("navToggle");
+    const titles = { home:"設定首頁", practice:"練習與紀錄", organizer:"字庫分組與複合字庫", manage:"字庫管理", words:"單字練習設定", cloud:"帳號與同步" };
+    const groups = { home:["quick", "display", "toolbar"], practice:["practice"], organizer:["organizerPage"], manage:["managePage"], words:["wordsPage"], cloud:["cloud"] };
+    let activePage = "home";
+    function showPage(page) {
+      page = groups[page] ? page : "home";
+      document.querySelectorAll(".settings-content > section").forEach(section => { section.hidden = !groups[page].includes(section.id); });
+      const frame = document.querySelector(`#${groups[page][0]} iframe`);
+      if (frame?.dataset.src) frame.src = frame.dataset.src;
+      nav.querySelectorAll("a").forEach(link => link.toggleAttribute("aria-current", link.dataset.page === page));
+      nav.querySelectorAll("a[aria-current]").forEach(link => link.setAttribute("aria-current", "page"));
+      document.getElementById("currentPageTitle").textContent = titles[page];
+      nav.classList.remove("open"); toggle.setAttribute("aria-expanded", "false");
+      activePage = page;
+      refreshQuickControls(); render();
+      window.scrollTo(0, 0);
+    }
+    toggle.addEventListener("click", () => { const open = nav.classList.toggle("open"); toggle.setAttribute("aria-expanded", String(open)); });
+    const hasUnsaved = () => Boolean(document.querySelector(`#${groups[activePage][0]} iframe`)?.contentWindow?.wordflashHasUnsavedChanges?.());
+    let confirmedDeparture = false;
+    document.querySelectorAll('a[href="canvas_words.html"]').forEach(link => link.addEventListener("click", event => { if (hasUnsaved()) { if (!confirm("尚有未儲存的變更，確定要離開嗎？")) event.preventDefault(); else confirmedDeparture = true; } }));
+    window.addEventListener("beforeunload", event => { if (!confirmedDeparture && hasUnsaved()) { event.preventDefault(); event.returnValue = ""; } });
+    document.querySelectorAll("a[data-page]").forEach(link => link.addEventListener("click", event => {
+      const frame = document.querySelector(`#${groups[activePage][0]} iframe`);
+      if (frame?.contentWindow?.wordflashHasUnsavedChanges?.() && !confirm("尚有未儲存的變更，確定要離開嗎？")) { event.preventDefault(); return; }
+      event.preventDefault(); history.pushState(null, "", `#${link.dataset.page}`); showPage(link.dataset.page);
+    }));
+    window.addEventListener("popstate", () => {
+      const frame = document.querySelector(`#${groups[activePage][0]} iframe`);
+      if (frame?.contentWindow?.wordflashHasUnsavedChanges?.() && !confirm("尚有未儲存的變更，確定要離開嗎？")) { history.pushState(null, "", `#${activePage}`); return; }
+      showPage(location.hash.slice(1));
+    });
+    document.querySelectorAll(".embedded-page").forEach(frame => frame.addEventListener("load", () => {
+      try { const resize = () => { frame.style.height = `${Math.max(650, frame.contentDocument.documentElement.scrollHeight)}px`; }; new ResizeObserver(resize).observe(frame.contentDocument.body); resize(); } catch (_) {}
+    }));
+    showPage(location.hash.slice(1));
     refreshQuickControls();
     render();
   </script>

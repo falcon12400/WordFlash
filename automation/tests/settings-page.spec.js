@@ -14,13 +14,10 @@ test("各裝置：設定中心會套用工具列開關", async ({ page }, testIn
     }));
   });
   await page.goto("/settings.html");
-  await expect(page.getByRole("heading", { name: "設定中心" })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "設定分類" })).toBeVisible();
+  await expect(page.locator("#currentPageTitle")).toHaveText("設定首頁");
   await expect(page.locator("#quickUnitSelect")).toHaveValue("第一字庫");
   await expect(page.locator("#quickFontSelect")).toBeVisible();
   await page.locator("#quickUnitSelect").selectOption("第二字庫");
-  await expect(page.locator("#googleSignIn")).toBeVisible();
-  await expect(page.locator("#cloudStatus")).toContainText("尚未連線到雲端字庫");
 
   await page.locator('label[for="unitControlToggle"]').click();
   await expect(page.locator("#unitControlToggle")).not.toBeChecked();
@@ -37,7 +34,10 @@ test("各裝置：設定中心會套用工具列開關", async ({ page }, testIn
     fullPage: false,
     scale: "device"
   });
-  await page.locator("#cloud").scrollIntoViewIfNeeded();
+  if (testInfo.project.name === "pixel-10a") await page.locator("#navToggle").click();
+  await page.locator('#settingsNav a[data-page="cloud"]').click();
+  await expect(page.locator("#googleSignIn")).toBeVisible();
+  await expect(page.locator("#cloudStatus")).toContainText("尚未連線到雲端字庫");
   await expect(page.locator("#cloudTitle")).toBeVisible();
   await page.screenshot({
     path: path.join(artifactDir, `${testInfo.project.name}-settings-cloud.png`),

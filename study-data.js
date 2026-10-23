@@ -3,6 +3,12 @@ export const SELECTION_KEY = "wordflash_selected_units_v1";
 export const DISABLED_KEY = "wordflash_disabled_words_v1";
 export const WORD_STATS_KEY = "wordflash_word_stats_v1";
 export const SAMPLING_KEY = "wordflash_challenge_sampling_v1";
+export const ORGANIZER_KEY = "wordflash_library_organizer_v1";
+export function organizer() {
+  const data = readJSON(ORGANIZER_KEY, {});
+  return { folders: Array.isArray(data?.folders) ? data.folders : [], assignments: data?.assignments && typeof data.assignments === "object" ? data.assignments : {}, presets: Array.isArray(data?.presets) ? data.presets : [] };
+}
+export function saveOrganizer(data) { localStorage.setItem(ORGANIZER_KEY, JSON.stringify(data)); }
 
 function readJSON(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -24,6 +30,7 @@ export function selectedUnits(state) {
 
 export function saveSelectedUnits(names) {
   localStorage.setItem(SELECTION_KEY, JSON.stringify([...new Set(names)]));
+  localStorage.removeItem("wordflash_active_preset_v1");
 }
 
 export function disabledWords() {

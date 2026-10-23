@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WordFlash - 字庫分組與複合字庫</title>
+  <style>
+    * { box-sizing:border-box } body { margin:0; padding:22px; color:#2b2b2b; background:#fff9ec; font-family:"Noto Serif TC","PingFang TC",serif; } h1 { font-size:24px } h2 { font-size:20px; margin-top:28px } p { line-height:1.6; color:#575149 } button, select, input { font:inherit } button, select, input[type=text] { min-height:44px; border:2px solid #333; border-radius:7px; background:#fffaf0; padding:7px 10px; color:inherit } button { cursor:pointer } .actions, .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:8px 0 } .tree { border:1px solid #c6bead; border-radius:8px; padding:12px; overflow-wrap:anywhere } .branch { margin-left:18px; border-left:1px solid #c6bead; padding-left:12px } .folder-title { font-weight:bold } label { display:inline-flex; gap:8px; align-items:center; min-height:40px } input[type=checkbox] { width:22px; height:22px } .notice { min-height:1.5em } .presets { display:grid; gap:8px } .preset { border:1px solid #c6bead; border-radius:8px; padding:10px } .preset p { margin:4px 0 } [hidden] { display:none !important } a { color:inherit } @media (max-width:600px) { body { padding:16px } .branch { margin-left:8px; padding-left:8px } .row select { max-width:100% } }
+  </style>
+</head>
+<body>
+  <p id="standalone"><a href="settings.html#organizer">返回設定</a></p>
+  <h1>字庫分組與複合字庫</h1>
+  <p>資料夾只負責整理，不會移動或刪除字詞。分組及複合字庫目前只保存在這台裝置，不會隨雲端字庫同步。</p>
+  <h2>字庫分組</h2>
+  <div class="actions"><button id="addFolder" type="button">新增資料夾</button></div>
+  <div id="folderTree" class="tree"></div>
+  <h2>複合字庫</h2>
+  <p>勾選資料夾會選取其中所有字庫；儲存後只記錄當時選中的字庫。</p>
+  <div id="presetList" class="presets"></div>
+  <button id="addPreset" type="button">新增複合字庫</button>
+  <section id="editor" hidden>
+    <h2 id="editorTitle">新增複合字庫</h2>
+    <label for="presetName">名稱</label><input id="presetName" type="text" maxlength="80">
+    <div id="checkTree" class="tree"></div>
+    <div class="actions"><button id="savePreset" type="button">儲存複合字庫</button><button id="cancelPreset" type="button">取消</button></div>
+  </section>
+  <p id="status" class="notice" role="status"></p>
+  <script type="module">
+    import * as study from "./study-data.js";
+    const $ = id => document.getElementById(id);
+    if (new URLSearchParams(location.search).has("embedded")) $("standalone").hidden = true;
+    let data = study.organizer(), editing = null, dirty = false;
+    const state = () => { try { return JSON.parse(localStorage.getItem("wordflash_units_v1")) || {}; } catch { return {}; } };
+    const names = () => Object.keys(state().units || {});
+    const save = () => study.saveOrganizer(data);
+    const id = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+    const children = parent => data.folders.filter(f => (f.parent || "") === parent);
+    const members = parent => names().filter(n => {
+      const assigned = data.assignments[n];
+      return (data.folders.some(f => f.id === assigned) ? assigned : "") === parent;
+    });
+    const descendantIds = parent => [parent, ...children(parent).flatMap(f => descendantIds(f.id))];
+    const descendants = parent => descendantIds(parent).flatMap(members);
+    const button = (text, handler) => { const b = document.createElement("button"); b.type="button"; b.textContent=text; b.addEventListener("click", handler); return b; };
+    function folderOptions(select, selected, excluded = []) {
+      select.add(new Option("未分類（根目錄）", ""));
+      function add(parent, prefix) { children(parent).forEach(f => { if (excluded.includes(f.id)) return; select.add(new Option(prefix + f.name, f.id)); add(f.id, prefix + "　"); }); }
+      add("", ""); select.value = selected || "";
+    }
+    function renderFolders() {
+      $("folderTree").replaceChildren();
+      function draw(parent, container) {
+        children(parent).forEach(folder => {
+          const details = document.createElement("details"); details.open = true;
+          const summary = document.createElement("summary"); summary.className="folder-title"; summary.textContent = `📁 ${folder.name}`; details.append(summary);
+          const branch = document.createElement("div"); branch.className="branch";
+          const actions = document.createElement("div"); actions.className="row";
+          actions.append(button("重新命名", () => { const name = prompt("資料夾名稱", folder.name)?.trim(); if (name) { folder.name=name; save(); renderAll(); } }), button("刪除空資料夾", () => { if (children(folder.id).length || members(folder.id).length) { $("status").textContent="請先移走資料夾內的字庫及子資料夾。"; return; } if (!confirm(`刪除空資料夾「${folder.name}」？`)) return; data.folders=data.folders.filter(f => f.id!==folder.id); save(); renderAll(); }));
+          const move = document.createElement("select"); move.setAttribute("aria-label", `移動資料夾 ${folder.name}`); folderOptions(move, folder.parent, descendantIds(folder.id));
+          move.addEventListener("change", () => { folder.parent=move.value; save(); renderAll(); }); actions.append(move); branch.append(actions); draw(folder.id, branch); details.append(branch); container.append(details);
+        });
+        members(parent).forEach(name => { const row=document.createElement("div"); row.className="row"; const label=document.createElement("span"); label.textContent=`📖 ${name}`; const select=document.createElement("select"); select.setAttribute("aria-label", `移動字庫 ${name}`); folderOptions(select, parent); select.addEventListener("change", () => { data.assignments[name]=select.value; save(); renderAll(); }); row.append(label,select); container.append(row); });
+      }
+      draw("", $("folderTree"));
+    }
+    function renderChecks(selected) {
+      const tree=$("checkTree"); tree.replaceChildren();
+      function draw(parent, container, caption) {
+        const all = descendants(parent);
+        if (caption) { const label=document.createElement("label"), input=document.createElement("input"), text=document.createElement("span"); input.type="checkbox"; input.className="folder-check"; input.dataset.folder=parent; input.disabled=!all.length; text.textContent=caption; label.append(input,text); container.append(label); input.addEventListener("change", () => { all.forEach(n => { if (input.checked) selected.add(n); else selected.delete(n); }); dirty=true; renderChecks(selected); }); }
+        children(parent).forEach(f => { const details=document.createElement("details"); details.open=true; const summary=document.createElement("summary"); summary.textContent=`📁 ${f.name}`; details.append(summary); const branch=document.createElement("div"); branch.className="branch"; draw(f.id, branch, `選取 ${f.name} 的全部字庫`); details.append(branch); container.append(details); });
+        members(parent).forEach(name => { const label=document.createElement("label"), input=document.createElement("input"), text=document.createElement("span"), row=document.createElement("div"); input.type="checkbox"; input.checked=selected.has(name); input.dataset.unit=name; text.textContent=name; label.append(input,text); row.append(label); container.append(row); input.addEventListener("change", () => { if(input.checked) selected.add(name); else selected.delete(name); dirty=true; renderChecks(selected); }); });
+      }
+      draw("", tree, "選取所有字庫");
+      tree.querySelectorAll(".folder-check").forEach(input => { const list=descendants(input.dataset.folder), count=list.filter(n=>selected.has(n)).length; input.checked=!!list.length && count===list.length; input.indeterminate=count>0 && count<list.length; });
+    }
+    let selected = new Set();
+    function editPreset(preset) { if (dirty && !confirm("放棄尚未儲存的變更？")) return; editing=preset?.id || null; selected=new Set(preset?.units.filter(n=>names().includes(n)) || []); $("presetName").value=preset?.name || ""; $("editorTitle").textContent=preset ? "編輯複合字庫" : "新增複合字庫"; $("editor").hidden=false; dirty=false; renderChecks(selected); $("editor").scrollIntoView({block:"start"}); }
+    function renderPresets() {
+      $("presetList").replaceChildren();
+      data.presets.forEach(p => { const box=document.createElement("div"); box.className="preset"; const title=document.createElement("strong"); title.textContent=p.name; const info=document.createElement("p"); const missing=p.units.filter(n=>!names().includes(n)); info.textContent=`${p.units.filter(n=>names().includes(n)).join("、") || "沒有有效字庫"}${missing.length ? `；已刪除：${missing.join("、")}，請編輯` : ""}`; const actions=document.createElement("div"); actions.className="actions"; actions.append(button("編輯",()=>editPreset(p)),button("刪除",()=>{ if (!confirm(`刪除複合字庫「${p.name}」？原始字庫不會被刪除。`)) return; data.presets=data.presets.filter(item=>item.id!==p.id); save(); renderPresets(); })); box.append(title,info,actions); $("presetList").append(box); });
+    }
+    function renderAll() { renderFolders(); renderPresets(); if (!$("editor").hidden) renderChecks(selected); }
+    $("addFolder").addEventListener("click", () => { const name=prompt("請輸入資料夾名稱")?.trim(); if (!name) return; data.folders.push({id:id(),name,parent:""}); save(); renderAll(); });
+    $("addPreset").addEventListener("click",()=>editPreset(null));
+    $("presetName").addEventListener("input",()=>{dirty=true;});
+    $("cancelPreset").addEventListener("click",()=>{ if (dirty && !confirm("放棄尚未儲存的變更？")) return; dirty=false; $("editor").hidden=true; });
+    $("savePreset").addEventListener("click",()=>{ const name=$("presetName").value.trim(); const valid=[...selected].filter(n=>names().includes(n)); if (!name || !valid.length) { $("status").textContent="請輸入名稱並至少選擇一個字庫。"; return; } if(data.presets.some(p=>p.name===name && p.id!==editing)) { $("status").textContent="已有同名複合字庫，請換一個名稱。"; return; } const preset={id:editing || id(),name,units:valid}; if(editing) data.presets=data.presets.map(p=>p.id===editing?preset:p); else data.presets.push(preset); save(); dirty=false; $("editor").hidden=true; $("status").textContent="已儲存複合字庫，可在設定首頁切換。"; renderPresets(); });
+    window.wordflashHasUnsavedChanges=()=>dirty;
+    window.addEventListener("beforeunload", e=>{ if(dirty){ e.preventDefault(); e.returnValue=""; } });
+    renderAll();
+  </script>
+</body>
+</html>

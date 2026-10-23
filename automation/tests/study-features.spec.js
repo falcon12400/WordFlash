@@ -13,12 +13,22 @@ test("多字庫、單字開關與個別正確率", async ({ page }, testInfo) =>
     }
   });
   await page.goto("/settings.html");
-  await page.locator("#practiceUnitChoices label").filter({ hasText: "第二課" }).locator("input").check();
-  await expect(page.locator("#practiceUnitSummary")).toContainText("2 個字庫，共 3 個不同");
+  await page.locator('a[data-page="organizer"]').last().click();
+  const organizer = page.frameLocator('iframe[title="字庫分組與複合字庫"]');
+  await organizer.locator("#addPreset").click();
+  await organizer.locator("#presetName").fill("兩課");
+  await organizer.locator('input[data-unit="第一課"]').check();
+  await organizer.locator('input[data-unit="第二課"]').check();
+  await organizer.locator("#savePreset").click();
+  if (testInfo.project.name === "pixel-10a") await page.locator("#navToggle").click();
+  await page.locator('#settingsNav a[data-page="home"]').click();
+  await page.locator("#quickUnitSelect").selectOption({ label: "兩課" });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(testInfo.project.use.viewport.width);
   const artifactDir = path.join(__dirname, "..", "artifacts");
   fs.mkdirSync(artifactDir, { recursive: true });
   await page.screenshot({ path: path.join(artifactDir, `${testInfo.project.name}-multi-library-settings.png`), scale: "device" });
+  if (testInfo.project.name === "pixel-10a") await page.locator("#navToggle").click();
+  await page.locator('#settingsNav a[data-page="practice"]').click();
   await page.locator('input[name="challengeSampling"][value="weighted"]').check();
 
   await page.goto("/manage_words.html");
