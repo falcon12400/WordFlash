@@ -13,7 +13,7 @@ test("多字庫、單字開關與個別正確率", async ({ page }, testInfo) =>
     }
   });
   await page.goto("/settings.html");
-  await page.locator('a[data-page="organizer"]').last().click();
+  await page.locator('#quick a[data-page="organizer"]').click();
   const organizer = page.frameLocator('iframe[title="字庫分組與複合字庫"]');
   await organizer.locator("#addPreset").click();
   await organizer.locator("#presetName").fill("兩課");

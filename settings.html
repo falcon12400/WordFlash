@@ -378,6 +378,9 @@
   <style>
     .nav-toggle { display:none; min-height:44px; padding:8px 14px; font:inherit; border:var(--line); border-radius:8px; background:var(--paper); }
     .section-nav a[aria-current="page"] { background:#e5ddca; font-weight:bold; }
+    .nav-group { display:grid; gap:4px; }
+    .nav-group-title { padding:9px 10px 3px; font-weight:700; }
+    .nav-submenu { display:grid; gap:4px; margin-left:12px; padding-left:9px; border-left:2px solid #d5cbb9; }
     .embedded-page { width:100%; min-height:650px; border:0; }
     .page-heading { display:none; }
     @media (orientation: portrait) {
@@ -408,10 +411,15 @@
     <div class="settings-layout">
       <nav class="section-nav" id="settingsNav" aria-label="設定分類">
         <a href="#home" data-page="home">設定首頁</a>
-        <a href="#practice" data-page="practice">練習與紀錄</a>
-        <a href="#organizer" data-page="organizer">字庫分組與複合字庫</a>
-        <a href="#manage" data-page="manage">字庫管理</a>
-        <a href="#words" data-page="words">單字練習設定</a>
+        <a href="#practice" data-page="practice">切換練習模式</a>
+        <div class="nav-group" role="group" aria-labelledby="libraryNavTitle">
+          <div class="nav-group-title" id="libraryNavTitle">字庫</div>
+          <div class="nav-submenu">
+            <a href="#add" data-page="add">新增字庫</a>
+            <a href="#manage" data-page="manage">字庫管理</a>
+            <a href="#words" data-page="words">單字統計與設定</a>
+          </div>
+        </div>
         <a href="#cloud" data-page="cloud">帳號與同步</a>
         <a href="canvas_words.html" id="navBack">回到顯示頁</a>
       </nav>
@@ -494,7 +502,7 @@
 
         <section class="setting-group" id="practice" aria-labelledby="practiceTitle">
           <div class="group-heading">
-            <h2 id="practiceTitle">練習與紀錄</h2>
+            <h2 id="practiceTitle">切換練習模式</h2>
             <p class="description">選擇孩子練習時要不要記錄答題結果。切換模式不會清除另一種模式的紀錄。</p>
           </div>
           <div class="mode-list" role="radiogroup" aria-label="練習模式">
@@ -601,8 +609,9 @@
           </div>
         </section>
         <section class="setting-group" id="organizerPage" hidden><iframe class="embedded-page" title="字庫分組與複合字庫" src="library_organizer.html?embedded=1"></iframe></section>
-        <section class="setting-group" id="managePage" hidden><iframe class="embedded-page" title="字庫管理" data-src="manage_words.html?embedded=1&amp;view=manage"></iframe></section>
-        <section class="setting-group" id="wordsPage" hidden><iframe class="embedded-page" title="單字練習設定" data-src="manage_words.html?embedded=1&amp;view=words"></iframe></section>
+        <section class="setting-group" id="addPage" hidden><iframe class="embedded-page" title="新增字庫" data-src="manage_words.html?embedded=1&amp;view=add"></iframe></section>
+        <section class="setting-group" id="managePage" hidden><div class="data-action"><div><strong>字庫分組與複合字庫</strong><p class="setting-note">整理資料夾或設定一起練習的字庫。</p></div><a class="secondary-link" href="#organizer" data-page="organizer">管理分組與複合字庫</a></div><iframe class="embedded-page" title="字庫管理" data-src="manage_words.html?embedded=1&amp;view=manage"></iframe></section>
+        <section class="setting-group" id="wordsPage" hidden><iframe class="embedded-page" title="單字統計與設定" data-src="manage_words.html?embedded=1&amp;view=words"></iframe></section>
       </div>
     </div>
   </main>
@@ -1059,15 +1068,15 @@
     });
     const nav = document.getElementById("settingsNav");
     const toggle = document.getElementById("navToggle");
-    const titles = { home:"設定首頁", practice:"練習與紀錄", organizer:"字庫分組與複合字庫", manage:"字庫管理", words:"單字練習設定", cloud:"帳號與同步" };
-    const groups = { home:["quick", "display", "toolbar"], practice:["practice"], organizer:["organizerPage"], manage:["managePage"], words:["wordsPage"], cloud:["cloud"] };
+    const titles = { home:"設定首頁", practice:"切換練習模式", organizer:"字庫分組與複合字庫", add:"新增字庫", manage:"字庫管理", words:"單字統計與設定", cloud:"帳號與同步" };
+    const groups = { home:["quick", "display", "toolbar"], practice:["practice"], organizer:["organizerPage"], add:["addPage"], manage:["managePage"], words:["wordsPage"], cloud:["cloud"] };
     let activePage = "home";
     function showPage(page) {
       page = groups[page] ? page : "home";
       document.querySelectorAll(".settings-content > section").forEach(section => { section.hidden = !groups[page].includes(section.id); });
       const frame = document.querySelector(`#${groups[page][0]} iframe`);
       if (frame?.dataset.src) frame.src = frame.dataset.src;
-      nav.querySelectorAll("a").forEach(link => link.toggleAttribute("aria-current", link.dataset.page === page));
+      nav.querySelectorAll("a").forEach(link => link.toggleAttribute("aria-current", link.dataset.page === (page === "organizer" ? "manage" : page)));
       nav.querySelectorAll("a[aria-current]").forEach(link => link.setAttribute("aria-current", "page"));
       document.getElementById("currentPageTitle").textContent = titles[page];
       nav.classList.remove("open"); toggle.setAttribute("aria-expanded", "false");

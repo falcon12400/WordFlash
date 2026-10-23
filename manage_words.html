@@ -171,7 +171,7 @@
   </header>
   <main>
     <section class="panel">
-      <div class="field">
+      <div class="field" id="unitSelectorField">
         <label for="unitSelect">字庫</label>
         <select id="unitSelect"></select>
       </div>
@@ -408,7 +408,11 @@
     if (view.has("embedded")) {
       document.querySelector("body > header").hidden = true;
       document.querySelector("main").style.padding = "16px";
-      if (view.get("view") === "manage") document.querySelector(".study-panel").hidden = true;
+      if (["manage", "add"].includes(view.get("view"))) document.querySelector(".study-panel").hidden = true;
+      if (view.get("view") === "add") {
+        ["unitSelectorField", "wordEditor", "wordEditorActions", "deleteUnit"].forEach(id => document.getElementById(id).hidden = true);
+        status.textContent = "按「新增字庫」輸入名稱，接著輸入字詞並儲存。";
+      }
       if (view.get("view") === "words") {
         ["unitActions", "wordEditor", "wordEditorActions", "readingChoices", "status"].forEach(id => document.getElementById(id).hidden = true);
       }
@@ -512,6 +516,11 @@
       saveUnits(state);
       refreshUnitSelect(state.units, trimmed);
       unitWords.value = "";
+      if (view.get("view") === "add") {
+        ["unitSelectorField", "wordEditor", "wordEditorActions"].forEach(id => document.getElementById(id).hidden = false);
+        addUnitBtn.hidden = true;
+        unitSelect.disabled = true;
+      }
       hideReadingChoices();
       status.textContent = "已新增字庫，請輸入內容並儲存。";
     });
