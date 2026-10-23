@@ -30,12 +30,40 @@ test('目錄無需捲動時，滾輪可繼續捲動頁面', async ({ page }) => 
   await page.evaluate(() => localStorage.setItem('wordflash_tree_trial_v1', JSON.stringify({folders:[{id:'f1',name:'中文',parent:''}],units:[]})));
   await page.reload();
   await page.locator('[data-engine="wunder"]').click();
+  await page.evaluate(() => { document.body.style.paddingBottom='1000px'; });
   const tree=page.locator('#tree');
   await tree.scrollIntoViewIfNeeded();
-  const before=await page.evaluate(() => window.scrollY);
   await tree.hover();
+  const before=await page.evaluate(() => window.scrollY);
   await page.mouse.wheel(0, 400);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before);
+});
+
+test('Wunderbaum 長目錄隨內容伸縮，頁面接收滾輪', async ({ page }) => {
+  await page.goto('/tree_comparison.html');
+  await page.evaluate(() => localStorage.setItem('wordflash_tree_trial_v1', JSON.stringify({folders:[{id:'parent',name:'課本',parent:''}, ...Array.from({length:80},(_,i)=>({id:`f${i}`,name:`資料夾${i}`,parent:'parent'}))],units:[]})));
+  await page.goto('/settings.html#treeTrial');
+  const frame=page.frameLocator('iframe[title="字庫目錄試用比較"]');
+  await frame.locator('[data-engine="wunder"]').click();
+  const tree=frame.locator('#tree');
+  const parent=frame.locator('.wb-row').filter({has:frame.getByRole('button',{name:'在 課本 新增資料夾'})});
+  await expect(frame.getByText('📁 資料夾79',{exact:true})).toBeAttached();
+  await parent.locator('.wb-expander').click();
+  await expect.poll(()=>tree.evaluate(el=>el.offsetHeight)).toBeLessThan(300);
+  const compact=await tree.evaluate(el=>el.offsetHeight);
+  await parent.locator('.wb-expander').click();
+  await expect(frame.getByText('📁 資料夾79',{exact:true})).toBeAttached();
+  await expect.poll(()=>tree.evaluate(el=>el.offsetHeight)).toBeGreaterThan(compact+1000);
+  await expect.poll(()=>page.locator('#treeTrialPage iframe').evaluate(el=>el.offsetHeight)).toBeGreaterThan(2000);
+  await frame.getByText('📁 資料夾79',{exact:true}).scrollIntoViewIfNeeded();
+  expect(await tree.evaluate(el=>el.scrollTop)).toBe(0);
+  const before=await page.evaluate(()=>window.scrollY);
+  await frame.getByText('📁 資料夾79',{exact:true}).hover();
+  await page.mouse.wheel(0,-500);
+  await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBeLessThan(before);
+  await parent.locator('.wb-expander').click();
+  await expect.poll(()=>tree.evaluate(el=>el.offsetHeight)).toBeLessThan(compact+50);
+  await expect.poll(()=>page.locator('#treeTrialPage iframe').evaluate(el=>el.offsetHeight)).toBeLessThan(2000);
 });
 
 test('三種目錄操作共用試用副本，不修改正式資料', async ({ page }) => {

@@ -1101,7 +1101,7 @@
       showPage(location.hash.slice(1));
     });
     document.querySelectorAll(".embedded-page").forEach(frame => frame.addEventListener("load", () => {
-      try { const resize = () => { frame.style.height = `${Math.max(650, frame.contentDocument.documentElement.scrollHeight)}px`; }; new ResizeObserver(resize).observe(frame.contentDocument.body); resize(); } catch (_) {}
+      try { const resize = () => { const doc=frame.contentDocument; const height=frame.closest('#treeTrialPage') ? Math.ceil(doc.body.getBoundingClientRect().height) : doc.documentElement.scrollHeight; frame.style.height = `${Math.max(650, height)}px`; }; new ResizeObserver(resize).observe(frame.contentDocument.body); resize(); } catch (_) {}
     }));
     showPage(location.hash.slice(1));
     refreshQuickControls();
