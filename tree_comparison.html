@@ -85,7 +85,7 @@
       const editor=parent=>({name:'',title:'',id:`add:${parent}`,key:`add:${parent}`,type:'add',add:true,parent});
       function insertAfter(entries,parent) { return entries.flatMap(entry=>entry.key===addingAfter?[entry,editor(parent)]:[entry]); }
       function build(parent) { const entries=[...folders(parent).map(f=>({name:`📁 ${f.name}`,title:`📁 ${f.name}`,id:`f:${f.id}`,key:`f:${f.id}`,type:'folder',folder:true,expanded:true,children:build(f.id)})),...units(parent).map(u=>({name:`📖 ${u.name}`,title:`📖 ${u.name}`,id:`u:${u.id}`,key:`u:${u.id}`,type:'unit'}))]; return insertAfter(entries,parent); }
-      const root={name:'📁 未分類',title:'📁 未分類',id:'root',key:'root',type:'folder',folder:true,expanded:true,children:units('').map(u=>({name:`📖 ${u.name}`,title:`📖 ${u.name}`,id:`u:${u.id}`,key:`u:${u.id}`,type:'unit'}))};
+      const root={name:'📁 未分類',title:'📁 未分類',id:'root',key:'root',type:'folder',folder:true,expanded:true,children:insertAfter(units('').map(u=>({name:`📖 ${u.name}`,title:`📖 ${u.name}`,id:`u:${u.id}`,key:`u:${u.id}`,type:'unit'})), '')};
       return addingAfter==='root' ? [root,editor(''),...folders('').map(f=>({name:`📁 ${f.name}`,title:`📁 ${f.name}`,id:`f:${f.id}`,key:`f:${f.id}`,type:'folder',folder:true,expanded:true,children:build(f.id)}))] : [root,...insertAfter(folders('').map(f=>({name:`📁 ${f.name}`,title:`📁 ${f.name}`,id:`f:${f.id}`,key:`f:${f.id}`,type:'folder',folder:true,expanded:true,children:build(f.id)})), '')];
     }
     function refreshTargets() { const sel=$('moveTarget'); sel.replaceChildren(new Option('未分類','')); function add(parent,prefix){ folders(parent).forEach(f=>{sel.add(new Option(prefix+f.name,f.id)); add(f.id,prefix+'　');}); } add('',''); }

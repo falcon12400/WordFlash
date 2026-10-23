@@ -30,6 +30,21 @@ test('第三種目錄可在選取項目同層就地新增資料夾', async ({ pa
   }
 });
 
+test('第三種目錄可在未分類字庫後就地新增資料夾', async ({ page }) => {
+  await page.goto('/tree_comparison.html');
+  await page.evaluate(() => localStorage.setItem('wordflash_tree_trial_v1', JSON.stringify({folders:[],units:[{id:'u1',name:'情書',folder:''}]})));
+  await page.reload();
+  await page.locator('[data-engine="wunder"]').click();
+  await page.locator('.wb-title').filter({hasText:'情書'}).click();
+  await page.getByRole('button',{name:'新增資料夾',exact:true}).click();
+  const input=page.getByRole('textbox',{name:'新資料夾名稱'});
+  await expect(input).toBeVisible();
+  await input.fill('課本');
+  await page.getByRole('button',{name:'新增',exact:true}).click();
+  const draft=await page.evaluate(()=>JSON.parse(localStorage.getItem('wordflash_tree_trial_v1')));
+  expect(draft.folders.find(f=>f.name==='課本').parent).toBe('');
+});
+
 test('目錄無需捲動時，滾輪可繼續捲動頁面', async ({ page }) => {
   await page.goto('/tree_comparison.html');
   await page.evaluate(() => localStorage.setItem('wordflash_tree_trial_v1', JSON.stringify({folders:[{id:'f1',name:'中文',parent:''}],units:[]})));
