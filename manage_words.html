@@ -8,6 +8,7 @@
     :root {
       color-scheme: light;
     }
+    * { box-sizing: border-box; }
     html, body {
       margin: 0;
       height: 100%;
@@ -65,9 +66,11 @@
       display: grid;
       place-items: center;
       padding: 24px;
+      min-width: 0;
     }
     .panel {
-      width: min(92vw, 820px);
+      width: min(100%, 820px);
+      min-width: 0;
       background: rgba(255, 249, 236, 0.92);
       border: 2px solid #2b2b2b;
       border-radius: 10px;
@@ -131,13 +134,24 @@
       display: grid;
       gap: 5px;
     }
+    .study-panel { margin: 20px 0; padding: 16px; border: 2px solid #2b2b2b; border-radius: 10px; background: #fff9ec; }
+    .study-panel h2 { margin: 0 0 8px; font-size: 20px; }
+    .study-panel p { color: #5b554d; line-height: 1.5; }
+    .study-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .study-tools input, .study-tools select { min-height: 44px; max-width: 100%; }
+    .study-list { display: grid; gap: 7px; }
+    .study-word { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 10px; border: 1px solid #8f8676; border-radius: 8px; }
+    .study-word label { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; min-height: 44px; }
+    .study-word input { width: 23px; height: 23px; flex: 0 0 auto; accent-color: #756c58; }
+    .study-word-text { overflow-wrap: anywhere; font-size: 19px; }
+    .study-result { color: #5b554d; text-align: right; font-size: 14px; flex: 0 0 auto; }
     @media (max-width: 720px) {
       header {
         flex-direction: column;
         gap: 10px;
         align-items: flex-start;
       }
-      .header-actions { justify-content: flex-start; }
+      .header-actions { justify-content: flex-start; width: 100%; }
       .actions {
         flex-direction: column;
       }
@@ -164,6 +178,23 @@
         <button id="addUnit" type="button">新增字庫</button>
         <button id="deleteUnit" type="button">刪除字庫</button>
       </div>
+      <section class="study-panel" aria-labelledby="studyTitle">
+        <h2 id="studyTitle">單字清單與正確率</h2>
+        <p>關閉的字詞不會出題，紀錄仍會保留。文字及儲存的注音都相同時，不同字庫共用紀錄；資料只存在這台裝置。修改文字或注音後會視為另一個項目，原紀錄不會自動移轉。</p>
+        <div class="study-tools">
+          <input id="studySearch" type="search" placeholder="搜尋字詞" aria-label="搜尋字詞" />
+          <select id="studyFilter" aria-label="篩選字詞">
+            <option value="all">全部字詞</option>
+            <option value="unseen">尚未練習</option>
+            <option value="needs">需要練習</option>
+            <option value="disabled">已停用</option>
+          </select>
+          <button id="enableAllWords" type="button">全部啟用</button>
+          <button id="disableAllWords" type="button">全部停用</button>
+        </div>
+        <div id="studyList" class="study-list"></div>
+        <p id="studyListStatus" aria-live="polite"></p>
+      </section>
       <div class="field">
         <label for="unitWords">字庫內容（每行一個字或詞，可用「文字|注音」手動指定）</label>
         <textarea id="unitWords" rows="8"></textarea>
@@ -189,6 +220,7 @@
       signOutFromGoogle,
       subscribeToUser
     } from "./firebase-wordflash.js";
+    import * as study from "./study-data.js";
 
     const DEFAULT_WORDS = [
       "郭",
@@ -234,6 +266,7 @@
 
     const saveUnits = (data) => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      queueMicrotask(() => renderWordList());
       if (currentUser) {
         saveCloudUnits(currentUser, data).catch((error) => {
           console.error("WordFlash cloud sync failed", error);
@@ -370,6 +403,77 @@
     };
 
     let state = initUnits();
+
+    const studyList = document.getElementById("studyList");
+    const studySearch = document.getElementById("studySearch");
+    const studyFilter = document.getElementById("studyFilter");
+    const studyListStatus = document.getElementById("studyListStatus");
+    const timerActive = () => {
+      try {
+        const run = JSON.parse(localStorage.getItem("wordflash_timed_challenge_run_v1") || "null");
+        return run?.status === "running" && Number(run.endsAtMs) > Date.now();
+      } catch { return false; }
+    };
+    const renderWordList = () => {
+      const name = unitSelect.value;
+      const words = state.units[name] || [];
+      const query = studySearch.value.trim().toLocaleLowerCase();
+      const filter = studyFilter.value;
+      const locked = timerActive();
+      studyList.replaceChildren();
+      let visible = 0;
+      words.forEach(raw => {
+        const { correct, incorrect } = study.wordStats(raw);
+        const total = correct + incorrect;
+        const enabled = study.isEnabled(name, raw);
+        if (query && !String(raw).toLocaleLowerCase().includes(query)) return;
+        if (filter === "unseen" && total) return;
+        if (filter === "needs" && (!total || (total >= 3 && correct / total >= 0.8))) return;
+        if (filter === "disabled" && enabled) return;
+        visible += 1;
+        const row = document.createElement("div");
+        row.className = "study-word";
+        const label = document.createElement("label");
+        const toggle = document.createElement("input");
+        toggle.type = "checkbox";
+        toggle.checked = enabled;
+        toggle.disabled = locked;
+        toggle.setAttribute("aria-label", `啟用 ${String(raw).split("|")[0]}`);
+        toggle.addEventListener("change", () => {
+          if (timerActive()) { renderWordList(); return; }
+          study.setEnabled(name, raw, toggle.checked);
+          renderWordList();
+        });
+        const word = document.createElement("span");
+        word.className = "study-word-text";
+        word.textContent = String(raw).replace("|", "　");
+        label.append(toggle, word);
+        const result = document.createElement("span");
+        result.className = "study-result";
+        result.textContent = total ? `${Math.round(correct / total * 100)}%（對 ${correct}／錯 ${incorrect}）` : "尚未練習";
+        row.append(label, result);
+        studyList.append(row);
+      });
+      studyListStatus.textContent = locked ? "計時挑戰進行中，暫時不能變更字詞啟用狀態。" : `顯示 ${visible} / ${words.length} 個字詞。`;
+      document.getElementById("enableAllWords").disabled = locked || !words.length;
+      document.getElementById("disableAllWords").disabled = locked || !words.length;
+    };
+    studySearch.addEventListener("input", renderWordList);
+    studyFilter.addEventListener("change", renderWordList);
+    document.getElementById("enableAllWords").addEventListener("click", () => {
+      if (timerActive()) return;
+      (state.units[unitSelect.value] || []).forEach(raw => study.setEnabled(unitSelect.value, raw, true));
+      renderWordList();
+    });
+    document.getElementById("disableAllWords").addEventListener("click", () => {
+      if (timerActive()) return;
+      (state.units[unitSelect.value] || []).forEach(raw => study.setEnabled(unitSelect.value, raw, false));
+      renderWordList();
+    });
+    window.addEventListener("storage", event => {
+      if ([study.WORD_STATS_KEY, study.DISABLED_KEY, "wordflash_timed_challenge_run_v1"].includes(event.key)) renderWordList();
+    });
+    renderWordList();
 
     unitSelect.addEventListener("change", () => {
       const name = unitSelect.value;
@@ -554,6 +658,7 @@
         state = cloudUnits;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         refreshUnitSelect(state.units, state.current);
+        renderWordList();
         unitWords.value = state.units[state.current].join("\n");
         hideReadingChoices();
         status.textContent = "已載入你的雲端字庫；在此頁儲存後會自動同步。";

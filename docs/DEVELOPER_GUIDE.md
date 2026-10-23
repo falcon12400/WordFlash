@@ -19,6 +19,7 @@
 | `settings.html` | 快速切換、顯示偏好、練習／計時挑戰偏好、資料清除、挑戰紀錄入口、雲端上傳／下載與帳號管理。 |
 | `challenge_records.html` | 從本機讀取計時挑戰紀錄，依字庫呈現摘要／明細，並刪除選取字庫的紀錄。 |
 | `firebase-wordflash.js` | Firebase 初始化、Google Auth、字庫正規化與 Realtime Database 讀寫。 |
+| `study-data.js` | 本機多字庫選擇、單字啟用狀態、個別答題紀錄與挑戰加權抽題。 |
 | `database.rules.json` | Realtime Database 的使用者隔離規則。 |
 | `firebase.json` | Firebase CLI 部署資料庫規則的設定。 |
 | `automation/` | Playwright 測試、測試用靜態伺服器與截圖。 |
@@ -52,6 +53,10 @@ Web Speech API ────────────── canvas 的朗讀
 | `wordflash_challenge_timer_v1` | `{ enabled, durationSeconds }` 計時挑戰設定；時間限制為 10–3,600 秒 | 顯示頁、設定頁 |
 | `wordflash_timed_challenge_run_v1` | 進行中的計時挑戰：字庫快照、起訖時間、目前／最佳連勝與答題數 | 顯示頁、設定頁 |
 | `wordflash_challenge_records_v1` | `{ version, units }`；各字庫各自保存已結束的計時挑戰紀錄 | 顯示頁、挑戰紀錄頁 |
+| `wordflash_selected_units_v1` | 目前練習的字庫名稱陣列，未設定時沿用現有單一字庫 | 顯示頁、設定頁 |
+| `wordflash_disabled_words_v1` | 各字庫中停用的字詞識別 | 顯示頁、字庫管理、設定頁 |
+| `wordflash_word_stats_v1` | 以文字與注音組合為識別的答對／答錯次數 | 顯示頁、字庫管理 |
+| `wordflash_challenge_sampling_v1` | `uniform` 或 `weighted` | 顯示頁、設定頁 |
 
 字庫格式示例：
 
@@ -76,6 +81,8 @@ Web Speech API ────────────── canvas 的朗讀
 ```
 
 此資料目前只存在 localStorage，未寫入 Firebase。同一瀏覽器的不同分頁會經由 `storage` event 更新畫面。
+
+單字正確率在統計與挑戰模式都會累計；跳過不計。相同文字與注音跨字庫共用紀錄，啟用狀態按字庫分開；文字或注音改動會形成新識別，舊紀錄不會自動轉移。這些新增資料均不隨 Google 帳號切換而隔離或同步。加權模式依答錯比例提高權重，未滿三次答題給予中等權重，並降低而非禁止上題重複；均勻模式維持原有每輪洗牌。混合計時挑戰快照包含字庫清單與啟用題目，結果按字庫組合另存，不重複算入各單一字庫。
 
 計時挑戰另有三份本機資料：設定、進行中的一輪，以及已完成紀錄。顯示頁以 `endsAtMs` 和目前時間計算剩餘秒數，而不是累減計時器；重新整理頁面後，仍能判斷是否已逾時。逾時時會用該輪的 `id` 去重，只保存一次紀錄。已完成項目的主要分數欄位是 `correct`，代表本輪的**最佳連勝**，不是總答對數；另外會保存 `totalCorrect`、`incorrect`、`durationSeconds`、`completedAt` 與 `reason: "time_up"`。
 

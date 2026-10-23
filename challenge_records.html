@@ -401,6 +401,16 @@
         return Object.keys(data.units).sort((a, b) => a.localeCompare(b, "zh-Hant"));
       }
 
+      function displayUnitName(key) {
+        if (!key.startsWith("@combined:")) return key;
+        try {
+          const names = JSON.parse(key.slice("@combined:".length));
+          if (!Array.isArray(names) || !names.every(name => typeof name === "string")) return key;
+          const latestName = data.units[key]?.[0]?.unitName;
+          return `混合：${typeof latestName === "string" && latestName ? latestName : names.join("＋")}`;
+        } catch { return key; }
+      }
+
       function normalizedRecords(unitName) {
         const records = Array.isArray(data.units[unitName]) ? data.units[unitName] : [];
         return records.slice().sort((first, second) => getDateValue(second.completedAt) - getDateValue(first.completedAt));
@@ -469,7 +479,7 @@
         }
 
         unitSelect.disabled = false;
-        unitNames.forEach(unitName => unitSelect.add(new Option(unitName, unitName)));
+        unitNames.forEach(unitName => unitSelect.add(new Option(displayUnitName(unitName), unitName)));
         const activeUnit = unitNames.includes(preferredUnit) ? preferredUnit : unitNames[0];
         unitSelect.value = activeUnit;
         return activeUnit;
@@ -561,7 +571,7 @@
         const activeUnit = renderOptions(preferredUnit);
         const records = activeUnit ? normalizedRecords(activeUnit) : [];
         selectedUnitDescription.textContent = activeUnit
-          ? `「${activeUnit}」的挑戰成果會與其他字庫分開計算。`
+          ? `「${displayUnitName(activeUnit)}」的挑戰成果會與其他字庫分開計算。`
           : "尚未儲存任何挑戰紀錄。";
         deleteCurrentUnit.disabled = !activeUnit || records.length === 0;
         renderSummary(records);
@@ -574,7 +584,7 @@
         const unitName = unitSelect.value;
         const records = normalizedRecords(unitName);
         if (!unitName || records.length === 0) return;
-        const confirmed = window.confirm(`確定要刪除「${unitName}」的 ${records.length} 筆挑戰紀錄嗎？這項操作無法復原。`);
+        const confirmed = window.confirm(`確定要刪除「${displayUnitName(unitName)}」的 ${records.length} 筆挑戰紀錄嗎？這項操作無法復原。`);
         if (!confirmed) return;
         delete data.units[unitName];
         saveRecords();

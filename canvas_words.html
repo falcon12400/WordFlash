@@ -496,6 +496,7 @@
       saveCloudUnits,
       subscribeToUser
     } from "./firebase-wordflash.js";
+    import * as study from "./study-data.js";
 
     const DEFAULT_WORDS = [
       "郭",
@@ -664,6 +665,8 @@
         version: 1,
         id: typeof value.id === "string" && value.id ? value.id : createTimedRunId(),
         unitName,
+        unitNames: Array.isArray(value.unitNames) ? value.unitNames.filter(name => typeof name === "string") : [unitName],
+        words: Array.isArray(value.words) ? value.words.filter(word => typeof word === "string") : null,
         durationSeconds: normalizeChallengeDuration(value.durationSeconds),
         startedAtMs,
         endsAtMs,
@@ -765,6 +768,7 @@
       const record = {
         id: run.id,
         unitName: run.unitName,
+        unitNames: run.unitNames,
         completedAt: new Date(completedAtMs).toISOString(),
         durationSeconds: run.durationSeconds,
         elapsedSeconds: run.durationSeconds,
@@ -773,14 +777,15 @@
         incorrect: run.incorrectCount,
         reason: "time_up"
       };
-      const existing = Array.isArray(records.units[run.unitName]) ? records.units[run.unitName] : [];
+      const groupKey = run.unitNames?.length > 1 ? `@combined:${JSON.stringify([...run.unitNames].sort())}` : run.unitName;
+      const existing = Array.isArray(records.units[groupKey]) ? records.units[groupKey] : [];
       const indexOfExisting = existing.findIndex((item) => item?.id === run.id);
       if (indexOfExisting >= 0) {
         existing[indexOfExisting] = record;
       } else {
         existing.unshift(record);
       }
-      records.units[run.unitName] = existing
+      records.units[groupKey] = existing
         .sort((first, second) => new Date(second.completedAt).getTime() - new Date(first.completedAt).getTime())
         .slice(0, 50);
       saveChallengeRecords(records);
@@ -840,11 +845,15 @@
       const existingRun = loadTimedChallengeRun();
       if (existingRun?.status === "running") return;
       if (existingRun) finishTimedChallenge(existingRun);
+      if (!wordList.length) { status.textContent = "目前沒有啟用的字詞，請到字庫管理開啟。"; return; }
       const now = Date.now();
+      const unitNames = study.selectedUnits(state);
       const run = {
         version: 1,
         id: createTimedRunId(),
-        unitName: state.current,
+        unitName: unitNames.join("＋"),
+        unitNames,
+        words: [...wordList],
         durationSeconds: timer.durationSeconds,
         startedAtMs: now,
         endsAtMs: now + timer.durationSeconds * 1000,
@@ -1018,7 +1027,13 @@
     };
 
     const showNext = () => {
-      if (!wordList.length) return;
+      if (!wordList.length) { currentText = ""; stage.replaceChildren(); return; }
+      if (practiceMode === "challenge" && localStorage.getItem(study.SAMPLING_KEY) === "weighted") {
+        currentText = study.chooseWeighted(wordList, currentText);
+        drawCurrentWord();
+        index += 1;
+        return;
+      }
       if (!remaining.length) {
         refillRemaining();
       }
@@ -1192,8 +1207,9 @@
       practicePanel.hidden = !isPracticeActive;
       nextButton.textContent = isPracticeActive && !(practiceMode === "challenge" && isTimedChallenge && !isTimedRunActive) ? "跳過" : "換字";
       practiceSummary.classList.toggle("challenge-summary", practiceMode === "challenge");
-      correctButton.disabled = practiceMode === "challenge" && isTimedChallenge && !isTimedRunActive;
-      incorrectButton.disabled = practiceMode === "challenge" && isTimedChallenge && !isTimedRunActive;
+      correctButton.disabled = !wordList.length || (practiceMode === "challenge" && isTimedChallenge && !isTimedRunActive);
+      incorrectButton.disabled = !wordList.length || (practiceMode === "challenge" && isTimedChallenge && !isTimedRunActive);
+      nextButton.disabled = !wordList.length;
       unitSelect.disabled = Boolean(isTimedRunActive);
       if (!isPracticeActive) return;
 
@@ -1217,7 +1233,7 @@
     };
 
     const recordAnswer = (isCorrect) => {
-      if (practiceMode === "none") return;
+      if (practiceMode === "none" || !currentText) return;
       if (practiceMode === "statistics") {
         const key = isCorrect ? "correct" : "incorrect";
         practiceSession.statistics[key] += 1;
@@ -1252,6 +1268,7 @@
           savePracticeSession();
         }
       }
+      study.recordWordAnswer(currentText, isCorrect);
       renderPracticePanel();
       showNext();
       status.textContent = isCorrect ? "已記錄答對，已換下一題。" : "已記錄答錯，已換下一題。";
@@ -1283,11 +1300,11 @@
     };
 
     const startWithWords = (words) => {
-      wordList = [...words];
+      wordList = [...(words || [])];
       index = 0;
       refillRemaining();
       showNext();
-      status.textContent = "點畫布或按「播放讀音」朗讀，按下方「換字」切換下一個字";
+      status.textContent = wordList.length ? "點畫布或按「播放讀音」朗讀，按下方「換字」切換下一個字" : "目前沒有啟用的字詞，請到字庫管理開啟。";
     };
 
     const refreshUnitSelect = (units, current) => {
@@ -1298,7 +1315,16 @@
         option.textContent = name;
         unitSelect.appendChild(option);
       });
-      unitSelect.value = current;
+      const selected = study.selectedUnits({ units, current });
+      if (selected.length > 1) {
+        const option = document.createElement("option");
+        option.value = "__wordflash_combined__";
+        option.textContent = selected.join("＋");
+        unitSelect.appendChild(option);
+        unitSelect.value = option.value;
+      } else {
+        unitSelect.value = selected[0] || current;
+      }
     };
 
     const fontOptions = [
@@ -1337,7 +1363,7 @@
         saveUnits(data);
       }
       refreshUnitSelect(data.units, data.current);
-      startWithWords(data.units[data.current]);
+      startWithWords(study.practiceWords(data));
       return data;
     };
 
@@ -1348,6 +1374,9 @@
     practiceSession = loadPracticeSession();
     challengeProgressDisplay = loadChallengeProgressDisplay();
     const recoveredTimedRun = reconcileTimedChallenge();
+    if (recoveredTimedRun?.status === "running" && recoveredTimedRun.words) {
+      startWithWords(recoveredTimedRun.words);
+    }
     if (recoveredTimedRun?.status === "running" && state.units[recoveredTimedRun.unitName] && state.current !== recoveredTimedRun.unitName) {
       state.current = recoveredTimedRun.unitName;
       refreshUnitSelect(state.units, state.current);
@@ -1358,7 +1387,7 @@
     if (currentText) {
       drawCurrentWord();
     }
-    if (!latestTimedChallengeResult) {
+    if (!latestTimedChallengeResult && wordList.length) {
       status.textContent = "點畫布或按「播放讀音」朗讀，按下方「換字」切換下一個字";
     }
 
@@ -1369,9 +1398,13 @@
         return;
       }
       const name = unitSelect.value;
+      if (name === "__wordflash_combined__") return;
       state.current = name;
+      study.saveSelectedUnits([name]);
       saveUnits(state);
-      startWithWords(state.units[name]);
+      refreshUnitSelect(state.units, name);
+      startWithWords(study.practiceWords(state));
+      renderPracticePanel();
     });
 
     fontSelect.addEventListener("change", () => {
@@ -1405,7 +1438,8 @@
         state = cloudUnits;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         refreshUnitSelect(state.units, state.current);
-        startWithWords(state.units[state.current]);
+        startWithWords(study.practiceWords(state));
+        renderPracticePanel();
         status.textContent = "已載入你的雲端字庫。";
       } catch (error) {
         console.error("WordFlash cloud load failed", error);
@@ -1425,6 +1459,14 @@
     });
 
     window.addEventListener("storage", (event) => {
+      if ([study.SELECTION_KEY, study.DISABLED_KEY, STORAGE_KEY].includes(event.key)) {
+        if (loadTimedChallengeRun()?.status === "running") return;
+        state = loadUnits() || state;
+        refreshUnitSelect(state.units, state.current);
+        startWithWords(study.practiceWords(state));
+        renderPracticePanel();
+        return;
+      }
       if (event.key === FONT_KEY) {
         fontFamily = localStorage.getItem(FONT_KEY) || DEFAULT_FONT;
       } else if (event.key === ZHUYIN_ENABLED_KEY) {
