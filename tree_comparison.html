@@ -12,6 +12,10 @@
   <style>
     .sortable-list:empty { min-height:44px; border:1px dashed #b4a88f; border-radius:6px; margin:4px 0 8px 20px; }
     #tree.wunderbaum { overflow:clip; }
+    /* Wunderbaum 的預設展開圖示依賴外部 icon 字型；改用文字箭頭，讓收合控制在所有裝置都看得見。 */
+    #tree.wunderbaum i.wb-expander { background-image:none !important; cursor:pointer; color:#39342d; font-style:normal; text-align:center; }
+    #tree.wunderbaum i.wb-expander::after { content:"▸"; font-size:18px; line-height:18px; }
+    #tree.wunderbaum .wb-row.wb-expanded i.wb-expander::after { content:"▾"; }
   </style>
   <script src="vendor/sortablejs/Sortable.min.js"></script>
   <script src="vendor/wunderbaum/wunderbaum.umd.min.js"></script>

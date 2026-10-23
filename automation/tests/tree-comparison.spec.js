@@ -39,6 +39,21 @@ test('目錄無需捲動時，滾輪可繼續捲動頁面', async ({ page }) => 
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before);
 });
 
+test('Wunderbaum 以可見箭頭收合與展開資料夾', async ({ page }, testInfo) => {
+  await page.goto('/tree_comparison.html');
+  await page.evaluate(() => localStorage.setItem('wordflash_tree_trial_v1', JSON.stringify({folders:[{id:'f1',name:'中文',parent:''},{id:'f2',name:'課本',parent:'f1'}],units:[]})));
+  await page.reload();
+  await page.locator('[data-engine="wunder"]').click();
+  const row=page.locator('.wb-row').filter({has:page.getByRole('button',{name:'在 中文 新增資料夾'})});
+  const expander=row.locator('.wb-expander');
+  await expect(expander).toHaveCount(1);
+  await expect.poll(() => expander.evaluate(el => getComputedStyle(el,'::after').content)).toBe('"▾"');
+  await expander.click();
+  await expect(page.getByText('📁 課本',{exact:true})).toHaveCount(0);
+  await expect.poll(() => expander.evaluate(el => getComputedStyle(el,'::after').content)).toBe('"▸"');
+  await page.screenshot({path:`artifacts/${testInfo.project.name}-wunderbaum-visible-expander.png`,fullPage:true});
+});
+
 test('Wunderbaum 長目錄隨內容伸縮，頁面接收滾輪', async ({ page }) => {
   await page.goto('/tree_comparison.html');
   await page.evaluate(() => localStorage.setItem('wordflash_tree_trial_v1', JSON.stringify({folders:[{id:'parent',name:'課本',parent:''}, ...Array.from({length:80},(_,i)=>({id:`f${i}`,name:`資料夾${i}`,parent:'parent'}))],units:[]})));
