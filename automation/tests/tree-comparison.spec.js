@@ -1,15 +1,12 @@
 const { test, expect } = require('@playwright/test');
 
-test('從字庫管理進入三種介面並返回', async ({ page }, testInfo) => {
-  await page.goto('/settings.html#manage');
-  await page.locator('#managePage a[data-page="organizer"]').click();
-  const organizer=page.frameLocator('iframe[title="字庫分組與複合字庫"]');
-  await organizer.getByRole('link',{name:'試用三種拖曳式目錄介面'}).click();
+test('保留三種目錄試用頁，並可回到字庫管理', async ({ page }, testInfo) => {
+  await page.goto('/settings.html#treeTrial');
   await expect(page.locator('#currentPageTitle')).toHaveText('目錄介面試用');
   const trial=page.frameLocator('iframe[title="字庫目錄試用比較"]');
   await expect(trial.getByRole('heading',{name:'三種字庫目錄試用'})).toBeVisible();
-  await page.locator('#treeTrialPage a[data-page="organizer"]').click();
-  await expect(page.locator('#currentPageTitle')).toHaveText('字庫分組與複合字庫');
+  await page.locator('#treeTrialPage a[data-page="manage"]').click();
+  await expect(page.locator('#currentPageTitle')).toHaveText('字庫管理');
 });
 
 test('第三種目錄可在選取項目同層就地新增資料夾', async ({ page }, testInfo) => {

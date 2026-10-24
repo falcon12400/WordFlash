@@ -12,14 +12,13 @@ test("多字庫、單字開關與個別正確率", async ({ page }, testInfo) =>
       localStorage.setItem("wordflash_practice_mode_v1", "challenge");
     }
   });
-  await page.goto("/settings.html");
-  await page.locator('#quick a[data-page="organizer"]').click();
-  const organizer = page.frameLocator('iframe[title="字庫分組與複合字庫"]');
-  await organizer.locator("#addPreset").click();
-  await organizer.locator("#presetName").fill("兩課");
-  await organizer.locator('input[data-unit="第一課"]').check();
-  await organizer.locator('input[data-unit="第二課"]').check();
-  await organizer.locator("#savePreset").click();
+  await page.goto("/settings.html#manage");
+  const organizer = page.frameLocator('iframe[title="字庫管理"]');
+  await organizer.getByRole("button", { name: "＋ 新增複合字庫" }).click();
+  await organizer.getByLabel("複合字庫名稱").fill("兩課");
+  await organizer.getByLabel("第一課").check();
+  await organizer.getByLabel("第二課").check();
+  await organizer.getByRole("button", { name: "儲存複合字庫" }).click();
   if (testInfo.project.name === "pixel-10a") await page.locator("#navToggle").click();
   await page.locator('#settingsNav a[data-page="home"]').click();
   await page.locator("#quickUnitSelect").selectOption({ label: "兩課" });

@@ -387,6 +387,7 @@
       unitSelect.value = current;
     };
 
+    const view = new URLSearchParams(location.search);
     const initUnits = () => {
       let data = loadUnits();
       if (!data || !data.units || !Object.keys(data.units).length) {
@@ -398,16 +399,18 @@
         };
         saveUnits(data);
       }
+      const requestedUnit = view.get("unit");
+      if (requestedUnit && Object.hasOwn(data.units, requestedUnit)) data.current = requestedUnit;
       refreshUnitSelect(data.units, data.current);
       unitWords.value = data.units[data.current].join("\n");
       return data;
     };
 
     let state = initUnits();
-    const view = new URLSearchParams(location.search);
     if (view.has("embedded")) {
       document.querySelector("body > header").hidden = true;
       document.querySelector("main").style.padding = "16px";
+      if (view.get("unit")) ["unitSelectorField", "unitActions"].forEach(id => document.getElementById(id).hidden = true);
       if (["manage", "add"].includes(view.get("view"))) document.querySelector(".study-panel").hidden = true;
       if (view.get("view") === "add") {
         ["unitSelectorField", "wordEditor", "wordEditorActions", "deleteUnit"].forEach(id => document.getElementById(id).hidden = true);

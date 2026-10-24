@@ -4,7 +4,7 @@
 
 ## 設定導覽與字庫分組
 
-`settings.html` 提供依方向切換的設定目錄，並嵌入既有 `manage_words.html` 和 `library_organizer.html`；字庫管理頁仍可獨立開啟。分組及複合字庫保存在 `wordflash_library_organizer_v1`，包括資料夾 ID／父 ID、字庫名稱對應資料夾及具名組合快照，並不屬於 Firebase 同步範圍。切換組合仍使用 `wordflash_selected_units_v1`。字庫被刪除或雲端資料覆蓋後，組合可能引用不存在的名稱：管理頁會提示，切換時只使用仍存在的字庫，沒有有效字庫則拒絕切換。這些資料不會修改原字庫內容。
+`settings.html` 提供依方向切換的設定目錄；「字庫」只保留一個 `library_manager.html` 管理中心。它以分類樹列出資料夾、一般字庫及複合字庫，並在同頁嵌入 `manage_words.html` 的既有內容編輯或單字統計面板。`manage_words.html` 仍可獨立開啟，也接受 `unit` 查詢參數供管理中心定位指定字庫。分組及複合字庫保存在 `wordflash_library_organizer_v1`，包括資料夾 ID／父 ID、字庫名稱對應資料夾、具名組合快照，以及複合字庫所在資料夾的 `folder` 欄位；並不屬於 Firebase 同步範圍。切換組合仍使用 `wordflash_selected_units_v1`。字庫被刪除或雲端資料覆蓋後，組合可能引用不存在的名稱：管理頁會提示，切換時只使用仍存在的字庫，沒有有效字庫則拒絕切換。這些資料不會修改原字庫內容。
 
 `tree_comparison.html` 是三種介面的隔離試用，使用 `wordflash_tree_trial_v1` 作為共用副本，不改寫正式字庫及雲端。`vendor/` 固定保留 tree-element 0.3.2（Apache-2.0）、SortableJS 1.15.7 和 Wunderbaum 0.14.1（皆 MIT）及授權檔案。tree-element 的 debug 版本包含一處本地修正：touchend 使用 `changedTouches` 取得結束的手指，修復單指放開時拖曳無法結束的問題。Wunderbaum 原生 HTML 拖曳在觸控裝置可能不可用，提供移動選單作為替代。選定正式方案之前，不可將試用名稱直接寫入正式字庫；正式改名必須遷移相關名稱索引和處理雲端同步。
 

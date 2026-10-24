@@ -415,9 +415,7 @@
         <div class="nav-group" role="group" aria-labelledby="libraryNavTitle">
           <div class="nav-group-title" id="libraryNavTitle">字庫</div>
           <div class="nav-submenu">
-            <a href="#add" data-page="add">新增字庫</a>
-            <a href="#manage" data-page="manage">字庫管理</a>
-            <a href="#words" data-page="words">單字統計與設定</a>
+              <a href="#manage" data-page="manage">字庫管理</a>
           </div>
         </div>
         <a href="#cloud" data-page="cloud">帳號與同步</a>
@@ -434,7 +432,7 @@
               <label for="quickUnitSelect">字庫選擇</label>
               <select id="quickUnitSelect" aria-describedby="quickUnitNote"></select>
               <span id="quickUnitNote">選擇單一字庫或已儲存的複合字庫。</span>
-              <a class="secondary-link" href="#organizer" data-page="organizer">管理分組與複合字庫</a>
+              <a class="secondary-link" href="#manage" data-page="manage">管理字庫、分類與複合字庫</a>
             </div>
             <div class="quick-field">
               <label for="quickFontSelect">顯示字型</label>
@@ -446,7 +444,7 @@
             <strong>練習字庫（可複選）</strong>
             <div id="practiceUnitChoices" class="unit-selection-list"></div>
             <p id="practiceUnitSummary" aria-live="polite"></p>
-            <a class="secondary-link" href="manage_words.html">管理單字與正確率</a>
+            <a class="secondary-link" href="#manage" data-page="manage">管理單字與正確率</a>
           </div>
           <div class="group-footer"><p id="quickStatus" aria-live="polite"></p></div>
         </section>
@@ -577,16 +575,6 @@
           </div>
         </section>
 
-        <section class="setting-group" id="manage" aria-labelledby="manageTitle">
-          <div class="group-heading">
-            <h2 id="manageTitle">字庫管理</h2>
-            <p class="description">新增、編輯字詞，處理注音與多音字選擇。</p>
-          </div>
-          <div class="data-action">
-            <div><strong>編輯字庫內容</strong><p class="setting-note">新增或編輯字庫，並重新查詢注音。</p></div>
-            <a class="secondary-link" href="manage_words.html">開啟字庫管理</a>
-          </div>
-        </section>
 
         <section class="setting-group" id="cloud" aria-labelledby="cloudTitle">
           <div class="group-heading">
@@ -608,11 +596,8 @@
             </div>
           </div>
         </section>
-        <section class="setting-group" id="organizerPage" hidden><iframe class="embedded-page" title="字庫分組與複合字庫" src="library_organizer.html?embedded=1"></iframe></section>
-        <section class="setting-group" id="treeTrialPage" hidden><div class="data-action"><a class="secondary-link" href="#organizer" data-page="organizer">返回字庫分組</a></div><iframe class="embedded-page" title="字庫目錄試用比較" data-src="tree_comparison.html?embedded=1"></iframe></section>
-        <section class="setting-group" id="addPage" hidden><iframe class="embedded-page" title="新增字庫" data-src="manage_words.html?embedded=1&amp;view=add"></iframe></section>
-        <section class="setting-group" id="managePage" hidden><div class="data-action"><div><strong>字庫分組與複合字庫</strong><p class="setting-note">整理資料夾或設定一起練習的字庫。</p></div><a class="secondary-link" href="#organizer" data-page="organizer">管理分組與複合字庫</a></div><iframe class="embedded-page" title="字庫管理" data-src="manage_words.html?embedded=1&amp;view=manage"></iframe></section>
-        <section class="setting-group" id="wordsPage" hidden><iframe class="embedded-page" title="單字統計與設定" data-src="manage_words.html?embedded=1&amp;view=words"></iframe></section>
+        <section class="setting-group" id="managePage" hidden><iframe class="embedded-page" title="字庫管理" src="library_manager.html?embedded=1"></iframe></section>
+        <section class="setting-group" id="treeTrialPage" hidden><div class="data-action"><a class="secondary-link" href="#manage" data-page="manage">返回字庫管理</a></div><iframe class="embedded-page" title="字庫目錄試用比較" data-src="tree_comparison.html?embedded=1"></iframe></section>
       </div>
     </div>
   </main>
@@ -1069,15 +1054,16 @@
     });
     const nav = document.getElementById("settingsNav");
     const toggle = document.getElementById("navToggle");
-    const titles = { home:"設定首頁", practice:"切換練習模式", organizer:"字庫分組與複合字庫", treeTrial:"目錄介面試用", add:"新增字庫", manage:"字庫管理", words:"單字統計與設定", cloud:"帳號與同步" };
-    const groups = { home:["quick", "display", "toolbar"], practice:["practice"], organizer:["organizerPage"], treeTrial:["treeTrialPage"], add:["addPage"], manage:["managePage"], words:["wordsPage"], cloud:["cloud"] };
+    const titles = { home:"設定首頁", practice:"切換練習模式", manage:"字庫管理", treeTrial:"目錄介面試用", cloud:"帳號與同步" };
+    const groups = { home:["quick", "display", "toolbar"], practice:["practice"], manage:["managePage"], treeTrial:["treeTrialPage"], cloud:["cloud"] };
     let activePage = "home";
     function showPage(page) {
+      page = ({ add:"manage", words:"manage", organizer:"manage" })[page] || page;
       page = groups[page] ? page : "home";
       document.querySelectorAll(".settings-content > section").forEach(section => { section.hidden = !groups[page].includes(section.id); });
       const frame = document.querySelector(`#${groups[page][0]} iframe`);
       if (frame?.dataset.src) frame.src = frame.dataset.src;
-      nav.querySelectorAll("a").forEach(link => link.toggleAttribute("aria-current", link.dataset.page === (["organizer", "treeTrial"].includes(page) ? "manage" : page)));
+      nav.querySelectorAll("a").forEach(link => link.toggleAttribute("aria-current", link.dataset.page === page));
       nav.querySelectorAll("a[aria-current]").forEach(link => link.setAttribute("aria-current", "page"));
       document.getElementById("currentPageTitle").textContent = titles[page];
       nav.classList.remove("open"); toggle.setAttribute("aria-expanded", "false");
