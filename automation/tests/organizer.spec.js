@@ -12,8 +12,9 @@ async function openLibrary(page, testInfo) {
 test("分類樹整合一般字庫與複合字庫", async ({ page }, testInfo) => {
   await page.addInitScript(() => { if (!localStorage.getItem("wordflash_units_v1")) localStorage.setItem("wordflash_units_v1", JSON.stringify({current:"甲", units:{甲:["茶"],乙:["書"],丙:["樹"]}})); });
   const frame = await openLibrary(page, testInfo);
-  page.once("dialog", dialog => dialog.accept("中文"));
   await frame.getByRole("button", { name: "＋ 新增資料夾" }).click();
+  await frame.getByLabel("資料夾名稱").fill("中文");
+  await frame.getByRole("button", { name: "建立資料夾" }).click();
   await expect(frame.getByRole("button", { name: "📁 中文" })).toBeVisible();
   await frame.getByRole("button", { name: "📁 中文" }).click();
   await expect(frame.getByRole("button", { name: "新增子資料夾" })).toBeVisible();
@@ -52,8 +53,9 @@ test("整合管理頁保留未儲存內容的離開確認", async ({ page }, tes
 test("可從整合頁新增字庫並直接編輯", async ({ page }, testInfo) => {
   await page.addInitScript(() => { if (!localStorage.getItem("wordflash_units_v1")) localStorage.setItem("wordflash_units_v1", JSON.stringify({current:"甲", units:{甲:["茶"]}})); });
   const frame = await openLibrary(page, testInfo);
-  page.once("dialog", dialog => dialog.accept("英文字庫"));
   await frame.getByRole("button", { name: "＋ 新增字庫" }).click();
+  await frame.getByLabel("字庫名稱").fill("英文字庫");
+  await frame.getByRole("button", { name: "建立字庫" }).click();
   await expect(frame.getByRole("button", { name: "📖 英文字庫" })).toBeVisible();
   const editor = frame.frameLocator('iframe[title="編輯 英文字庫"]');
   await editor.locator("#unitWords").fill("apple");

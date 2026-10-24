@@ -60,6 +60,7 @@ Web Speech API ────────────── canvas 的朗讀
 | `wordflash_timed_challenge_run_v1` | 進行中的計時挑戰：字庫快照、起訖時間、目前／最佳連勝與答題數 | 顯示頁、設定頁 |
 | `wordflash_challenge_records_v1` | `{ version, units }`；各字庫各自保存已結束的計時挑戰紀錄 | 顯示頁、挑戰紀錄頁 |
 | `wordflash_selected_units_v1` | 目前練習的字庫名稱陣列，未設定時沿用現有單一字庫 | 顯示頁、設定頁 |
+| `wordflash_library_organizer_v1` | `{ folders, assignments, presets }`；資料夾、字庫歸屬與複合字庫 | 字庫管理、設定頁；登入後同步至 Firebase |
 | `wordflash_disabled_words_v1` | 各字庫中停用的字詞識別 | 顯示頁、字庫管理、設定頁 |
 | `wordflash_word_stats_v1` | 以文字與注音組合為識別的答對／答錯次數 | 顯示頁、字庫管理 |
 | `wordflash_challenge_sampling_v1` | `uniform` 或 `weighted` | 顯示頁、設定頁 |
@@ -134,7 +135,7 @@ GET https://www.moedict.tw/a/{文字}.json
 | 服務 | 用途 |
 |---|---|
 | Firebase Authentication | Google 帳號登入、切換帳號、登出。 |
-| Firebase Realtime Database | 保存每個帳號自己的字庫。 |
+| Firebase Realtime Database | 保存每個帳號自己的字庫、資料夾與複合字庫。 |
 
 - Firebase 專案 ID：`wordflash-53976`
 - 雲端路徑：`wordflashUsers/{uid}/library`
