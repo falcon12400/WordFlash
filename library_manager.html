@@ -37,12 +37,21 @@
   <p id="status" class="status" role="status"></p>
   <script type="module">
     import * as study from "./study-data.js";
+    import { loadCloudUnits, saveCloudUnits, subscribeToUser } from "./firebase-wordflash.js";
     const $=id=>document.getElementById(id); const STORAGE_KEY="wordflash_units_v1";
     if(new URLSearchParams(location.search).has("embedded")) $("standalone").hidden=true;
-    let data=study.organizer(), selected=null, mode="", newPresetFolder="";
+    let data=study.organizer(), selected=null, mode="", newPresetFolder="", currentUser=null;
     const unitsState=()=>{ try { return JSON.parse(localStorage.getItem(STORAGE_KEY))||{current:"",units:{}}; } catch { return {current:"",units:{}}; } };
     const names=()=>Object.keys(unitsState().units||{});
-    const save=()=>study.saveOrganizer(data);
+    const save=()=>{
+      study.saveOrganizer(data);
+      if (currentUser) {
+        saveCloudUnits(currentUser,unitsState(),data).catch(error=>{
+          console.error("WordFlash organizer cloud sync failed",error);
+          $("status").textContent="分類已儲存在這台裝置，但雲端同步失敗；請稍後再試。";
+        });
+      }
+    };
     const id=()=>globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random()}`;
     const children=parent=>data.folders.filter(f=>(f.parent||"")===parent);
     const members=parent=>names().filter(name=>{ const assignment=data.assignments[name]; return (data.folders.some(f=>f.id===assignment)?assignment:"")===parent; });
@@ -72,6 +81,20 @@
     $("addUnit").onclick=()=>{const name=prompt("字庫名稱")?.trim();const state=unitsState();if(!name)return;if(state.units[name]){$("status").textContent="此字庫已存在。";return;}state.units[name]=[];state.current=name;localStorage.setItem(STORAGE_KEY,JSON.stringify(state));data.assignments[name]=selectedItem()?.kind==="folder"?selectedItem().id:parentOf(selectedItem());save();selected=`unit:${name}`;mode="editor";$("status").textContent="已新增字庫，請輸入內容並儲存。";render();};
     $("addPreset").onclick=()=>{newPresetFolder=selectedItem()?.kind==="folder"?selectedItem().id:parentOf(selectedItem());selected=null;mode="newPreset";const box=$("inspector");box.replaceChildren();box.append(Object.assign(document.createElement("h2"),{textContent:"新增複合字庫"}));presetEditor(null,box);};
     window.wordflashHasUnsavedChanges=()=>{ const frame=$("inspector").querySelector("iframe");return Boolean(frame?.contentWindow?.wordflashHasUnsavedChanges?.()); };
+    subscribeToUser(async user=>{
+      currentUser=user;
+      if (!user) return;
+      try {
+        const cloudLibrary=await loadCloudUnits(user);
+        if (cloudLibrary?.organizer) {
+          data=cloudLibrary.organizer;
+          study.saveOrganizer(data);
+          render();
+        }
+      } catch (error) {
+        console.error("WordFlash organizer cloud load failed",error);
+      }
+    });
     window.addEventListener("storage",event=>{if([STORAGE_KEY,study.ORGANIZER_KEY,study.WORD_STATS_KEY,study.DISABLED_KEY].includes(event.key))render();}); render();
   </script>
 </body>

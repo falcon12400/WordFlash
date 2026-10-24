@@ -4,7 +4,7 @@
 
 ## 設定導覽與字庫分組
 
-`settings.html` 提供依方向切換的設定目錄；「字庫」只保留一個 `library_manager.html` 管理中心。它以分類樹列出資料夾、一般字庫及複合字庫，並在同頁嵌入 `manage_words.html` 的既有內容編輯或單字統計面板。`manage_words.html` 仍可獨立開啟，也接受 `unit` 查詢參數供管理中心定位指定字庫。分組及複合字庫保存在 `wordflash_library_organizer_v1`，包括資料夾 ID／父 ID、字庫名稱對應資料夾、具名組合快照，以及複合字庫所在資料夾的 `folder` 欄位；並不屬於 Firebase 同步範圍。切換組合仍使用 `wordflash_selected_units_v1`。字庫被刪除或雲端資料覆蓋後，組合可能引用不存在的名稱：管理頁會提示，切換時只使用仍存在的字庫，沒有有效字庫則拒絕切換。這些資料不會修改原字庫內容。
+`settings.html` 提供依方向切換的設定目錄；「字庫」只保留一個 `library_manager.html` 管理中心。它以分類樹列出資料夾、一般字庫及複合字庫，並在同頁嵌入 `manage_words.html` 的既有內容編輯或單字統計面板。`manage_words.html` 仍可獨立開啟，也接受 `unit` 查詢參數供管理中心定位指定字庫。分組及複合字庫保存在 `wordflash_library_organizer_v1`，包括資料夾 ID／父 ID、字庫名稱對應資料夾、具名組合快照，以及複合字庫所在資料夾的 `folder` 欄位；登入後會和字庫內容一併同步至 Firebase。切換組合仍使用 `wordflash_selected_units_v1`。字庫被刪除或雲端資料覆蓋後，組合可能引用不存在的名稱：管理頁會提示，切換時只使用仍存在的字庫，沒有有效字庫則拒絕切換。這些資料不會修改原字庫內容。
 
 `tree_comparison.html` 是三種介面的隔離試用，使用 `wordflash_tree_trial_v1` 作為共用副本，不改寫正式字庫及雲端。`vendor/` 固定保留 tree-element 0.3.2（Apache-2.0）、SortableJS 1.15.7 和 Wunderbaum 0.14.1（皆 MIT）及授權檔案。tree-element 的 debug 版本包含一處本地修正：touchend 使用 `changedTouches` 取得結束的手指，修復單指放開時拖曳無法結束的問題。Wunderbaum 原生 HTML 拖曳在觸控裝置可能不可用，提供移動選單作為替代。選定正式方案之前，不可將試用名稱直接寫入正式字庫；正式改名必須遷移相關名稱索引和處理雲端同步。
 
@@ -24,7 +24,7 @@
 | `manage_words.html` | 字庫 CRUD、自動查詢注音、多音字選擇與雲端字庫載入。 |
 | `settings.html` | 快速切換、顯示偏好、練習／計時挑戰偏好、資料清除、挑戰紀錄入口、雲端上傳／下載與帳號管理。 |
 | `challenge_records.html` | 從本機讀取計時挑戰紀錄，依字庫呈現摘要／明細，並刪除選取字庫的紀錄。 |
-| `firebase-wordflash.js` | Firebase 初始化、Google Auth、字庫正規化與 Realtime Database 讀寫。 |
+| `firebase-wordflash.js` | Firebase 初始化、Google Auth、字庫與分類樹正規化，以及 Realtime Database 讀寫。 |
 | `study-data.js` | 本機多字庫選擇、單字啟用狀態、個別答題紀錄與挑戰加權抽題。 |
 | `database.rules.json` | Realtime Database 的使用者隔離規則。 |
 | `firebase.json` | Firebase CLI 部署資料庫規則的設定。 |
@@ -40,7 +40,7 @@
  └─ 計時設定、進行中挑戰、紀錄 ─ canvas / settings / challenge_records
 
 Firebase Auth ──────────────── Google 帳號登入狀態
-Firebase Realtime Database ── 該帳號的字庫備份
+Firebase Realtime Database ── 該帳號的字庫與分類樹備份
 萌典 API ───────────────────── manage_words 的注音查詢
 Web Speech API ────────────── canvas 的朗讀
 ```

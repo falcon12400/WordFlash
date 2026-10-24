@@ -32,6 +32,50 @@ provider.setCustomParameters({ prompt: "select_account" });
 
 const cloudLibraryPath = (uid) => `wordflashUsers/${uid}/library`;
 
+const copyOrganizer = (value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const folders = Array.isArray(value.folders)
+    ? value.folders.reduce((result, folder) => {
+      if (!folder || typeof folder !== "object") return result;
+      const id = typeof folder.id === "string" ? folder.id.trim() : "";
+      const name = typeof folder.name === "string" ? folder.name.trim() : "";
+      if (!id || !name || result.some((item) => item.id === id)) return result;
+      result.push({
+        id,
+        name,
+        parent: typeof folder.parent === "string" ? folder.parent.trim() : ""
+      });
+      return result;
+    }, [])
+    : [];
+  const folderIds = new Set(folders.map((folder) => folder.id));
+  const assignments = Object.entries(value.assignments || {}).reduce((result, [name, folder]) => {
+    if (typeof name !== "string" || !name.trim() || typeof folder !== "string") return result;
+    result[name] = folderIds.has(folder) ? folder : "";
+    return result;
+  }, {});
+  const presets = Array.isArray(value.presets)
+    ? value.presets.reduce((result, preset) => {
+      if (!preset || typeof preset !== "object") return result;
+      const id = typeof preset.id === "string" ? preset.id.trim() : "";
+      const name = typeof preset.name === "string" ? preset.name.trim() : "";
+      if (!id || !name || result.some((item) => item.id === id)) return result;
+      result.push({
+        id,
+        name,
+        units: Array.isArray(preset.units)
+          ? [...new Set(preset.units.filter((unit) => typeof unit === "string" && unit.trim()).map((unit) => unit.trim()))]
+          : [],
+        folder: folderIds.has(preset.folder) ? preset.folder : ""
+      });
+      return result;
+    }, [])
+    : [];
+
+  return { folders, assignments, presets };
+};
+
 const copyUnits = (value) => {
   if (!value || typeof value !== "object" || !value.units || typeof value.units !== "object") return null;
 
@@ -46,10 +90,13 @@ const copyUnits = (value) => {
   const names = Object.keys(units);
   if (!names.length) return null;
 
-  return {
+  const library = {
     current: typeof value.current === "string" && units[value.current] ? value.current : names[0],
     units
   };
+  const organizer = copyOrganizer(value.organizer);
+  if (organizer) library.organizer = organizer;
+  return library;
 };
 
 export const normalizeUnits = (value) => copyUnits(value);
@@ -66,13 +113,15 @@ export const loadCloudUnits = async (user) => {
   return snapshot.exists() ? copyUnits(snapshot.val()) : null;
 };
 
-export const saveCloudUnits = async (user, units) => {
+export const saveCloudUnits = async (user, units, organizer) => {
   const normalized = copyUnits(units);
+  const normalizedOrganizer = copyOrganizer(organizer);
   if (!user?.uid) throw new Error("請先登入 Google 帳號。");
   if (!normalized) throw new Error("找不到可上傳的字庫內容。");
   await set(ref(database, cloudLibraryPath(user.uid)), {
     ...normalized,
     updatedAt: serverTimestamp(),
-    schemaVersion: 1
+    schemaVersion: 2,
+    ...(normalizedOrganizer ? { organizer: normalizedOrganizer } : {})
   });
 };

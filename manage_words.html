@@ -269,7 +269,7 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       queueMicrotask(() => renderWordList());
       if (currentUser) {
-        saveCloudUnits(currentUser, data).catch((error) => {
+        saveCloudUnits(currentUser, data, study.organizer()).catch((error) => {
           console.error("WordFlash cloud sync failed", error);
           status.textContent = "已儲存在這台裝置，但雲端同步失敗；請稍後再試。";
         });
@@ -691,6 +691,7 @@
           return;
         }
         state = cloudUnits;
+        if (cloudUnits.organizer) study.saveOrganizer(cloudUnits.organizer);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         refreshUnitSelect(state.units, state.current);
         renderWordList();
