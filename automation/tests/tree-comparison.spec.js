@@ -25,6 +25,12 @@ test('第三種目錄可在選取項目同層就地新增資料夾', async ({ pa
     await page.screenshot({path:`artifacts/${testInfo.project.name}-wunderbaum-inline-add.png`,fullPage:true});
     await input.fill('課本');
     await page.getByRole('button',{name:'新增',exact:true}).click();
+    await page.screenshot({path:`artifacts/${testInfo.project.name}-wunderbaum-after-inline-add.png`,fullPage:true});
+    const rowsDoNotOverlap=await page.locator('.wb-row').evaluateAll(rows=>{
+      const boxes=rows.map(row=>row.getBoundingClientRect());
+      return boxes.every((box,index)=>index===0 || box.top>=boxes[index-1].bottom);
+    });
+    expect(rowsDoNotOverlap).toBe(true);
     const draft=await page.evaluate(()=>JSON.parse(localStorage.getItem('wordflash_tree_trial_v1')));
     expect(draft.folders.find(f=>f.name==='課本').parent).toBe('');
   }
