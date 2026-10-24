@@ -682,6 +682,14 @@
           status.textContent = "已登入 Google；儲存字庫後會自動建立雲端備份。";
           return;
         }
+        // 字庫管理中心會先在本機建立空白字庫，再開啟本頁編輯。若雲端
+        // 尚未有這個名稱，不能在首次載入時把它以舊雲端版本覆蓋掉；首次
+        // 儲存時仍會透過 saveUnits 一併同步到雲端。
+        const requestedUnit = view.get("unit");
+        if (requestedUnit && Object.hasOwn(state.units, requestedUnit) && !Object.hasOwn(cloudUnits.units || {}, requestedUnit)) {
+          status.textContent = "正在編輯新的本機字庫；儲存後會同步到雲端。";
+          return;
+        }
         state = cloudUnits;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         refreshUnitSelect(state.units, state.current);
