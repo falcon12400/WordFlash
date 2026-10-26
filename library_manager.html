@@ -91,7 +91,13 @@
       if (!user) return;
       try {
         const cloudLibrary=await loadCloudUnits(user);
-        if (cloudLibrary) cloudUnits=cloudLibrary;
+        if (cloudLibrary) {
+          cloudUnits=cloudLibrary;
+          // Use the same authoritative library that the tree is showing. This
+          // prevents a later folder operation from writing an older local copy
+          // over the signed-in user's cloud library.
+          localStorage.setItem(STORAGE_KEY,JSON.stringify({current:cloudLibrary.current,units:cloudLibrary.units}));
+        }
         if (cloudLibrary?.organizer) {
           data=cloudLibrary.organizer;
           study.saveOrganizer(data);
