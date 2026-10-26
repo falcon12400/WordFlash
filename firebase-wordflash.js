@@ -104,6 +104,13 @@ const copyUnits = (value) => {
       .filter(Boolean);
     return result;
   }, {});
+  // Realtime Database may omit an empty array. Keep the names separately so a
+  // newly created, still-empty library survives its first cloud round trip.
+  if (Array.isArray(value.emptyUnits)) {
+    value.emptyUnits.forEach((name) => {
+      if (typeof name === "string" && name.trim() && !Object.hasOwn(units, name)) units[name] = [];
+    });
+  }
   const names = Object.keys(units);
   if (!names.length) return null;
 
@@ -138,8 +145,13 @@ export const saveCloudUnits = async (user, units, organizer, study) => {
   const normalizedStudy = copyStudy(study);
   if (!user?.uid) throw new Error("請先登入 Google 帳號。");
   if (!normalized) throw new Error("找不到可上傳的字庫內容。");
+  const emptyUnits = Object.entries(normalized.units)
+    .filter(([, entries]) => !entries.length)
+    .map(([name]) => name);
   await set(ref(database, cloudLibraryPath(user.uid)), {
     ...normalized,
+    // `null` removes an older marker when all libraries contain entries.
+    emptyUnits: emptyUnits.length ? emptyUnits : null,
     updatedAt: serverTimestamp(),
     schemaVersion: 3,
     ...(normalizedOrganizer ? { organizer: normalizedOrganizer } : {}),
