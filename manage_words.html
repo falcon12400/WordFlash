@@ -600,7 +600,13 @@
     const saveAndLookup = async (words) => {
       const name = unitSelect.value;
       if (!words.length) {
-        status.textContent = "字庫是空的，請至少輸入一個字。";
+        // An empty library is useful as a prepared category (for example,
+        // a future Katakana list). Save it explicitly so Firebase retains it.
+        state.units[name] = [];
+        unitWords.value = "";
+        saveUnits(state);
+        hideReadingChoices();
+        status.textContent = "已儲存空白字庫。";
         return;
       }
 
