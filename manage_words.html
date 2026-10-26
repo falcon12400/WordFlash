@@ -269,7 +269,7 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       queueMicrotask(() => renderWordList());
       if (currentUser) {
-        saveCloudUnits(currentUser, data, study.organizer()).catch((error) => {
+        saveCloudUnits(currentUser, data, study.organizer(), study.cloudData()).catch((error) => {
           console.error("WordFlash cloud sync failed", error);
           status.textContent = "已儲存在這台裝置，但雲端同步失敗；請稍後再試。";
         });
@@ -280,6 +280,14 @@
       .split("\n")
       .map((item) => item.trim())
       .filter(Boolean);
+
+    const savePracticeData = () => {
+      if (!currentUser) return;
+      saveCloudUnits(currentUser, state, study.organizer(), study.cloudData()).catch((error) => {
+        console.error("WordFlash practice data sync failed", error);
+        status.textContent = "已儲存在這台裝置，但雲端同步失敗；請稍後再試。";
+      });
+    };
 
     const CHINESE_CHARACTER = /[\u3400-\u9fff]/u;
     const MOEDICT_API_BASE = "https://www.moedict.tw/a/";
@@ -461,6 +469,7 @@
         toggle.addEventListener("change", () => {
           if (timerActive()) { renderWordList(); return; }
           study.setEnabled(name, raw, toggle.checked);
+          savePracticeData();
           renderWordList();
         });
         const word = document.createElement("span");
@@ -482,11 +491,13 @@
     document.getElementById("enableAllWords").addEventListener("click", () => {
       if (timerActive()) return;
       (state.units[unitSelect.value] || []).forEach(raw => study.setEnabled(unitSelect.value, raw, true));
+      savePracticeData();
       renderWordList();
     });
     document.getElementById("disableAllWords").addEventListener("click", () => {
       if (timerActive()) return;
       (state.units[unitSelect.value] || []).forEach(raw => study.setEnabled(unitSelect.value, raw, false));
+      savePracticeData();
       renderWordList();
     });
     window.addEventListener("storage", event => {
@@ -692,6 +703,7 @@
         }
         state = cloudUnits;
         if (cloudUnits.organizer) study.saveOrganizer(cloudUnits.organizer);
+        if (cloudUnits.study) study.applyCloudData(cloudUnits.study);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         refreshUnitSelect(state.units, state.current);
         renderWordList();

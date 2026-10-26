@@ -46,7 +46,7 @@
     const save=()=>{
       study.saveOrganizer(data);
       if (currentUser) {
-        saveCloudUnits(currentUser,unitsState(),data).catch(error=>{
+        saveCloudUnits(currentUser,unitsState(),data,study.cloudData()).catch(error=>{
           console.error("WordFlash organizer cloud sync failed",error);
           $("status").textContent="分類已儲存在這台裝置，但雲端同步失敗；請稍後再試。";
         });
@@ -90,8 +90,9 @@
         if (cloudLibrary?.organizer) {
           data=cloudLibrary.organizer;
           study.saveOrganizer(data);
-          render();
         }
+        if (cloudLibrary?.study) study.applyCloudData(cloudLibrary.study);
+        render();
       } catch (error) {
         console.error("WordFlash organizer cloud load failed",error);
       }

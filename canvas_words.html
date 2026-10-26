@@ -1269,6 +1269,8 @@
         }
       }
       study.recordWordAnswer(currentText, isCorrect);
+      // Answer results are part of the signed-in practice record too.
+      saveUnits(state);
       renderPracticePanel();
       showNext();
       status.textContent = isCorrect ? "已記錄答對，已換下一題。" : "已記錄答錯，已換下一題。";
@@ -1292,7 +1294,7 @@
     const saveUnits = (data) => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       if (currentUser) {
-        saveCloudUnits(currentUser, data, study.organizer()).catch((error) => {
+        saveCloudUnits(currentUser, data, study.organizer(), study.cloudData()).catch((error) => {
           console.error("WordFlash cloud sync failed", error);
           status.textContent = "已儲存在這台裝置，但雲端同步失敗；請稍後再試。";
         });
@@ -1437,6 +1439,7 @@
         }
         state = cloudUnits;
         if (cloudUnits.organizer) study.saveOrganizer(cloudUnits.organizer);
+        if (cloudUnits.study) study.applyCloudData(cloudUnits.study);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         refreshUnitSelect(state.units, state.current);
         startWithWords(study.practiceWords(state));

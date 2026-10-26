@@ -76,6 +76,23 @@ const copyOrganizer = (value) => {
   return { folders, assignments, presets };
 };
 
+const copyStudy = (value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const disabled = Object.entries(value.disabled || {}).reduce((result, [unit, keys]) => {
+    if (typeof unit !== "string" || !unit.trim() || !Array.isArray(keys)) return result;
+    result[unit] = [...new Set(keys.filter((key) => typeof key === "string" && key.trim()))];
+    return result;
+  }, {});
+  const wordStats = Object.entries(value.wordStats || {}).reduce((result, [key, score]) => {
+    if (typeof key !== "string" || !key.trim() || !score || typeof score !== "object") return result;
+    const correct = Math.max(0, Math.floor(Number(score.correct) || 0));
+    const incorrect = Math.max(0, Math.floor(Number(score.incorrect) || 0));
+    if (correct || incorrect) result[key] = { correct, incorrect };
+    return result;
+  }, {});
+  return { disabled, wordStats };
+};
+
 const copyUnits = (value) => {
   if (!value || typeof value !== "object" || !value.units || typeof value.units !== "object") return null;
 
@@ -96,6 +113,8 @@ const copyUnits = (value) => {
   };
   const organizer = copyOrganizer(value.organizer);
   if (organizer) library.organizer = organizer;
+  const study = copyStudy(value.study);
+  if (study) library.study = study;
   return library;
 };
 
@@ -113,15 +132,17 @@ export const loadCloudUnits = async (user) => {
   return snapshot.exists() ? copyUnits(snapshot.val()) : null;
 };
 
-export const saveCloudUnits = async (user, units, organizer) => {
+export const saveCloudUnits = async (user, units, organizer, study) => {
   const normalized = copyUnits(units);
   const normalizedOrganizer = copyOrganizer(organizer);
+  const normalizedStudy = copyStudy(study);
   if (!user?.uid) throw new Error("請先登入 Google 帳號。");
   if (!normalized) throw new Error("找不到可上傳的字庫內容。");
   await set(ref(database, cloudLibraryPath(user.uid)), {
     ...normalized,
     updatedAt: serverTimestamp(),
-    schemaVersion: 2,
-    ...(normalizedOrganizer ? { organizer: normalizedOrganizer } : {})
+    schemaVersion: 3,
+    ...(normalizedOrganizer ? { organizer: normalizedOrganizer } : {}),
+    ...(normalizedStudy ? { study: normalizedStudy } : {})
   });
 };

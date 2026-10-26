@@ -1011,7 +1011,7 @@
       uploadCloud.disabled = true;
       cloudStatus.textContent = "正在上傳字庫…";
       try {
-        await saveCloudUnits(currentUser, localUnits, study.organizer());
+        await saveCloudUnits(currentUser, localUnits, study.organizer(), study.cloudData());
         hasCloudLibrary = true;
         cloudStatus.textContent = "已上傳字庫；之後在字庫管理頁儲存時會自動同步。";
       } catch (error) {
@@ -1036,6 +1036,7 @@
         }
         saveLocalUnits(cloudUnits);
         if (cloudUnits.organizer) study.saveOrganizer(cloudUnits.organizer);
+        if (cloudUnits.study) study.applyCloudData(cloudUnits.study);
         hasCloudLibrary = true;
         cloudStatus.textContent = "已下載雲端字庫；重新開啟顯示頁或字庫管理頁即可使用。";
       } catch (error) {

@@ -38,6 +38,42 @@ export function disabledWords() {
   return data && typeof data === "object" && !Array.isArray(data) ? data : {};
 }
 
+const copyDisabledWords = (value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.entries(value).reduce((result, [unit, keys]) => {
+    if (typeof unit !== "string" || !unit.trim() || !Array.isArray(keys)) return result;
+    result[unit] = [...new Set(keys.filter((key) => typeof key === "string" && key.trim()))];
+    return result;
+  }, {});
+};
+
+const copyWordStats = (value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.entries(value).reduce((result, [key, score]) => {
+    if (typeof key !== "string" || !key.trim() || !score || typeof score !== "object") return result;
+    const correct = Math.max(0, Math.floor(Number(score.correct) || 0));
+    const incorrect = Math.max(0, Math.floor(Number(score.incorrect) || 0));
+    if (correct || incorrect) result[key] = { correct, incorrect };
+    return result;
+  }, {});
+};
+
+// Practice settings remain usable offline, while a signed-in account also
+// stores a normalized copy so its enabled words and results follow the user.
+export function cloudData() {
+  return {
+    disabled: copyDisabledWords(disabledWords()),
+    wordStats: copyWordStats(readJSON(WORD_STATS_KEY, {}))
+  };
+}
+
+export function applyCloudData(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  localStorage.setItem(DISABLED_KEY, JSON.stringify(copyDisabledWords(value.disabled)));
+  localStorage.setItem(WORD_STATS_KEY, JSON.stringify(copyWordStats(value.wordStats)));
+  return true;
+}
+
 export function isEnabled(unit, raw) {
   const disabled = disabledWords()[unit];
   return !Array.isArray(disabled) || !disabled.includes(wordKey(raw));
