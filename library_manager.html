@@ -40,10 +40,14 @@
     import { loadCloudUnits, saveCloudUnits, subscribeToUser } from "./firebase-wordflash.js?v=3";
     const $=id=>document.getElementById(id); const STORAGE_KEY="wordflash_units_v1";
     if(new URLSearchParams(location.search).has("embedded")) $("standalone").hidden=true;
-    let data=study.organizer(), selected=null, mode="", newPresetFolder="", creationParent="", currentUser=null;
+    let data=study.organizer(), selected=null, mode="", newPresetFolder="", creationParent="", currentUser=null, cloudUnits=null;
     const unitsState=()=>{ try { return JSON.parse(localStorage.getItem(STORAGE_KEY))||{current:"",units:{}}; } catch { return {current:"",units:{}}; } };
-    const names=()=>Object.keys(unitsState().units||{});
+    // The manager may open before another page has copied the cloud library to
+    // localStorage. Keep the loaded cloud list for the tree, including empty
+    // prepared libraries, while edits still use the normal local state.
+    const names=()=>Object.keys((cloudUnits?.units||unitsState().units)||{});
     const save=()=>{
+      cloudUnits=unitsState();
       study.saveOrganizer(data);
       if (currentUser) {
         saveCloudUnits(currentUser,unitsState(),data,study.cloudData()).catch(error=>{
@@ -87,6 +91,7 @@
       if (!user) return;
       try {
         const cloudLibrary=await loadCloudUnits(user);
+        if (cloudLibrary) cloudUnits=cloudLibrary;
         if (cloudLibrary?.organizer) {
           data=cloudLibrary.organizer;
           study.saveOrganizer(data);
