@@ -130,6 +130,8 @@ test("統計模式也能使用倒數，並持續累積答題統計", async ({ pa
 
   await page.getByRole("button", { name: "開始 10 秒統計" }).click();
   await expect(page.locator("#correctButton")).toBeEnabled();
+  await expect(page.locator("#practiceSummary")).toContainText("答對0");
+  await expect(page.locator("#practiceSummary")).toContainText("答錯0");
   await page.locator("#correctButton").click();
   await page.locator("#incorrectButton").click();
   await expect(page.locator("#practiceSummary")).toContainText("答對");
@@ -143,5 +145,33 @@ test("統計模式也能使用倒數，並持續累積答題統計", async ({ pa
   });
   await expect(page.locator("#status")).toContainText("本輪答對 1 題、答錯 1 題");
   const records = await page.evaluate(() => JSON.parse(localStorage.getItem("wordflash_challenge_records_v1") || '{"units":{}}'));
-  expect(records.units["統計字庫"]).toBeUndefined();
+  expect(records.units["統計字庫"]).toHaveLength(1);
+  expect(records.units["統計字庫"][0]).toMatchObject({
+    mode: "statistics", correct: 1, incorrect: 1, accuracy: 50, reason: "time_up"
+  });
+  await page.goto("/challenge_records.html");
+  await expect(page.locator("#recordsContent")).toContainText("倒數統計");
+  await expect(page.locator("#recordsContent")).toContainText("答對 1／錯 1・50.0%");
+});
+
+test("倒數可手動結束，並保留本輪與單字紀錄", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("wordflash_units_v1", JSON.stringify({
+      current: "測試字庫",
+      units: { "測試字庫": ["茶"] }
+    }));
+    localStorage.setItem("wordflash_practice_mode_v1", "challenge");
+    localStorage.setItem("wordflash_challenge_timer_v1", JSON.stringify({ enabled: true, durationSeconds: 60 }));
+  });
+  await page.goto("/canvas_words.html");
+  await page.getByRole("button", { name: "開始 60 秒挑戰" }).click();
+  await page.locator("#correctButton").click();
+  await page.getByRole("button", { name: "結束本輪" }).click();
+  await expect(page.locator("#status")).toContainText("已結束本輪");
+  const saved = await page.evaluate(() => ({
+    records: JSON.parse(localStorage.getItem("wordflash_challenge_records_v1")),
+    words: JSON.parse(localStorage.getItem("wordflash_word_stats_v1"))
+  }));
+  expect(saved.records.units["測試字庫"][0]).toMatchObject({ reason: "manual_stop", correct: 1, totalCorrect: 1 });
+  expect(saved.words[JSON.stringify(["茶", ""])]).toEqual({ correct: 1, incorrect: 0 });
 });

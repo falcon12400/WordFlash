@@ -232,6 +232,23 @@
       font-size: 17px;
       cursor: pointer;
     }
+    .challenge-timer-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .challenge-stop-button {
+      min-height: 42px;
+      padding: 7px 10px;
+      border: 2px solid #7e4439;
+      border-radius: 8px;
+      background: #fff3ef;
+      color: #65362d;
+      font: inherit;
+      font-size: 15px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
     .challenge-finished-note {
       display: grid;
       gap: 3px;
@@ -764,20 +781,31 @@
       }
     };
 
-    const upsertTimedChallengeRecord = (run) => {
+    const upsertTimedChallengeRecord = (run, reason = "time_up") => {
       const records = loadChallengeRecords();
       const completedAtMs = run.finishedAtMs || Date.now();
+      const elapsedSeconds = Math.min(
+        run.durationSeconds,
+        Math.max(0, Math.round((completedAtMs - run.startedAtMs) / 1000))
+      );
+      const isStatisticsRun = run.mode === "statistics";
       const record = {
         id: run.id,
+        mode: isStatisticsRun ? "statistics" : "challenge",
         unitName: run.unitName,
         unitNames: run.unitNames,
         completedAt: new Date(completedAtMs).toISOString(),
         durationSeconds: run.durationSeconds,
-        elapsedSeconds: run.durationSeconds,
-        correct: run.bestStreak,
+        elapsedSeconds,
+        correct: isStatisticsRun ? run.correctCount : run.bestStreak,
         totalCorrect: run.correctCount,
         incorrect: run.incorrectCount,
-        reason: "time_up"
+        ...(isStatisticsRun ? {
+          accuracy: run.correctCount + run.incorrectCount
+            ? Number(((run.correctCount / (run.correctCount + run.incorrectCount)) * 100).toFixed(1))
+            : null
+        } : {}),
+        reason
       };
       const groupKey = run.unitNames?.length > 1 ? `@combined:${JSON.stringify([...run.unitNames].sort())}` : run.unitName;
       const existing = Array.isArray(records.units[groupKey]) ? records.units[groupKey] : [];
@@ -794,7 +822,7 @@
       return record;
     };
 
-    const finishTimedChallenge = (suppliedRun = loadTimedChallengeRun()) => {
+    const finishTimedChallenge = (suppliedRun = loadTimedChallengeRun(), reason = "time_up") => {
       if (!suppliedRun) return null;
       const run = { ...suppliedRun };
       if (run.status === "running") {
@@ -803,28 +831,22 @@
         saveTimedChallengeRun(run);
       }
       const isStatisticsRun = run.mode === "statistics";
-      const record = isStatisticsRun
-        ? {
-          id: run.id,
-          mode: "statistics",
-          unitName: run.unitName,
-          unitNames: run.unitNames,
-          durationSeconds: run.durationSeconds,
-          correct: run.correctCount,
-          incorrect: run.incorrectCount,
-          accuracy: run.correctCount + run.incorrectCount
-            ? Number(((run.correctCount / (run.correctCount + run.incorrectCount)) * 100).toFixed(1))
-            : null
-        }
-        : upsertTimedChallengeRecord(run);
+      const record = upsertTimedChallengeRecord(run, reason);
       latestTimedChallengeResult = record;
       clearTimedChallengeRun();
       stopChallengeTimerTicker();
       renderPracticePanel();
+      const endingLabel = reason === "manual_stop" ? "已結束本輪" : "時間到";
       status.textContent = isStatisticsRun
-        ? `時間到！本輪答對 ${record.correct} 題、答錯 ${record.incorrect} 題${record.accuracy === null ? "。" : `，正確率 ${Number(record.accuracy).toFixed(1)}%。`}`
-        : `時間到！本輪最高連續答對 ${record.correct} 題，已保存到「${record.unitName}」的挑戰紀錄。`;
+        ? `${endingLabel}！本輪答對 ${record.correct} 題、答錯 ${record.incorrect} 題${record.accuracy === null ? "。" : `，正確率 ${Number(record.accuracy).toFixed(1)}%。`} 已保存到「${record.unitName}」的挑戰紀錄。`
+        : `${endingLabel}！本輪最高連續答對 ${record.correct} 題，已保存到「${record.unitName}」的挑戰紀錄。`;
       return record;
+    };
+
+    const stopTimedChallenge = () => {
+      const run = loadTimedChallengeRun();
+      if (!run || run.status !== "running") return;
+      finishTimedChallenge(run, "manual_stop");
     };
 
     const startChallengeTimerTicker = () => {
@@ -890,7 +912,9 @@
       startChallengeTimerTicker();
       renderPracticePanel();
       drawCurrentWord();
-      status.textContent = `已開始 ${timer.durationSeconds} 秒計時挑戰，加油！`;
+      status.textContent = practiceMode === "statistics"
+        ? `已開始 ${timer.durationSeconds} 秒統計，本輪從 0 題開始。`
+        : `已開始 ${timer.durationSeconds} 秒計時挑戰，加油！`;
     };
 
     const shuffle = (arr) => {
@@ -1192,7 +1216,15 @@
         timerValue.className = "challenge-timer-value";
         timerValue.setAttribute("aria-label", `剩餘 ${getTimedChallengeRemainingSeconds(run)} 秒`);
         timerValue.textContent = formatTimer(getTimedChallengeRemainingSeconds(run));
-        panel.append(copy, timerValue);
+        const actions = document.createElement("div");
+        actions.className = "challenge-timer-actions";
+        const stop = document.createElement("button");
+        stop.className = "challenge-stop-button";
+        stop.type = "button";
+        stop.dataset.action = "stop-timed-challenge";
+        stop.textContent = "結束本輪";
+        actions.append(timerValue, stop);
+        panel.append(copy, actions);
       } else {
         label.textContent = `準備開始${modeLabel}`;
         value.textContent = isStatisticsRun
@@ -1244,7 +1276,14 @@
       if (!isPracticeActive) return;
 
       if (practiceMode === "statistics") {
-        const { correct, incorrect } = practiceSession.statistics;
+        // A timed statistics run is a new round. Keep the long-term total in
+        // practiceSession, but show this round's counters while it is active.
+        const correct = isTimedRunActive && timedRun.mode === "statistics"
+          ? timedRun.correctCount
+          : practiceSession.statistics.correct;
+        const incorrect = isTimedRunActive && timedRun.mode === "statistics"
+          ? timedRun.incorrectCount
+          : practiceSession.statistics.incorrect;
         const total = correct + incorrect;
         const accuracy = total ? `${((correct / total) * 100).toFixed(1)}%` : "—";
         const statisticsItems = [
@@ -1473,6 +1512,8 @@
     practiceSummary.addEventListener("click", (event) => {
       const startButton = event.target.closest('[data-action="start-timed-challenge"]');
       if (startButton) startTimedChallenge();
+      const stopButton = event.target.closest('[data-action="stop-timed-challenge"]');
+      if (stopButton) stopTimedChallenge();
     });
     subscribeToUser(async (user) => {
       currentUser = user;
