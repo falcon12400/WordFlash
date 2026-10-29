@@ -497,7 +497,7 @@
       saveCloudUnits,
       subscribeToUser
     } from "./firebase-wordflash.js?v=4";
-    import * as study from "./study-data.js?v=4";
+    import * as study from "./study-data.js?v=5";
 
     const DEFAULT_WORDS = [
       "郭",
@@ -813,7 +813,7 @@
           correct: run.correctCount,
           incorrect: run.incorrectCount,
           accuracy: run.correctCount + run.incorrectCount
-            ? Math.round((run.correctCount / (run.correctCount + run.incorrectCount)) * 100)
+            ? Number(((run.correctCount / (run.correctCount + run.incorrectCount)) * 100).toFixed(1))
             : null
         }
         : upsertTimedChallengeRecord(run);
@@ -822,7 +822,7 @@
       stopChallengeTimerTicker();
       renderPracticePanel();
       status.textContent = isStatisticsRun
-        ? `時間到！本輪答對 ${record.correct} 題、答錯 ${record.incorrect} 題${record.accuracy === null ? "。" : `，正確率 ${record.accuracy}%。`}`
+        ? `時間到！本輪答對 ${record.correct} 題、答錯 ${record.incorrect} 題${record.accuracy === null ? "。" : `，正確率 ${Number(record.accuracy).toFixed(1)}%。`}`
         : `時間到！本輪最高連續答對 ${record.correct} 題，已保存到「${record.unitName}」的挑戰紀錄。`;
       return record;
     };
@@ -1220,7 +1220,7 @@
           : `已保存到「${latestTimedChallengeResult.unitName}」的挑戰紀錄`;
         const score = document.createElement("strong");
         score.textContent = isStatisticsResult
-          ? `答對 ${latestTimedChallengeResult.correct} 題、答錯 ${latestTimedChallengeResult.incorrect} 題${latestTimedChallengeResult.accuracy === null ? "" : `，正確率 ${latestTimedChallengeResult.accuracy}%`}`
+          ? `答對 ${latestTimedChallengeResult.correct} 題、答錯 ${latestTimedChallengeResult.incorrect} 題${latestTimedChallengeResult.accuracy === null ? "" : `，正確率 ${Number(latestTimedChallengeResult.accuracy).toFixed(1)}%`}`
           : `本輪最高連續答對 ${latestTimedChallengeResult.correct} 題`;
         result.append(label, score);
         items.push(result);
@@ -1246,7 +1246,7 @@
       if (practiceMode === "statistics") {
         const { correct, incorrect } = practiceSession.statistics;
         const total = correct + incorrect;
-        const accuracy = total ? `${Math.round((correct / total) * 100)}%` : "—";
+        const accuracy = total ? `${((correct / total) * 100).toFixed(1)}%` : "—";
         const statisticsItems = [
           createPracticeStat("答對", String(correct)),
           createPracticeStat("答錯", String(incorrect)),

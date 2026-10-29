@@ -13,7 +13,7 @@ test("各裝置：統計與挑戰模式會正確記錄答題", async ({ page }, 
   await page.locator("#incorrectButton").click();
   await expect(page.locator("#practiceSummary")).toContainText("答對2");
   await expect(page.locator("#practiceSummary")).toContainText("答錯1");
-  await expect(page.locator("#practiceSummary")).toContainText("67%");
+  await expect(page.locator("#practiceSummary")).toContainText("66.7%");
   const artifactDir = path.join(__dirname, "..", "artifacts");
   fs.mkdirSync(artifactDir, { recursive: true });
   await page.screenshot({
@@ -100,4 +100,16 @@ test("各裝置：統計與挑戰模式會正確記錄答題", async ({ page }, 
   await page.goto("/canvas_words.html");
   await expect(page.locator(".challenge-number")).toContainText("目前連續答對1000");
   await expect(page.locator(".challenge-book")).toHaveCount(0);
+});
+
+test("統計模式的正確率保留一位小數", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("wordflash_practice_mode_v1", "statistics");
+    localStorage.setItem("wordflash_practice_session_v1", JSON.stringify({
+      statistics: { correct: 60, incorrect: 2 },
+      challenge: { correct: 0 }
+    }));
+  });
+  await page.goto("/canvas_words.html");
+  await expect(page.locator("#practiceSummary")).toContainText("96.8%");
 });

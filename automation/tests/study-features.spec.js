@@ -45,9 +45,9 @@ test("多字庫、單字開關與個別正確率", async ({ page }, testInfo) =>
   expect(stats[JSON.stringify(["茶", ""])]).toEqual({ correct: 1, incorrect: 1 });
 
   await page.goto("/manage_words.html");
-  await expect(page.locator(".study-word").filter({ hasText: "茶" })).toContainText("50%（對 1／錯 1）");
+  await expect(page.locator(".study-word").filter({ hasText: "茶" })).toContainText("50.0%（對 1／錯 1）");
   await page.locator("#unitSelect").selectOption("第一課");
-  await expect(page.locator(".study-word").filter({ hasText: "茶" })).toContainText("50%（對 1／錯 1）");
+  await expect(page.locator(".study-word").filter({ hasText: "茶" })).toContainText("50.0%（對 1／錯 1）");
   await expect(page.getByRole("checkbox", { name: "啟用 樹" })).not.toBeChecked();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(testInfo.project.use.viewport.width);
   await page.screenshot({ path: path.join(artifactDir, `${testInfo.project.name}-word-statistics.png`), scale: "device" });

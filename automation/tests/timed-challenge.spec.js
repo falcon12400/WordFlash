@@ -134,7 +134,7 @@ test("統計模式也能使用倒數，並持續累積答題統計", async ({ pa
   await page.locator("#incorrectButton").click();
   await expect(page.locator("#practiceSummary")).toContainText("答對");
   await expect(page.locator("#practiceSummary")).toContainText("答錯");
-  await expect(page.locator("#practiceSummary")).toContainText("50%");
+  await expect(page.locator("#practiceSummary")).toContainText("50.0%");
 
   await page.evaluate(() => {
     const run = JSON.parse(localStorage.getItem("wordflash_timed_challenge_run_v1"));

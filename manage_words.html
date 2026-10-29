@@ -221,7 +221,7 @@
       signOutFromGoogle,
       subscribeToUser
     } from "./firebase-wordflash.js?v=3";
-    import * as study from "./study-data.js?v=4";
+    import * as study from "./study-data.js?v=5";
 
     const DEFAULT_WORDS = [
       "郭",
@@ -486,7 +486,7 @@
         label.append(toggle, word);
         const result = document.createElement("span");
         result.className = "study-result";
-        result.textContent = total ? `${Math.round(correct / total * 100)}%（對 ${correct}／錯 ${incorrect}）` : "尚未練習";
+        result.textContent = total ? `${(correct / total * 100).toFixed(1)}%（對 ${correct}／錯 ${incorrect}）` : "尚未練習";
         row.append(label, result);
         studyList.append(row);
       });
