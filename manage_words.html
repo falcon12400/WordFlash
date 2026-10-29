@@ -396,6 +396,15 @@
     };
 
     const view = new URLSearchParams(location.search);
+    // 字庫管理中心以 unit= 指定要檢視的字庫。這個頁面登入後會再非同步
+    // 載入 Firebase 的完整資料；兩次載入都必須維持這個指定，不能被帳號
+    // 上次使用的 current 字庫覆蓋，否則樹狀目錄與右側內容會不一致。
+    const requestedUnit = view.get("unit")?.trim() || "";
+    const currentUnitForView = (units, savedCurrent) => {
+      if (requestedUnit && Object.hasOwn(units, requestedUnit)) return requestedUnit;
+      if (savedCurrent && Object.hasOwn(units, savedCurrent)) return savedCurrent;
+      return Object.keys(units)[0] || "";
+    };
     const initUnits = () => {
       let data = loadUnits();
       if (!data || !data.units || !Object.keys(data.units).length) {
@@ -407,8 +416,7 @@
         };
         saveUnits(data);
       }
-      const requestedUnit = view.get("unit");
-      if (requestedUnit && Object.hasOwn(data.units, requestedUnit)) data.current = requestedUnit;
+      data.current = currentUnitForView(data.units, data.current);
       refreshUnitSelect(data.units, data.current);
       unitWords.value = data.units[data.current].join("\n");
       return data;
@@ -702,12 +710,14 @@
         // 字庫管理中心會先在本機建立空白字庫，再開啟本頁編輯。若雲端
         // 尚未有這個名稱，不能在首次載入時把它以舊雲端版本覆蓋掉；首次
         // 儲存時仍會透過 saveUnits 一併同步到雲端。
-        const requestedUnit = view.get("unit");
         if (requestedUnit && Object.hasOwn(state.units, requestedUnit) && !Object.hasOwn(cloudUnits.units || {}, requestedUnit)) {
           status.textContent = "正在編輯新的本機字庫；儲存後會同步到雲端。";
           return;
         }
         state = cloudUnits;
+        // `unit=` is an explicit request from the library tree, so it takes
+        // priority over the account's last globally selected library.
+        state.current = currentUnitForView(state.units, state.current);
         if (cloudUnits.organizer) study.saveOrganizer(cloudUnits.organizer);
         if (cloudUnits.study) study.applyCloudData(cloudUnits.study);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));

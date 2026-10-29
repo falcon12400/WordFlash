@@ -37,3 +37,18 @@ test('設定頁的字庫只保留整合後的管理入口', async ({ page }) => 
   const frame = page.frameLocator('iframe[title="字庫管理"]');
   await expect(frame.getByRole('heading', { name: '字庫管理' })).toBeVisible();
 });
+
+test('從樹狀目錄開啟字庫時，內嵌內容會遵守指定的字庫', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('wordflash_units_v1', JSON.stringify({
+      current: '片假名字庫',
+      units: { 高頻詞: ['find', 'look'], 片假名字庫: ['ア', 'イ'] }
+    }));
+  });
+  await page.goto('/library_manager.html');
+  await page.getByRole('button', { name: '📖 高頻詞' }).click();
+  await page.getByRole('button', { name: '查看單字正確率' }).click();
+  const frame = page.frameLocator('iframe[title="高頻詞 的單字正確率"]');
+  await expect(frame.getByText('find', { exact: true })).toBeVisible();
+  await expect(frame.getByText('ア', { exact: true })).toHaveCount(0);
+});
