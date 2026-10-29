@@ -626,6 +626,7 @@
     let currentUser = null;
     let timerIntervalId = null;
     let lastRenderedTimerSecond = null;
+    let lastTouchAnswerAt = 0;
     let resizeRenderFrame = null;
     let latestTimedChallengeResult = null;
 
@@ -698,6 +699,7 @@
         bestStreak: Math.max(0, Math.floor(Number(value.bestStreak) || 0)),
         correctCount: Math.max(0, Math.floor(Number(value.correctCount) || 0)),
         incorrectCount: Math.max(0, Math.floor(Number(value.incorrectCount) || 0)),
+        weightSnapshot: value.weightSnapshot && typeof value.weightSnapshot === "object" ? value.weightSnapshot : null,
         finishedAtMs: Number.isFinite(Number(value.finishedAtMs)) ? Number(value.finishedAtMs) : null
       };
     };
@@ -907,6 +909,7 @@
         unitName: unitNames.join("＋"),
         unitNames,
         words: [...wordList],
+        weightSnapshot: study.weightedSnapshot(wordList),
         durationSeconds: timer.durationSeconds,
         startedAtMs: now,
         endsAtMs: now + timer.durationSeconds * 1000,
@@ -1085,7 +1088,12 @@
     const showNext = () => {
       if (!wordList.length) { currentText = ""; stage.replaceChildren(); return; }
       if (practiceMode === "challenge" && localStorage.getItem(study.SAMPLING_KEY) === "weighted") {
-        currentText = study.chooseWeighted(wordList, currentText);
+        const activeRun = loadTimedChallengeRun();
+        currentText = study.chooseWeighted(
+          wordList,
+          currentText,
+          activeRun?.status === "running" ? activeRun.weightSnapshot : null
+        );
         drawCurrentWord();
         index += 1;
         return;
@@ -1532,8 +1540,23 @@
 
     speakButton.addEventListener("click", speakCurrentWord);
     nextButton.addEventListener("click", showNext);
-    correctButton.addEventListener("click", () => recordAnswer(true));
-    incorrectButton.addEventListener("click", () => recordAnswer(false));
+    const answerWithTouchSupport = (isCorrect, event) => {
+      if (event.type === "pointerup" && (event.pointerType === "touch" || event.pointerType === "pen")) {
+        event.preventDefault();
+        lastTouchAnswerAt = Date.now();
+        recordAnswer(isCorrect);
+        return;
+      }
+      // A touch pointerup normally creates a click afterwards. It has already
+      // recorded the answer, so ignore only that duplicate click; keyboard and
+      // mouse clicks continue to use the standard event.
+      if (event.type === "click" && Date.now() - lastTouchAnswerAt < 750 && event.detail !== 0) return;
+      if (event.type === "click") recordAnswer(isCorrect);
+    };
+    correctButton.addEventListener("pointerup", (event) => answerWithTouchSupport(true, event));
+    incorrectButton.addEventListener("pointerup", (event) => answerWithTouchSupport(false, event));
+    correctButton.addEventListener("click", (event) => answerWithTouchSupport(true, event));
+    incorrectButton.addEventListener("click", (event) => answerWithTouchSupport(false, event));
     practiceSummary.addEventListener("click", (event) => {
       const startButton = event.target.closest('[data-action="start-timed-challenge"]');
       if (startButton) startTimedChallenge();

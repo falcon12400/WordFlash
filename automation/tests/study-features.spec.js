@@ -88,6 +88,17 @@ test("加權抽題與計時挑戰快照", async ({ page }) => {
   const run = await page.evaluate(() => JSON.parse(localStorage.getItem("wordflash_timed_challenge_run_v1")));
   expect(run.unitNames).toEqual(["甲", "乙"]);
   expect(run.words).toEqual(["茶", "書"]);
+  const frozenWeight = await page.evaluate(async (snapshot) => {
+    const study = await import("/study-data.js");
+    for (let i = 0; i < 10; i += 1) study.recordWordAnswer("書", false);
+    const random = Math.random;
+    Math.random = () => 0.7;
+    const fromSnapshot = study.chooseWeighted(["茶", "書"], "", snapshot);
+    const fromLiveStats = study.chooseWeighted(["茶", "書"], "");
+    Math.random = random;
+    return { fromSnapshot, fromLiveStats };
+  }, run.weightSnapshot);
+  expect(frozenWeight).toEqual({ fromSnapshot: "茶", fromLiveStats: "書" });
   const settingsPage = await page.context().newPage();
   await settingsPage.goto("/settings.html");
   await expect(settingsPage.locator("#practiceUnitChoices input").first()).toBeDisabled();

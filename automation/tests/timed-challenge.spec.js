@@ -39,8 +39,10 @@ test("各裝置：計時挑戰會鎖定字庫並依字庫保存一次紀錄", as
   await page.getByRole("button", { name: "開始 10 秒挑戰" }).click();
   await expect(page.locator("#correctButton")).toBeEnabled();
   await expect(page.locator("#unitSelect")).toBeDisabled();
-  await page.locator("#correctButton").click();
-  await page.locator("#correctButton").click();
+  // Use the touch path used by iPad and Android. Each tap must register once
+  // even while the countdown is refreshing its visible time.
+  await page.locator("#correctButton").tap();
+  await page.locator("#correctButton").tap();
 
   const timedPageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(timedPageWidth).toBeLessThanOrEqual(testInfo.project.use.viewport.width);

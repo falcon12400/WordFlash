@@ -125,7 +125,16 @@ export function recordWordAnswer(raw, correct) {
   localStorage.setItem(WORD_STATS_KEY, JSON.stringify(safe));
 }
 
-export function chooseWeighted(words, previous) {
+export function weightedSnapshot(words) {
+  return words.reduce((snapshot, word) => {
+    const { correct, incorrect } = wordStats(word);
+    const total = correct + incorrect;
+    snapshot[wordKey(word)] = total < 3 ? 1.5 : 1 + 2 * incorrect / total;
+    return snapshot;
+  }, {});
+}
+
+export function chooseWeighted(words, previous, snapshot = null) {
   if (!words.length) return "";
   const previousKey = wordKey(previous);
   // A weighted question may appear often, but showing exactly the same card
@@ -135,10 +144,11 @@ export function chooseWeighted(words, previous) {
   const alternatives = words.filter(word => wordKey(word) !== previousKey);
   const choices = alternatives.length ? alternatives : words;
   const weights = choices.map(word => {
+    const savedWeight = Number(snapshot?.[wordKey(word)]);
+    if (Number.isFinite(savedWeight) && savedWeight > 0) return savedWeight;
     const { correct, incorrect } = wordStats(word);
     const total = correct + incorrect;
-    const base = total < 3 ? 1.5 : 1 + 2 * incorrect / total;
-    return base;
+    return total < 3 ? 1.5 : 1 + 2 * incorrect / total;
   });
   let target = Math.random() * weights.reduce((sum, weight) => sum + weight, 0);
   for (let i = 0; i < choices.length; i += 1) {
