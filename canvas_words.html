@@ -187,6 +187,9 @@
       font-family: inherit;
       font-size: 18px;
       cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
     .answer-controls .correct-button { background: #e1ead8; }
     .answer-controls .incorrect-button { background: #f1dfd7; }
@@ -622,6 +625,7 @@
     let challengeProgressDisplay = "both";
     let currentUser = null;
     let timerIntervalId = null;
+    let lastRenderedTimerSecond = null;
     let resizeRenderFrame = null;
     let latestTimedChallengeResult = null;
 
@@ -779,6 +783,7 @@
         window.clearInterval(timerIntervalId);
         timerIntervalId = null;
       }
+      lastRenderedTimerSecond = null;
     };
 
     const upsertTimedChallengeRecord = (run, reason = "time_up") => {
@@ -861,7 +866,14 @@
           finishTimedChallenge(run);
           return;
         }
-        renderPracticePanel();
+        // The controls stay usable while a child is tapping. Rebuilding the
+        // whole practice panel four times per second can interrupt a mobile
+        // hit-test, so only redraw when the visible second actually changes.
+        const remainingSeconds = getTimedChallengeRemainingSeconds(run);
+        if (remainingSeconds !== lastRenderedTimerSecond) {
+          lastRenderedTimerSecond = remainingSeconds;
+          renderPracticePanel();
+        }
       }, 250);
     };
 
@@ -907,6 +919,7 @@
       };
       latestTimedChallengeResult = null;
       saveTimedChallengeRun(run);
+      lastRenderedTimerSecond = null;
       refillRemaining();
       showNext();
       startChallengeTimerTicker();
@@ -1080,7 +1093,19 @@
       if (!remaining.length) {
         refillRemaining();
       }
+      const previousText = currentText;
       currentText = remaining.pop();
+      // At the end of a shuffled round the next round may begin with the same
+      // card. Use another available card first, so an answer always visibly
+      // advances when the selected libraries contain more than one question.
+      const previousKey = study.wordKey(previousText);
+      const alternativeIndex = previousText
+        ? remaining.findIndex(word => study.wordKey(word) !== previousKey)
+        : -1;
+      if (alternativeIndex >= 0 && study.wordKey(currentText) === previousKey) {
+        remaining.push(currentText);
+        currentText = remaining.splice(alternativeIndex, 1)[0];
+      }
       drawCurrentWord();
       index += 1;
     };

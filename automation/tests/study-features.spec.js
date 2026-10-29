@@ -81,7 +81,9 @@ test("加權抽題與計時挑戰快照", async ({ page }) => {
     Math.random = random;
     return { picked, canRepeat, differentReading: study.wordKey("重|ㄔㄨㄥˊ") !== study.wordKey("重|ㄓㄨㄥˋ") };
   });
-  expect(weighted).toEqual({ picked: "茶", canRepeat: "茶", differentReading: true });
+  // Even in weighted mode, an answered card must advance to a different
+  // question whenever the selected libraries have another choice.
+  expect(weighted).toEqual({ picked: "茶", canRepeat: "書", differentReading: true });
   await page.getByRole("button", { name: "開始 10 秒挑戰" }).click();
   const run = await page.evaluate(() => JSON.parse(localStorage.getItem("wordflash_timed_challenge_run_v1")));
   expect(run.unitNames).toEqual(["甲", "乙"]);

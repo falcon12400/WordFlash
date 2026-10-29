@@ -127,14 +127,18 @@ export function recordWordAnswer(raw, correct) {
 
 export function chooseWeighted(words, previous) {
   if (!words.length) return "";
-  const choices = words;
+  const previousKey = wordKey(previous);
+  // A weighted question may appear often, but showing exactly the same card
+  // immediately after it was answered feels like the answer was ignored.
+  // Keep every word's relative weighting while removing only the preceding
+  // card when another distinct card is available.
+  const alternatives = words.filter(word => wordKey(word) !== previousKey);
+  const choices = alternatives.length ? alternatives : words;
   const weights = choices.map(word => {
     const { correct, incorrect } = wordStats(word);
     const total = correct + incorrect;
     const base = total < 3 ? 1.5 : 1 + 2 * incorrect / total;
-    // Discourage immediate repetition without making weighting impossible when
-    // there are only two words in the selected libraries.
-    return words.length > 1 && wordKey(word) === wordKey(previous) ? base * 0.35 : base;
+    return base;
   });
   let target = Math.random() * weights.reduce((sum, weight) => sum + weight, 0);
   for (let i = 0; i < choices.length; i += 1) {
