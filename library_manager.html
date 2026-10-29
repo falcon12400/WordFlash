@@ -36,7 +36,7 @@
   </div>
   <p id="status" class="status" role="status"></p>
   <script type="module">
-    import * as study from "./study-data.js?v=3";
+    import * as study from "./study-data.js?v=4";
     import { loadCloudUnits, saveCloudUnits, subscribeToUser } from "./firebase-wordflash.js?v=3";
     const $=id=>document.getElementById(id); const STORAGE_KEY="wordflash_units_v1";
     if(new URLSearchParams(location.search).has("embedded")) $("standalone").hidden=true;
