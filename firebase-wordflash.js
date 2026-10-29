@@ -127,6 +127,32 @@ const copyUnits = (value) => {
 
 export const normalizeUnits = (value) => copyUnits(value);
 
+// 「高頻 總複習」曾是把多個原始字庫複製成一份的舊做法。現在以複合字庫
+// 取代，避免同一個字在兩份字庫裡看起來像有兩套紀錄。
+const isLegacyReviewUnit = (name) => /^高頻\s*總複習(?:字庫)?$/.test(name.trim());
+
+export const removeLegacyReviewUnits = (value) => {
+  const library = copyUnits(value);
+  if (!library) return { library: null, removed: [] };
+  const removed = Object.keys(library.units).filter(isLegacyReviewUnit);
+  if (!removed.length) return { library, removed };
+
+  const removedSet = new Set(removed);
+  removed.forEach((name) => { delete library.units[name]; });
+  const names = Object.keys(library.units);
+  library.current = names.includes(library.current) ? library.current : (names[0] || "");
+
+  if (library.organizer) {
+    library.organizer.assignments = Object.fromEntries(
+      Object.entries(library.organizer.assignments).filter(([name]) => !removedSet.has(name))
+    );
+    library.organizer.presets = library.organizer.presets
+      .filter((preset) => !isLegacyReviewUnit(preset.name))
+      .map((preset) => ({ ...preset, units: preset.units.filter((name) => !removedSet.has(name)) }));
+  }
+  return { library, removed };
+};
+
 export const subscribeToUser = (callback) => onAuthStateChanged(auth, callback);
 
 export const signInWithGoogle = () => signInWithPopup(auth, provider);

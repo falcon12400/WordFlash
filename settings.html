@@ -542,12 +542,12 @@
             <label class="mode-option"><input type="radio" name="challengeSampling" value="weighted" /> 加強不熟的字</label>
           </fieldset>
           <fieldset class="challenge-timer-options" id="challengeTimerOptions" hidden>
-            <legend>計時挑戰</legend>
-            <p>開啟後，顯示頁會先出現「開始挑戰」按鈕；倒數結束時會自動保存本次成績。</p>
+            <legend>倒數計時</legend>
+            <p>開啟後，顯示頁會先出現開始按鈕。挑戰模式會保存本次連勝；統計模式則持續累計答對、答錯與正確率。</p>
             <div class="timer-setting-row">
               <div class="timer-setting-copy">
                 <strong>使用倒數計時</strong>
-                <span>未開啟時，挑戰模式維持原本不限時的連續答對練習。</span>
+                <span>未開啟時，統計模式與挑戰模式都維持原本不限時的練習方式。</span>
               </div>
               <label class="switch" for="challengeTimerEnabled">
                 <input id="challengeTimerEnabled" type="checkbox" />
@@ -869,7 +869,7 @@
         control.disabled = timedRunActive;
       });
       practiceUnitChoices.querySelectorAll("input").forEach(input => { input.disabled = timedRunActive; });
-      challengeTimerOptions.hidden = practiceMode !== "challenge";
+      challengeTimerOptions.hidden = practiceMode === "none";
       challengeTimerEnabled.checked = challengeTimer.enabled;
       challengeDurationSeconds.value = String(challengeTimer.durationSeconds);
       challengeTimerEnabled.disabled = timedRunActive;
@@ -880,7 +880,14 @@
       if (practiceMode === "statistics") {
         const { correct, incorrect } = session.statistics;
         const total = correct + incorrect;
-        practiceStatus.textContent = total ? `目前累積：答對 ${correct} 題、答錯 ${incorrect} 題。` : "尚未記錄答題結果。";
+        const timerStatus = timedRunActive
+          ? "倒數練習進行中，結束前暫時不能變更字庫、模式或計時設定。"
+          : challengeTimer.enabled
+          ? `倒數練習每輪 ${challengeTimer.durationSeconds} 秒；時間到時會保留本輪答題統計。`
+          : "目前不限時。";
+        practiceStatus.textContent = total
+          ? `目前累積：答對 ${correct} 題、答錯 ${incorrect} 題。${timerStatus}`
+          : `尚未記錄答題結果。${timerStatus}`;
       } else if (practiceMode === "challenge") {
         const progressStatus = timedRunActive
           ? `「${timedRun.unitName}」本輪目前連續答對 ${timedRun.currentStreak} 題；`

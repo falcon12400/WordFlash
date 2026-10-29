@@ -493,9 +493,10 @@
   <script type="module">
     import {
       loadCloudUnits,
+      removeLegacyReviewUnits,
       saveCloudUnits,
       subscribeToUser
-    } from "./firebase-wordflash.js?v=3";
+    } from "./firebase-wordflash.js?v=4";
     import * as study from "./study-data.js?v=3";
 
     const DEFAULT_WORDS = [
@@ -663,6 +664,7 @@
       if (!unitName || !Number.isFinite(startedAtMs) || !Number.isFinite(endsAtMs) || endsAtMs <= startedAtMs) return null;
       return {
         version: 1,
+        mode: value.mode === "statistics" ? "statistics" : "challenge",
         id: typeof value.id === "string" && value.id ? value.id : createTimedRunId(),
         unitName,
         unitNames: Array.isArray(value.unitNames) ? value.unitNames.filter(name => typeof name === "string") : [unitName],
@@ -800,12 +802,28 @@
         run.finishedAtMs = Date.now();
         saveTimedChallengeRun(run);
       }
-      const record = upsertTimedChallengeRecord(run);
+      const isStatisticsRun = run.mode === "statistics";
+      const record = isStatisticsRun
+        ? {
+          id: run.id,
+          mode: "statistics",
+          unitName: run.unitName,
+          unitNames: run.unitNames,
+          durationSeconds: run.durationSeconds,
+          correct: run.correctCount,
+          incorrect: run.incorrectCount,
+          accuracy: run.correctCount + run.incorrectCount
+            ? Math.round((run.correctCount / (run.correctCount + run.incorrectCount)) * 100)
+            : null
+        }
+        : upsertTimedChallengeRecord(run);
       latestTimedChallengeResult = record;
       clearTimedChallengeRun();
       stopChallengeTimerTicker();
       renderPracticePanel();
-      status.textContent = `時間到！本輪最高連續答對 ${record.correct} 題，已保存到「${record.unitName}」的挑戰紀錄。`;
+      status.textContent = isStatisticsRun
+        ? `時間到！本輪答對 ${record.correct} 題、答錯 ${record.incorrect} 題${record.accuracy === null ? "。" : `，正確率 ${record.accuracy}%。`}`
+        : `時間到！本輪最高連續答對 ${record.correct} 題，已保存到「${record.unitName}」的挑戰紀錄。`;
       return record;
     };
 
@@ -841,7 +859,7 @@
 
     const startTimedChallenge = () => {
       const timer = loadChallengeTimer();
-      if (practiceMode !== "challenge" || !timer.enabled) return;
+      if (!new Set(["statistics", "challenge"]).has(practiceMode) || !timer.enabled) return;
       const existingRun = loadTimedChallengeRun();
       if (existingRun?.status === "running") return;
       if (existingRun) finishTimedChallenge(existingRun);
@@ -850,6 +868,7 @@
       const unitNames = study.selectedUnits(state);
       const run = {
         version: 1,
+        mode: practiceMode,
         id: createTimedRunId(),
         unitName: unitNames.join("＋"),
         unitNames,
@@ -1162,9 +1181,11 @@
       copy.className = "challenge-timer-copy";
       const label = document.createElement("span");
       const value = document.createElement("strong");
+      const isStatisticsRun = run?.mode === "statistics" || (!run && practiceMode === "statistics");
+      const modeLabel = isStatisticsRun ? "統計倒數" : "計時挑戰";
 
       if (run?.status === "running") {
-        label.textContent = `「${run.unitName}」計時挑戰`;
+        label.textContent = `「${run.unitName}」${modeLabel}`;
         value.textContent = "倒數中";
         copy.append(label, value);
         const timerValue = document.createElement("output");
@@ -1173,14 +1194,18 @@
         timerValue.textContent = formatTimer(getTimedChallengeRemainingSeconds(run));
         panel.append(copy, timerValue);
       } else {
-        label.textContent = "準備開始計時挑戰";
-        value.textContent = `每輪 ${timer.durationSeconds} 秒；答錯會讓連勝歸零。`;
+        label.textContent = `準備開始${modeLabel}`;
+        value.textContent = isStatisticsRun
+          ? `每輪 ${timer.durationSeconds} 秒；答對與答錯會計入統計。`
+          : `每輪 ${timer.durationSeconds} 秒；答錯會讓連勝歸零。`;
         copy.append(label, value);
         const start = document.createElement("button");
         start.className = "challenge-start-button";
         start.type = "button";
         start.dataset.action = "start-timed-challenge";
-        start.textContent = `開始 ${timer.durationSeconds} 秒挑戰`;
+        start.textContent = isStatisticsRun
+          ? `開始 ${timer.durationSeconds} 秒統計`
+          : `開始 ${timer.durationSeconds} 秒挑戰`;
         panel.append(copy, start);
       }
       items.push(panel);
@@ -1189,9 +1214,14 @@
         const result = document.createElement("div");
         result.className = "challenge-finished-note";
         const label = document.createElement("span");
-        label.textContent = `已保存到「${latestTimedChallengeResult.unitName}」的挑戰紀錄`;
+        const isStatisticsResult = latestTimedChallengeResult.mode === "statistics";
+        label.textContent = isStatisticsResult
+          ? `「${latestTimedChallengeResult.unitName}」本輪統計已結束`
+          : `已保存到「${latestTimedChallengeResult.unitName}」的挑戰紀錄`;
         const score = document.createElement("strong");
-        score.textContent = `本輪最高連續答對 ${latestTimedChallengeResult.correct} 題`;
+        score.textContent = isStatisticsResult
+          ? `答對 ${latestTimedChallengeResult.correct} 題、答錯 ${latestTimedChallengeResult.incorrect} 題${latestTimedChallengeResult.accuracy === null ? "" : `，正確率 ${latestTimedChallengeResult.accuracy}%`}`
+          : `本輪最高連續答對 ${latestTimedChallengeResult.correct} 題`;
         result.append(label, score);
         items.push(result);
       }
@@ -1205,10 +1235,10 @@
       const isTimedRunActive = timedRun?.status === "running";
       const isTimedChallenge = timer.enabled || isTimedRunActive;
       practicePanel.hidden = !isPracticeActive;
-      nextButton.textContent = isPracticeActive && !(practiceMode === "challenge" && isTimedChallenge && !isTimedRunActive) ? "跳過" : "換字";
+      nextButton.textContent = isPracticeActive && !(isTimedChallenge && !isTimedRunActive) ? "跳過" : "換字";
       practiceSummary.classList.toggle("challenge-summary", practiceMode === "challenge");
-      correctButton.disabled = !wordList.length || (practiceMode === "challenge" && isTimedChallenge && !isTimedRunActive);
-      incorrectButton.disabled = !wordList.length || (practiceMode === "challenge" && isTimedChallenge && !isTimedRunActive);
+      correctButton.disabled = !wordList.length || (isTimedChallenge && !isTimedRunActive);
+      incorrectButton.disabled = !wordList.length || (isTimedChallenge && !isTimedRunActive);
       nextButton.disabled = !wordList.length;
       unitSelect.disabled = Boolean(isTimedRunActive);
       if (!isPracticeActive) return;
@@ -1217,10 +1247,13 @@
         const { correct, incorrect } = practiceSession.statistics;
         const total = correct + incorrect;
         const accuracy = total ? `${Math.round((correct / total) * 100)}%` : "—";
-        practiceSummary.replaceChildren(
+        const statisticsItems = [
           createPracticeStat("答對", String(correct)),
           createPracticeStat("答錯", String(incorrect)),
           createPracticeStat("正確率", accuracy)
+        ];
+        practiceSummary.replaceChildren(
+          ...(isTimedChallenge ? [...createTimedChallengeControls(timedRun, timer), ...statisticsItems] : statisticsItems)
         );
         return;
       }
@@ -1235,6 +1268,22 @@
     const recordAnswer = (isCorrect) => {
       if (practiceMode === "none" || !currentText) return;
       if (practiceMode === "statistics") {
+        const timer = loadChallengeTimer();
+        const timedRun = loadTimedChallengeRun();
+        const isTimedStatistics = timer.enabled || timedRun?.status === "running";
+        if (isTimedStatistics) {
+          if (!timedRun || timedRun.status !== "running") {
+            status.textContent = "請先按「開始統計」，再記錄答對或答錯。";
+            return;
+          }
+          if (getTimedChallengeRemainingSeconds(timedRun) <= 0) {
+            finishTimedChallenge(timedRun);
+            return;
+          }
+          const key = isCorrect ? "correct" : "incorrect";
+          timedRun[`${key}Count`] += 1;
+          saveTimedChallengeRun(timedRun);
+        }
         const key = isCorrect ? "correct" : "incorrect";
         practiceSession.statistics[key] += 1;
         savePracticeSession();
@@ -1437,14 +1486,21 @@
         if (loadTimedChallengeRun()?.status === "running") {
           return;
         }
-        state = cloudUnits;
-        if (cloudUnits.organizer) study.saveOrganizer(cloudUnits.organizer);
-        if (cloudUnits.study) study.applyCloudData(cloudUnits.study);
+        const reviewCleanup = removeLegacyReviewUnits(cloudUnits);
+        state = reviewCleanup.library || cloudUnits;
+        if (state.organizer) study.saveOrganizer(state.organizer);
+        if (state.study) study.applyCloudData(state.study);
+        study.saveSelectedUnits(study.selectedUnits(state));
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (reviewCleanup.removed.length) {
+          await saveCloudUnits(currentUser, state, study.organizer(), study.cloudData());
+        }
         refreshUnitSelect(state.units, state.current);
         startWithWords(study.practiceWords(state));
         renderPracticePanel();
-        status.textContent = "已載入你的雲端字庫。";
+        status.textContent = reviewCleanup.removed.length
+          ? `已移除舊字庫「${reviewCleanup.removed.join("、")}」；請改用複合字庫。`
+          : "已載入你的雲端字庫。";
       } catch (error) {
         console.error("WordFlash cloud load failed", error);
         status.textContent = "Google 已登入，但暫時無法讀取雲端字庫。";

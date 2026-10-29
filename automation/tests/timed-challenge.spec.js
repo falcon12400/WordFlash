@@ -102,3 +102,46 @@ test("各裝置：計時挑戰會鎖定字庫並依字庫保存一次紀錄", as
     scale: "device"
   });
 });
+
+test("統計模式也能使用倒數，並持續累積答題統計", async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem("wordflash_units_v1")) {
+      localStorage.setItem("wordflash_units_v1", JSON.stringify({
+        current: "統計字庫",
+        units: { "統計字庫": ["茶", "書"] }
+      }));
+    }
+    if (!localStorage.getItem("wordflash_practice_mode_v1")) {
+      localStorage.setItem("wordflash_practice_mode_v1", "statistics");
+    }
+    if (!localStorage.getItem("wordflash_challenge_timer_v1")) {
+      localStorage.setItem("wordflash_challenge_timer_v1", JSON.stringify({ enabled: false, durationSeconds: 10 }));
+    }
+  });
+
+  await page.goto("/settings.html#practice");
+  await expect(page.locator("#challengeTimerOptions")).toBeVisible();
+  await page.locator('label[for="challengeTimerEnabled"]').click();
+  await expect(page.locator("#challengeTimerEnabled")).toBeChecked();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("wordflash_challenge_timer_v1"))).toContain('"enabled":true');
+  await page.goto("/canvas_words.html");
+  await expect(page.getByRole("button", { name: "開始 10 秒統計" })).toBeVisible();
+  await expect(page.locator("#correctButton")).toBeDisabled();
+
+  await page.getByRole("button", { name: "開始 10 秒統計" }).click();
+  await expect(page.locator("#correctButton")).toBeEnabled();
+  await page.locator("#correctButton").click();
+  await page.locator("#incorrectButton").click();
+  await expect(page.locator("#practiceSummary")).toContainText("答對");
+  await expect(page.locator("#practiceSummary")).toContainText("答錯");
+  await expect(page.locator("#practiceSummary")).toContainText("50%");
+
+  await page.evaluate(() => {
+    const run = JSON.parse(localStorage.getItem("wordflash_timed_challenge_run_v1"));
+    run.endsAtMs = Date.now() + 50;
+    localStorage.setItem("wordflash_timed_challenge_run_v1", JSON.stringify(run));
+  });
+  await expect(page.locator("#status")).toContainText("本輪答對 1 題、答錯 1 題");
+  const records = await page.evaluate(() => JSON.parse(localStorage.getItem("wordflash_challenge_records_v1") || '{"units":{}}'));
+  expect(records.units["統計字庫"]).toBeUndefined();
+});
