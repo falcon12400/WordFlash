@@ -763,7 +763,7 @@
     ];
     const refreshQuickControls = () => {
       const unitsState = loadLocalUnits();
-      const unitNames = Object.keys(unitsState?.units || {});
+      const unitNames = study.sortUnitNames(Object.keys(unitsState?.units || {}));
       const selected = study.selectedUnits(unitsState);
       quickUnitSelect.replaceChildren();
       if (!unitNames.length) {

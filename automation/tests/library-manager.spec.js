@@ -52,3 +52,21 @@ test('從樹狀目錄開啟字庫時，內嵌內容會遵守指定的字庫', as
   await expect(frame.getByText('find', { exact: true })).toBeVisible();
   await expect(frame.getByText('ア', { exact: true })).toHaveCount(0);
 });
+
+test('課次名稱以自然順序顯示', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('wordflash_units_v1', JSON.stringify({
+      current: '高頻 L10',
+      units: { '高頻 L10': ['ten'], '高頻 L2': ['two'], '高頻 L1': ['one'] }
+    }));
+    localStorage.setItem('wordflash_library_organizer_v1', JSON.stringify({
+      folders: [{ id: 'frequency', name: '高頻詞', parent: '' }],
+      assignments: { '高頻 L10': 'frequency', '高頻 L2': 'frequency', '高頻 L1': 'frequency' },
+      presets: []
+    }));
+  });
+  await page.goto('/library_manager.html');
+  const treeText = await page.getByRole('region', { name: '字庫分類' }).innerText();
+  expect(treeText.indexOf('高頻 L1')).toBeLessThan(treeText.indexOf('高頻 L2'));
+  expect(treeText.indexOf('高頻 L2')).toBeLessThan(treeText.indexOf('高頻 L10'));
+});

@@ -45,7 +45,7 @@
     // The manager may open before another page has copied the cloud library to
     // localStorage. Keep the loaded cloud list for the tree, including empty
     // prepared libraries, while edits still use the normal local state.
-    const names=()=>Object.keys((cloudUnits?.units||unitsState().units)||{});
+    const names=()=>study.sortUnitNames(Object.keys((cloudUnits?.units||unitsState().units)||{}));
     const save=()=>{
       cloudUnits=unitsState();
       study.saveOrganizer(data);

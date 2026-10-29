@@ -14,6 +14,13 @@ function readJSON(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
 }
 
+// Keep named lessons in the order people expect: L1, L2, … L10, rather than
+// a plain text order such as L1, L10, L2. Other library names retain their
+// normal Traditional-Chinese alphabetical order.
+export function sortUnitNames(names) {
+  return [...names].sort((first, second) => first.localeCompare(second, "zh-Hant", { numeric: true, sensitivity: "base" }));
+}
+
 // The same word and pronunciation share progress across libraries. A different
 // pronunciation is deliberately a different item.
 export function wordKey(raw) {
@@ -22,7 +29,7 @@ export function wordKey(raw) {
 }
 
 export function selectedUnits(state) {
-  const names = Object.keys(state?.units || {});
+  const names = sortUnitNames(Object.keys(state?.units || {}));
   const saved = readJSON(SELECTION_KEY, null);
   const selected = Array.isArray(saved) ? [...new Set(saved.filter(name => names.includes(name)))] : [];
   return selected.length ? selected : (names.includes(state?.current) ? [state.current] : names.slice(0, 1));

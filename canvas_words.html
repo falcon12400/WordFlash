@@ -1360,7 +1360,7 @@
 
     const refreshUnitSelect = (units, current) => {
       unitSelect.innerHTML = "";
-      Object.keys(units).forEach((name) => {
+      study.sortUnitNames(Object.keys(units)).forEach((name) => {
         const option = document.createElement("option");
         option.value = name;
         option.textContent = name;

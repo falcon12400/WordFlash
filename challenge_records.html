@@ -398,7 +398,7 @@
       }
 
       function getUnitNames() {
-        return Object.keys(data.units).sort((a, b) => a.localeCompare(b, "zh-Hant"));
+        return Object.keys(data.units).sort((a, b) => a.localeCompare(b, "zh-Hant", { numeric: true, sensitivity: "base" }));
       }
 
       function displayUnitName(key) {
