@@ -272,6 +272,7 @@
     import { createStat, createChallengeProgress, createTimerBar } from "./practice-ui.js?v=1";
     import { recordQuestionAnswer } from "./question-progress.js?v=1";
     import { onTap } from "./answer-input.js?v=1";
+    import { playAnswerSound } from "./sound-effects.js?v=1";
     import { renderVerticalZhuyin, zhuyinHeight, syllablesOf } from "./bopomofo.js?v=1";
     import { ACTIVITY, BUILT_IN_SETS, listSets, listCards, loadImage, importBuiltIn } from "./picture-questions.js?v=2";
 
@@ -357,6 +358,7 @@
       const result = runtime.recordAttempt(correct);
       if (result?.finished) { finishRound(result.finished); return; }
       answered = { cardId: current.id, choice, correct };
+      playAnswerSound(correct);
       if (result?.counted) recordQuestionAnswer({ activity: ACTIVITY, id: current.id }, correct);
       pictureWord.classList.toggle("is-shown", Boolean(current.word));
       status.textContent = correct ? "答對了！按「下一題」繼續。" : "再看看正確答案，按「下一題」繼續。";
