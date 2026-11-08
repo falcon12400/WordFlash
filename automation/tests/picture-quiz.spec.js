@@ -340,7 +340,7 @@ test("注音練習：在設定頁換成挑戰模式，返回後立刻顯示挑�
   await expect(page.locator(".challenge-number")).toBeVisible();
 });
 
-test("複習：只列開啟的題目，錯誤率高的排前面，顯示照片和注音", async ({ page }, testInfo) => {
+test("複習：只列開啟的題目，正確率低的排前面，顯示照片和注音", async ({ page }, testInfo) => {
   await page.goto("/picture_sets.html");
   await page.getByRole("button", { name: "載入「範例：生活圖卡」" }).click();
   await expect(page.locator("#message")).toContainText("共 8 題");
@@ -357,6 +357,7 @@ test("複習：只列開啟的題目，錯誤率高的排前面，顯示照片�
   await expect(page.locator(".review-card")).toHaveCount(7);
   await expect(page.locator(".review-card .word")).toHaveText(["魚", "蘋果", "太陽", "花", "月亮", "星星", "雨傘"].slice(0, 3).concat(await page.locator(".review-card .word").evaluateAll(n => n.slice(3).map(x => x.textContent))));
   await expect(page.locator(".review-card").first()).toHaveClass(/is-hard/);
+  await expect(page.locator(".review-card .stat").first()).toHaveText("答對 1 次／共 4 次（正確率 25%）");
   await expect(page.locator(".review-card").first().locator(".vzy-syllable")).toHaveCount(1);
   await expect(page.locator(".review-card .word", { hasText: "杯子" })).toHaveCount(0);
   await noHorizontalScroll(page, testInfo);

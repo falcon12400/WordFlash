@@ -119,11 +119,11 @@
     const grid = document.getElementById("grid");
     const hint = document.getElementById("hint");
 
-    // Highest error rate first; among equal rates, more wrong answers first;
+    // Lowest accuracy first; with equal accuracy, more wrong answers first;
     // questions never answered go last.
     const order = (a, b) => {
-      if ((a.rate === null) !== (b.rate === null)) return a.rate === null ? 1 : -1;
-      return (b.rate ?? 0) - (a.rate ?? 0) || b.stats.incorrect - a.stats.incorrect || a.card.order - b.card.order;
+      if ((a.accuracy === null) !== (b.accuracy === null)) return a.accuracy === null ? 1 : -1;
+      return (a.accuracy ?? 0) - (b.accuracy ?? 0) || b.stats.incorrect - a.stats.incorrect || a.card.order - b.card.order;
     };
 
     const show = async (setId) => {
@@ -142,12 +142,12 @@
       const items = cards.map((card) => {
         const stats = questionStats({ activity: ACTIVITY, id: card.id });
         const total = stats.correct + stats.incorrect;
-        return { card, stats, total, rate: total ? stats.incorrect / total : null };
+        return { card, stats, total, accuracy: total ? stats.correct / total : null };
       }).sort(order);
-      hint.textContent = `共 ${items.length} 題（只列出開啟出題的題目），常答錯的排在前面。`;
+      hint.textContent = `共 ${items.length} 題（只列出開啟出題的題目），正確率低的排在前面。`;
       for (const [index, item] of items.entries()) {
         const box = document.createElement("article");
-        const hard = item.rate !== null && item.rate >= 0.5 && item.stats.incorrect > 0;
+        const hard = item.accuracy !== null && item.accuracy <= 0.5 && item.stats.incorrect > 0;
         box.className = `review-card${hard ? " is-hard" : ""}`;
         const rank = document.createElement("span");
         rank.className = "rank";
@@ -165,7 +165,7 @@
         const stat = document.createElement("div");
         stat.className = "stat";
         stat.textContent = item.total
-          ? `答錯 ${item.stats.incorrect} 次／共 ${item.total} 次（錯誤率 ${Math.round(item.rate * 100)}%）`
+          ? `答對 ${item.stats.correct} 次／共 ${item.total} 次（正確率 ${Math.round(item.accuracy * 100)}%）`
           : "還沒練習過";
         box.append(rank, img, zhuyin, word, stat);
         grid.append(box);
