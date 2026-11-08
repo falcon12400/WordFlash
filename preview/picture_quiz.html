@@ -74,6 +74,7 @@
       visibility: hidden;
     }
     .picture-word.is-shown { visibility: visible; }
+    .lesson-tag { display: block; margin-top: 2px; font-size: 13px; font-weight: 400; letter-spacing: 0.04em; color: #6b655c; text-align: center; }
     .empty-state {
       display: grid;
       gap: 12px;
@@ -276,7 +277,7 @@
     import { logAttempt, closeOpenLog, closeStaleLog } from "./practice-log.js?v=1";
     import { importPictureLegacy, startCloudSync } from "./picture-logs.js?v=1";
     import { renderVerticalZhuyin, zhuyinHeight, syllablesOf } from "./bopomofo.js?v=1";
-    import { ACTIVITY, BUILT_IN_SETS, PICTURE_DISABLED_KEY, isCardEnabled, listSets, listCards, loadImage, importBuiltIn } from "./picture-questions.js?v=4";
+    import { ACTIVITY, BUILT_IN_SETS, PICTURE_DISABLED_KEY, isCardEnabled, listSets, listCards, loadImage, importBuiltIn } from "./picture-questions.js?v=5";
 
     const SET_KEY = "wordflash_picture_set_v1";
     if (/\/preview\/[^/]*$/.test(location.pathname)) document.getElementById("flashcardLink").href = "../canvas_words.html";
@@ -336,6 +337,12 @@
       answered = null;
       const token = ++drawToken;
       pictureWord.textContent = card?.word || "";
+      if (card?.lesson) {
+        const lessonTag = document.createElement("small");
+        lessonTag.className = "lesson-tag";
+        lessonTag.textContent = card.lesson;
+        pictureWord.append(lessonTag);
+      }
       pictureWord.classList.remove("is-shown");
       if (!card) { renderAll(); return; }
       const image = await loadImage(card.id);
@@ -510,8 +517,7 @@
     const finishRound = (record) => {
       stopTicker();
       // A timed round is one practice record; save it and upload if signed in.
-      closeOpenLog();
-      cloud?.sync();
+      closeAndSyncLog();
       latestResult = record;
       answered = null;
       renderAll();
@@ -567,8 +573,11 @@
 
     // ---------- sets ----------
 
+    // A finished round is saved and uploaded right away (Codex review).
+    const closeAndSyncLog = () => { if (closeOpenLog()) cloud?.sync(); };
+
     const selectSet = async (setId) => {
-      if (setId !== currentSet?.id) closeOpenLog();
+      if (setId !== currentSet?.id) closeAndSyncLog();
       currentSet = sets.find(set => set.id === setId) || sets[0] || null;
       if (!currentSet) { renderEmpty("還沒有題組。", true); return; }
       localStorage.setItem(SET_KEY, currentSet.id);
@@ -626,7 +635,7 @@
         selectSet(currentSet.id);
         return;
       }
-      if ([PRACTICE_MODE_KEY, CHALLENGE_TIMER_KEY].includes(event.key)) closeOpenLog();
+      if ([PRACTICE_MODE_KEY, CHALLENGE_TIMER_KEY].includes(event.key)) closeAndSyncLog();
       if ([PRACTICE_MODE_KEY, CHALLENGE_TIMER_KEY, CHALLENGE_PROGRESS_DISPLAY_KEY].includes(event.key)) {
         renderAll();
         if (!runtime.state().run) status.textContent = modeHint(runtime.state().mode);
@@ -653,7 +662,7 @@
     let shownMode = runtime.state().mode;
     const closeOpenLogIfModeChanged = () => {
       const { mode } = runtime.state();
-      if (mode !== shownMode) closeOpenLog();
+      if (mode !== shownMode) closeAndSyncLog();
       shownMode = mode;
     };
     closeStaleLog();

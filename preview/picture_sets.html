@@ -76,6 +76,20 @@
     .card-toggle input { width: 22px; height: 22px; margin: 0; accent-color: #2f6b2a; }
     .set-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; }
     .set-tools button { padding: 6px 10px; font-size: 14px; }
+    .lesson-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0 0; padding-top: 10px; border-top: 1px dashed rgba(43, 43, 43, 0.35); }
+    .lesson-head strong { font-size: 16px; margin-right: 4px; }
+    .lesson-head button { padding: 5px 10px; font-size: 14px; }
+    /* Phones: three small cards per row so a whole lesson fits on screen. */
+    @media (max-width: 520px) {
+      main { width: calc(100% - 16px); }
+      section { padding: 12px; }
+      .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+      .card { padding: 5px; font-size: 12px; }
+      .card strong { font-size: 14px; }
+      .card .accuracy { font-size: 11px; }
+      .card-toggle { font-size: 13px; min-height: 30px; gap: 5px; }
+      .card-toggle input { width: 18px; height: 18px; }
+    }
     .card .reading { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; letter-spacing: 0.05em; }
     code { font-size: 13px; }
     .built-in-list { display: grid; gap: 10px; }
@@ -116,7 +130,7 @@
   </main>
 
   <script type="module">
-    import { ACTIVITY, BUILT_IN_SETS, isCardEnabled, setCardsEnabled, listSets, listCards, loadImage, importPackage, importBuiltIn, deleteSet } from "./picture-questions.js?v=4";
+    import { ACTIVITY, BUILT_IN_SETS, isCardEnabled, setCardsEnabled, listSets, listCards, loadImage, importPackage, importBuiltIn, deleteSet } from "./picture-questions.js?v=5";
     import { questionStats } from "./question-progress.js?v=1";
     import { accuracyOf } from "./practice-runtime.js?v=1";
 
@@ -180,9 +194,38 @@
         tools.append(countLine, allOn, allOff);
         box.append(tools);
 
+        // Cards are grouped by lesson so a parent can pick one lesson at a time.
+        const groups = [];
+        setCards.forEach((card) => {
+          const name = card.lesson || "未標課次";
+          let group = groups.find(item => item.name === name);
+          if (!group) { group = { name, cards: [] }; groups.push(group); }
+          group.cards.push(card);
+        });
+        const showGroups = groups.length > 1 || groups[0]?.name !== "未標課次";
+        for (const group of groups) {
+        if (showGroups) {
+          const groupHead = document.createElement("div");
+          groupHead.className = "lesson-head";
+          const groupName = document.createElement("strong");
+          const groupOn = group.cards.filter(card => isCardEnabled(card.id)).length;
+          groupName.textContent = `${group.name}（出題 ${groupOn} / ${group.cards.length}）`;
+          const on = document.createElement("button");
+          on.type = "button";
+          on.textContent = "這課全出";
+          on.setAttribute("aria-label", `${group.name}全部出題`);
+          on.addEventListener("click", () => { setCardsEnabled(group.cards.map(card => card.id), true); render(); });
+          const off = document.createElement("button");
+          off.type = "button";
+          off.textContent = "這課不出";
+          off.setAttribute("aria-label", `${group.name}全部不出`);
+          off.addEventListener("click", () => { setCardsEnabled(group.cards.map(card => card.id), false); render(); });
+          groupHead.append(groupName, on, off);
+          box.append(groupHead);
+        }
         const grid = document.createElement("div");
         grid.className = "cards";
-        for (const card of setCards) {
+        for (const card of group.cards) {
           const enabled = isCardEnabled(card.id);
           const item = document.createElement("div");
           item.className = `card${enabled ? "" : " is-off"}`;
@@ -210,9 +253,11 @@
             ? `尚未作答・${card.options.length} 個選項`
             : `答對 ${stats.correct}・答錯 ${stats.incorrect}・正確率 ${accuracy.toFixed(1)}%`;
           item.append(img, label, reading, line, toggle);
+          if (card.lessonNote) item.title = card.lessonNote;
           grid.append(item);
         }
         box.append(grid);
+        }
         setList.append(box);
       }
     };

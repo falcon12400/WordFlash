@@ -201,28 +201,47 @@ test("看圖選注音：三個多音節選項在手機上排成兩欄", async ({
   await shot(page, testInfo, "three-long-options");
 });
 
-test("內建題組：載入翰林易混注音，顯示圖片來源署名", async ({ page }, testInfo) => {
+test("內建題組：翰林首冊 17 題，依課次分組並顯示署名", async ({ page }, testInfo) => {
   await setMode(page, "statistics");
   await page.goto("/picture_sets.html");
-  await page.getByRole("button", { name: "載入「翰林首冊：易混注音」" }).click();
-  await expect(page.locator("#message")).toContainText("共 10 題");
+  await page.getByRole("button", { name: "載入「翰林首冊」" }).click();
+  await expect(page.locator("#message")).toContainText("共 17 題");
   await expect(page.locator(".set-credit")).toContainText("OpenMoji");
-  await expect(page.locator(".card")).toHaveCount(10);
+  await expect(page.locator(".card")).toHaveCount(17);
+  await expect(page.locator(".lesson-head", { hasText: "第三課〈來數數〉（出題 3 / 3）" })).toHaveCount(1);
+  await page.getByRole("button", { name: "延伸練習全部不出" }).click();
+  await expect(page.locator(".set-tools span")).toHaveText("出題 12 / 17 題");
   await shot(page, testInfo, "hanlin-sets");
   await page.goto("/picture_quiz.html");
   await expect(page.locator("#credit")).toContainText("CC BY-SA 4.0");
   await expect(page.locator(".option")).toHaveCount(4);
+  await page.locator(".option").first().click();
+  await expect(page.locator("#pictureWord .lesson-tag")).toBeVisible();
   await noHorizontalScroll(page, testInfo);
   await shot(page, testInfo, "hanlin-question");
 });
 
-test("內建題組：載入翰林課文詞語 7 題", async ({ page }, testInfo) => {
-  await setMode(page, "statistics");
+test("合併題組：舊題組的答題紀錄與勾選接到翰林首冊，舊題組移除", async ({ page }) => {
   await page.goto("/picture_sets.html");
-  await page.getByRole("button", { name: "載入「翰林首冊：課文詞語」" }).click();
-  await expect(page.locator("#message")).toContainText("共 7 題");
-  await expect(page.locator(".card")).toHaveCount(7);
-  await shot(page, testInfo, "lesson-sets");
+  // An older device: the two separate Hanlin sets, with history on one card.
+  await page.evaluate(async () => {
+    const data = await import("./picture-questions.js?v=5");
+    const merged = await (await fetch("picture-sets/hanlin-g1-primer.json")).json();
+    const pick = (id) => merged.cards.filter(card => card.previousIds[0].startsWith(id + "/"));
+    for (const id of ["hanlin-g1-confusable", "hanlin-g1-lesson-words"]) {
+      await data.importPackage({ format: "wordflash-picture-set", version: 1, set: { id, name: id },
+        cards: pick(id).map(({ lesson, lessonNote, previousIds, ...card }) => card) });
+    }
+    localStorage.setItem("wordflash_question_stats_v1", JSON.stringify({ "picture-quiz:hanlin-g1-confusable/hand": { correct: 3, incorrect: 1 } }));
+    data.setCardsEnabled(["hanlin-g1-lesson-words/teacher"], false);
+  });
+  await page.reload();
+  await expect(page.locator(".set")).toHaveCount(2);
+  await page.getByRole("button", { name: "載入「翰林首冊」" }).click();
+  await expect(page.locator("#message")).toContainText("共 17 題");
+  await expect(page.locator(".set")).toHaveCount(1);
+  await expect(page.locator(".card", { hasText: "手" }).first().locator(".accuracy")).toContainText("答對 3・答錯 1");
+  await expect(page.getByRole("checkbox", { name: "老師出題" })).not.toBeChecked();
 });
 
 test("題組管理：取消勾選的題目不會出現在練習中", async ({ page }) => {
@@ -274,10 +293,10 @@ test("練習紀錄：每一輪分開記錄，含錯的字，並可上傳", async
 
   // Switching to another set closes the round; a later answer starts a new one.
   await page.goto("/picture_sets.html");
-  await page.getByRole("button", { name: "載入「翰林首冊：易混注音」" }).click();
-  await expect(page.locator("#message")).toContainText("共 10 題");
+  await page.getByRole("button", { name: "載入「翰林首冊」" }).click();
+  await expect(page.locator("#message")).toContainText("共 17 題");
   await page.goto("/picture_quiz.html");
-  await page.locator("#setSelect").selectOption("hanlin-g1-confusable");
+  await page.locator("#setSelect").selectOption("hanlin-g1-primer");
   await page.locator(".option").first().click();
   await page.goto("/practice_logs.html");
   await expect(page.locator(".log")).toHaveCount(2);

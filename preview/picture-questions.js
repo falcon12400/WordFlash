@@ -16,6 +16,7 @@
 // an id must never be reused for a different picture.
 
 import { normalizeZhuyin } from "./bopomofo.js";
+import { QUESTION_STATS_KEY, questionKey } from "./question-progress.js?v=1";
 
 export const ACTIVITY = "picture-quiz";
 export const PACKAGE_FORMAT = "wordflash-picture-set";
@@ -24,8 +25,7 @@ export const PACKAGE_FORMAT = "wordflash-picture-set";
 // copied into this device's storage when someone presses "載入".
 export const BUILT_IN_SETS = [
   { file: "picture-sets/sample-daily.json", id: "sample-daily", name: "範例：生活圖卡", description: "8 題生活物品，2 到 4 個選項。" },
-  { file: "picture-sets/hanlin-g1-confusable.json", id: "hanlin-g1-confusable", name: "翰林首冊：易混注音", description: "10 題，練習 ㄓ／ㄗ、ㄔ／ㄘ、ㄕ／ㄙ、ㄥ／ㄣ、ㄛ／ㄡ。" },
-  { file: "picture-sets/hanlin-g1-lesson-words.json", id: "hanlin-g1-lesson-words", name: "翰林首冊：課文詞語", description: "7 題：老師、收起來、籃子、數一數、一張圖、三隻、大樹。" }
+  { file: "picture-sets/hanlin-g1-primer.json", id: "hanlin-g1-primer", name: "翰林首冊", description: "17 題，每題標出第幾課；含易混注音 ㄓ／ㄗ、ㄔ／ㄘ、ㄕ／ㄙ、ㄥ／ㄣ、ㄛ／ㄡ。" }
 ];
 
 export async function importBuiltIn(file) {
@@ -110,6 +110,9 @@ export function validatePackage(data) {
   // Optional credit line, e.g. the licence attribution for the pictures.
   const setCredit = String(data.set?.credit ?? "").trim();
   if (setCredit.length > 300) problems.push("set.credit 太長（最多 300 字）。");
+  // Optional: sets this one takes over (their cards move here, then they are removed).
+  const replaces = Array.isArray(data.set?.replaces) ? data.set.replaces.map(String) : [];
+  if (replaces.some(id => !ID_PATTERN.test(id) || id === setId)) problems.push("set.replaces 只能列出其他題組的代號。");
   const cards = Array.isArray(data.cards) ? data.cards : [];
   if (!cards.length) problems.push("cards 至少要有一題。");
   const seen = new Set();
@@ -130,10 +133,13 @@ export function validatePackage(data) {
     const answer = normalizeZhuyin(card?.answer);
     if (!options.includes(answer)) problems.push(`${label}：answer 必須是 options 其中一個。`);
     const word = String(card?.word ?? "").trim();
-    return { id, image, options, answer, word };
+    const lesson = String(card?.lesson ?? "").trim().slice(0, 60);
+    const lessonNote = String(card?.lessonNote ?? "").trim().slice(0, 120);
+    const previousIds = Array.isArray(card?.previousIds) ? card.previousIds.map(String).filter(value => /^[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/.test(value)) : [];
+    return { id, image, options, answer, word, lesson, lessonNote, previousIds };
   });
   if (problems.length) throw new Error(problems.join("\n"));
-  return { set: { id: setId, name: setName, credit: setCredit }, cards: cleanCards };
+  return { set: { id: setId, name: setName, credit: setCredit, replaces }, cards: cleanCards };
 }
 
 // Adds or replaces a whole set. The set afterwards holds exactly the cards in
@@ -161,12 +167,35 @@ export async function importPackage(data) {
     const id = `${pkg.set.id}/${card.id}`;
     tx.objectStore("images").put({ id, dataUrl: card.image });
     tx.objectStore("cards").put({
-      id, setId: pkg.set.id, order, options: card.options, answer: card.answer, word: card.word, updatedAt: now
+      id, setId: pkg.set.id, order, options: card.options, answer: card.answer, word: card.word,
+      lesson: card.lesson, lessonNote: card.lessonNote, updatedAt: now
     });
   });
   await transactionDone(tx);
+  carryOverHistory(pkg);
+  for (const oldSetId of pkg.set.replaces) await deleteSet(oldSetId);
   const removed = oldCards.filter(id => !keep.has(id)).length;
   return { setId: pkg.set.id, setName: pkg.set.name, count: pkg.cards.length, replaced: Boolean(existing), removed };
+}
+
+// When a card replaces cards of an older set, its answer statistics and
+// "出題" choice move to the new id (only if the new id has none yet).
+function carryOverHistory(pkg) {
+  let stats = {};
+  try { stats = JSON.parse(localStorage.getItem(QUESTION_STATS_KEY) || "{}") || {}; } catch { stats = {}; }
+  const disabled = readDisabled();
+  let changed = false;
+  pkg.cards.forEach((card) => {
+    const id = `${pkg.set.id}/${card.id}`;
+    const newKey = questionKey({ activity: ACTIVITY, id });
+    card.previousIds.forEach((oldId) => {
+      const oldKey = questionKey({ activity: ACTIVITY, id: oldId });
+      if (stats[oldKey] && !stats[newKey]) { stats[newKey] = stats[oldKey]; changed = true; }
+      if (disabled.has(oldId)) { disabled.add(id); }
+    });
+  });
+  if (changed) localStorage.setItem(QUESTION_STATS_KEY, JSON.stringify(stats));
+  localStorage.setItem(DISABLED_KEY, JSON.stringify([...disabled]));
 }
 
 export async function listSets() {

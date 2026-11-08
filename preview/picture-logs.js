@@ -4,7 +4,7 @@
 // no account buttons).
 
 import { importLegacy, syncLogs, pendingCount } from "./practice-log.js?v=1";
-import { ACTIVITY, listSets, listCards } from "./picture-questions.js?v=4";
+import { ACTIVITY, listSets, listCards } from "./picture-questions.js?v=5";
 import { createPracticeRuntime } from "./practice-runtime.js?v=1";
 import { QUESTION_STATS_KEY } from "./question-progress.js?v=1";
 
