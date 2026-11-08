@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>看圖選注音 - WordFlash</title>
+  <link rel="stylesheet" href="practice-ui.css?v=1" />
+  <style>
+    :root { color-scheme: light; }
+    [hidden] { display: none !important; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background: radial-gradient(circle at top, #f7f4e8 0%, #efe6d5 45%, #e8dcc8 100%);
+      font-family: "Noto Serif TC", "PingFang TC", "Heiti TC", serif;
+      color: #2b2b2b;
+      min-height: 100dvh;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 24px;
+      border-bottom: 2px solid #2b2b2b;
+      background: rgba(255, 249, 236, 0.92);
+    }
+    header .title { font-size: 20px; letter-spacing: 0.08em; font-weight: 700; }
+    header .menu { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+    header .links { display: flex; gap: 8px; }
+    header select, header a {
+      border: 2px solid #2b2b2b;
+      border-radius: 6px;
+      padding: 6px 10px;
+      background: #fff9ec;
+      font: inherit;
+      font-size: 14px;
+      color: inherit;
+      text-decoration: none;
+    }
+    main { padding: 20px 24px 28px; box-sizing: border-box; min-height: 0; }
+    .quiz-layout {
+      width: min(100%, 1100px);
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+    .picture-card {
+      position: relative;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      place-items: center;
+      border: 6px solid #2b2b2b;
+      background: #fff9ec;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      box-sizing: border-box;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .picture-card img {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      min-height: 0;
+    }
+    .picture-word {
+      min-height: 1.3em;
+      padding: 0 12px 8px;
+      font-size: clamp(26px, 5vw, 40px);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      visibility: hidden;
+    }
+    .picture-word.is-shown { visibility: visible; }
+    .empty-state {
+      display: grid;
+      gap: 12px;
+      justify-items: center;
+      padding: 24px;
+      text-align: center;
+      font-size: 17px;
+      line-height: 1.5;
+    }
+    .options {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      min-height: 0;
+    }
+    .options[data-count="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .option {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 0;
+      padding: 6px;
+      border: 3px solid #2b2b2b;
+      border-radius: 14px;
+      background: #fffdf6;
+      color: #2b2b2b;
+      box-shadow: 0 6px 0 #2b2b2b;
+      font: inherit;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      transition: transform 80ms ease, box-shadow 80ms ease, background 120ms ease;
+    }
+    .option:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 #2b2b2b; }
+    .option:disabled { cursor: default; }
+    .options.is-locked .option { opacity: 0.45; }
+    .option.is-correct { background: #dcefd2; border-color: #2f6b2a; box-shadow: 0 6px 0 #2f6b2a; }
+    .option.is-wrong { background: #f6d9d2; border-color: #9a3b2c; box-shadow: 0 6px 0 #9a3b2c; }
+    .options.is-answered .option:not(.is-correct):not(.is-wrong) { opacity: 0.4; }
+    .option-badge {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      color: #fff;
+      font-family: system-ui, sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+    }
+    .is-correct .option-badge { background: #2f6b2a; }
+    .is-wrong .option-badge { background: #9a3b2c; }
+
+    /* Vertical zhuyin: one column per syllable, tone mark to the right of the
+       last symbol, light-tone dot on top. --zy-size is set from script. */
+    .vzy {
+      display: inline-flex;
+      align-items: flex-start;
+      gap: 0.55em;
+      font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+      font-size: var(--zy-size, 40px);
+      font-weight: 600;
+      line-height: 1;
+    }
+    .vzy-syllable { display: inline-flex; flex-direction: column; align-items: center; }
+    .vzy-letter { position: relative; display: block; height: 1.08em; line-height: 1.08em; }
+    .vzy-tone {
+      position: absolute;
+      left: 80%;
+      top: -0.12em;
+      font-size: 1em;
+    }
+    .vzy-light { display: block; height: 0.6em; line-height: 0.6em; font-size: 1em; }
+
+    .quiz-actions { display: flex; justify-content: center; }
+    .next-button {
+      min-width: 220px;
+      min-height: 54px;
+      padding: 10px 28px;
+      border: 2px solid #2b2b2b;
+      border-radius: 10px;
+      background: #fff9ec;
+      color: inherit;
+      font: inherit;
+      font-size: 20px;
+      cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+    }
+    .next-button.is-ready { background: #f7c948; font-weight: 700; }
+    .next-button:disabled { opacity: 0.5; cursor: default; }
+    .practice-panel {
+      box-sizing: border-box;
+      padding: 14px 18px;
+      border: 2px solid #2b2b2b;
+      border-radius: 10px;
+      background: rgba(255, 249, 236, 0.94);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+    }
+    .hint { margin: 0; font-size: 15px; letter-spacing: 0.06em; text-align: center; line-height: 1.5; }
+    .secondary-button {
+      min-height: 48px;
+      padding: 8px 18px;
+      border: 2px solid #2b2b2b;
+      border-radius: 8px;
+      background: #f7c948;
+      font: inherit;
+      font-size: 17px;
+      color: inherit;
+      cursor: pointer;
+    }
+    .empty-state a { color: inherit; }
+
+    /* Phone portrait: picture on top, options below. */
+    @media (max-width: 720px) and (orientation: portrait) {
+      header { display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; padding: 10px 12px; }
+      header .title { font-size: 18px; align-self: center; white-space: nowrap; }
+      header .menu { display: contents; }
+      header .links { grid-column: 2; grid-row: 1; justify-content: end; gap: 6px; }
+      header .menu label { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px; }
+      header select, header a { min-height: 40px; box-sizing: border-box; font-size: 15px; display: grid; place-items: center; padding: 4px 8px; }
+      main { padding: 10px 12px 14px; }
+      .quiz-layout { gap: 10px; }
+      .picture-card { height: clamp(170px, 28dvh, 320px); border-width: 5px; }
+      .picture-word { font-size: 26px; padding-bottom: 4px; }
+      .options { height: max(180px, 23dvh); gap: 10px; }
+      .next-button { min-height: 50px; }
+      .practice-panel { padding: 10px 12px; }
+      .hint { font-size: 14px; }
+      /* During a timed round every pixel goes to the picture, answers and shelf. */
+      body.is-running .hint { display: none; }
+      .challenge-timer--running .challenge-timer-copy span { display: none; }
+      .next-button { width: 100%; }
+    }
+    /* Tablet landscape and desktop: picture on the left, answers on the right. */
+    @media (min-width: 721px), (orientation: landscape) {
+      .quiz-layout {
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+        grid-template-areas:
+          "picture options"
+          "picture actions"
+          "panel panel"
+          "hint hint";
+        grid-template-rows: minmax(0, 1fr) auto auto auto;
+        align-items: stretch;
+      }
+      .picture-card { grid-area: picture; height: min(56dvh, 560px); }
+      .options { grid-area: options; align-content: end; grid-auto-rows: clamp(130px, 25dvh, 260px); }
+      .quiz-actions { grid-area: actions; }
+      .next-button { width: 100%; }
+      .practice-panel { grid-area: panel; }
+      .hint { grid-area: hint; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">看圖選注音</div>
+    <nav class="menu">
+      <label id="setControl">題組 <select id="setSelect"></select></label>
+      <span class="links">
+        <a href="canvas_words.html">閃卡</a>
+        <a href="picture_sets.html">題組管理</a>
+        <a href="settings.html">設定</a>
+      </span>
+    </nav>
+  </header>
+  <main>
+    <div class="quiz-layout">
+      <figure class="picture-card" id="pictureCard" aria-live="polite">
+        <img id="picture" alt="" hidden />
+        <figcaption class="picture-word" id="pictureWord"></figcaption>
+        <div class="empty-state" id="emptyState" hidden></div>
+      </figure>
+      <div class="options" id="options" role="group" aria-label="注音選項"></div>
+      <div class="quiz-actions">
+        <button class="next-button" id="nextButton" type="button">跳過</button>
+      </div>
+      <section class="practice-panel" id="practicePanel" aria-live="polite" hidden>
+        <div class="practice-summary" id="practiceSummary"></div>
+      </section>
+      <p class="hint" id="status">載入中...</p>
+    </div>
+  </main>
+
+  <script type="module">
+    import { createPracticeRuntime, loadProgressDisplay, formatTimer, PRACTICE_MODE_KEY, CHALLENGE_TIMER_KEY, CHALLENGE_PROGRESS_DISPLAY_KEY } from "./practice-runtime.js?v=1";
+    import { createStat, createChallengeProgress, createTimerBar } from "./practice-ui.js?v=1";
+    import { recordQuestionAnswer } from "./question-progress.js?v=1";
+    import { onTap } from "./answer-input.js?v=1";
+    import { renderVerticalZhuyin, zhuyinHeight, syllablesOf } from "./bopomofo.js?v=1";
+    import { ACTIVITY, listSets, listCards, loadImage, importPackage } from "./picture-questions.js?v=1";
+
+    const SET_KEY = "wordflash_picture_set_v1";
+    const runtime = createPracticeRuntime(ACTIVITY);
+    const $ = (id) => document.getElementById(id);
+    const setSelect = $("setSelect");
+    const picture = $("picture");
+    const pictureWord = $("pictureWord");
+    const emptyState = $("emptyState");
+    const optionsBox = $("options");
+    const nextButton = $("nextButton");
+    const practicePanel = $("practicePanel");
+    const practiceSummary = $("practiceSummary");
+    const status = $("status");
+
+    let sets = [];
+    let currentSet = null;
+    let cards = [];
+    let queue = [];
+    let current = null;          // the card on screen
+    let answered = null;         // { cardId, choice, correct }
+    let latestResult = null;     // last finished timed round
+    let tickerId = null;
+    let lastSecond = null;
+    let drawToken = 0;
+
+    const shuffle = (list) => {
+      const copy = [...list];
+      for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    };
+
+    const modeHint = (mode) => ({
+      none: "目前是純練習：選完會顯示答案，不計分。",
+      statistics: "目前是統計模式：會記錄答對、答錯和正確率。",
+      challenge: "目前是挑戰模式：連續答對會疊書，答錯會歸零。"
+    })[mode];
+
+    // ---------- question flow ----------
+
+    const takeNextCard = () => {
+      if (!cards.length) return null;
+      if (!queue.length) queue = shuffle(cards.map(card => card.id));
+      // Avoid showing the same picture twice in a row when there is a choice.
+      if (cards.length > 1 && queue[queue.length - 1] === current?.id) {
+        queue.unshift(queue.pop());
+      }
+      const id = queue.pop();
+      return cards.find(card => card.id === id) || null;
+    };
+
+    const showCard = async (card) => {
+      current = card;
+      answered = null;
+      const token = ++drawToken;
+      pictureWord.textContent = card?.word || "";
+      pictureWord.classList.remove("is-shown");
+      if (!card) { renderAll(); return; }
+      const image = await loadImage(card.id);
+      if (token !== drawToken) return;
+      picture.src = image;
+      picture.alt = "請看圖片，選出正確的注音";
+      picture.hidden = false;
+      emptyState.hidden = true;
+      card.displayOptions = shuffle(card.options);
+      renderAll();
+    };
+
+    const goNext = () => showCard(takeNextCard());
+
+    const choose = (choice) => {
+      if (!current || answered) return;
+      const { locked } = runtime.state();
+      if (locked) return;
+      const correct = choice === current.answer;
+      const result = runtime.recordAttempt(correct);
+      if (result?.finished) { finishRound(result.finished); return; }
+      answered = { cardId: current.id, choice, correct };
+      if (result?.counted) recordQuestionAnswer({ activity: ACTIVITY, id: current.id }, correct);
+      pictureWord.classList.toggle("is-shown", Boolean(current.word));
+      status.textContent = correct ? "答對了！按「下一題」繼續。" : "再看看正確答案，按「下一題」繼續。";
+      renderAll();
+    };
+
+    // ---------- rendering ----------
+
+    const sizeOptions = () => {
+      const buttons = [...optionsBox.querySelectorAll(".option")];
+      if (!buttons.length || !current) return;
+      const longest = Math.max(...current.displayOptions.map(zhuyinHeight));
+      const columns = Math.max(...current.displayOptions.map(value => syllablesOf(value).length));
+      const { width, height } = buttons[0].getBoundingClientRect();
+      const byHeight = (height - 24) / (longest * 1.12 + 0.3);
+      const byWidth = (width - 56) / (columns * 1.75);
+      const size = Math.max(16, Math.min(64, byHeight, byWidth));
+      optionsBox.style.setProperty("--zy-size", `${Math.floor(size)}px`);
+    };
+
+    const renderOptions = () => {
+      const { locked } = runtime.state();
+      optionsBox.replaceChildren();
+      optionsBox.hidden = !current;
+      if (!current) return;
+      const list = current.displayOptions || current.options;
+      optionsBox.dataset.count = String(list.length);
+      optionsBox.classList.toggle("is-answered", Boolean(answered));
+      optionsBox.classList.toggle("is-locked", locked && !answered);
+      list.forEach((value, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "option";
+        button.dataset.value = value;
+        button.setAttribute("aria-label", `選項 ${index + 1}：${value}`);
+        button.append(renderVerticalZhuyin(value));
+        if (answered) {
+          const isAnswer = value === current.answer;
+          const isChoice = value === answered.choice;
+          if (isAnswer) button.classList.add("is-correct");
+          if (isChoice && !isAnswer) button.classList.add("is-wrong");
+          if (isAnswer || isChoice) {
+            const badge = document.createElement("span");
+            badge.className = "option-badge";
+            badge.setAttribute("aria-hidden", "true");
+            badge.textContent = isAnswer ? "✓" : "✗";
+            button.append(badge);
+          }
+        }
+        button.disabled = Boolean(answered) || locked;
+        onTap(button, () => choose(value));
+        optionsBox.append(button);
+      });
+      sizeOptions();
+    };
+
+    const renderPanel = () => {
+      const { mode, timer, run, timed } = runtime.state();
+      practicePanel.hidden = mode === "none";
+      if (mode === "none") return;
+      const summary = runtime.summary();
+      const timerItems = timed
+        ? createTimerBar({ mode, timer, run, remainingSeconds: run ? runtime.remainingSeconds(run) : 0, sourceName: currentSet?.name, latestResult })
+        : [];
+      practiceSummary.classList.toggle("challenge-summary", mode === "challenge");
+      if (mode === "statistics") {
+        practiceSummary.replaceChildren(
+          ...timerItems,
+          createStat("答對", String(summary.correct)),
+          createStat("答錯", String(summary.incorrect)),
+          createStat("正確率", summary.accuracy === null ? "—" : `${summary.accuracy.toFixed(1)}%`)
+        );
+      } else {
+        practiceSummary.replaceChildren(...timerItems);
+        practiceSummary.append(createChallengeProgress(summary.streak, loadProgressDisplay(), practiceSummary));
+      }
+    };
+
+    const renderNext = () => {
+      const { locked } = runtime.state();
+      nextButton.textContent = answered ? "下一題" : "跳過";
+      nextButton.classList.toggle("is-ready", Boolean(answered));
+      nextButton.disabled = !current || (locked && !answered);
+    };
+
+    const renderAll = () => {
+      const { run } = runtime.state();
+      setSelect.disabled = Boolean(run);
+      document.body.classList.toggle("is-running", Boolean(run));
+      renderOptions();
+      renderNext();
+      renderPanel();
+    };
+
+    const renderEmpty = (message, withSample) => {
+      current = null;
+      picture.hidden = true;
+      pictureWord.textContent = "";
+      emptyState.hidden = false;
+      emptyState.replaceChildren();
+      const text = document.createElement("p");
+      text.style.margin = "0";
+      text.textContent = message;
+      emptyState.append(text);
+      if (withSample) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "secondary-button";
+        button.textContent = "載入範例題組";
+        button.addEventListener("click", loadSample);
+        const link = document.createElement("a");
+        link.href = "picture_sets.html";
+        link.textContent = "或到「題組管理」匯入自己的題組";
+        emptyState.append(button, link);
+      }
+      renderAll();
+      status.textContent = "";
+    };
+
+    // ---------- timed rounds ----------
+
+    const stopTicker = () => {
+      if (tickerId !== null) window.clearInterval(tickerId);
+      tickerId = null;
+      lastSecond = null;
+    };
+
+    const finishRound = (record) => {
+      stopTicker();
+      latestResult = record;
+      answered = null;
+      renderAll();
+      status.textContent = record
+        ? (record.mode === "statistics"
+          ? `${record.reason === "manual_stop" ? "已結束本輪" : "時間到"}！答對 ${record.correct} 題、答錯 ${record.incorrect} 題。`
+          : `${record.reason === "manual_stop" ? "已結束本輪" : "時間到"}！本輪最高連續答對 ${record.correct} 題。`)
+        : "";
+    };
+
+    const startTicker = () => {
+      if (tickerId !== null) return;
+      tickerId = window.setInterval(() => {
+        const stored = runtime.loadRun();
+        if (!stored) { stopTicker(); renderAll(); return; }
+        const seconds = runtime.remainingSeconds(stored);
+        if (seconds <= 0) { finishRound(runtime.finishRun("time_up")); return; }
+        // Only the timer bar changes; the answer buttons are not redrawn, so a
+        // tap in progress is never interrupted.
+        if (seconds !== lastSecond) {
+          lastSecond = seconds;
+          const value = practiceSummary.querySelector(".challenge-timer-value");
+          if (value) {
+            value.textContent = formatTimer(seconds);
+            value.setAttribute("aria-label", `剩餘 ${seconds} 秒`);
+          }
+        }
+      }, 250);
+    };
+
+    const startRound = () => {
+      if (!currentSet || !cards.length) return;
+      const run = runtime.startRun({ sourceId: currentSet.id, sourceName: currentSet.name, questionIds: cards.map(card => card.id) });
+      if (!run) return;
+      latestResult = null;
+      queue = [];
+      startTicker();
+      goNext();
+      status.textContent = run.mode === "statistics" ? `已開始 ${run.durationSeconds} 秒統計，加油！` : `已開始 ${run.durationSeconds} 秒挑戰，加油！`;
+    };
+
+    const reconcileRound = () => {
+      const stored = runtime.loadRun();
+      if (!stored) return;
+      if (runtime.remainingSeconds(stored) <= 0) finishRound(runtime.finishRun("time_up"));
+      else startTicker();
+    };
+
+    practiceSummary.addEventListener("click", (event) => {
+      if (event.target.closest('[data-action="start-run"]')) startRound();
+      if (event.target.closest('[data-action="stop-run"]')) finishRound(runtime.finishRun("manual_stop"));
+    });
+
+    // ---------- sets ----------
+
+    const selectSet = async (setId) => {
+      currentSet = sets.find(set => set.id === setId) || sets[0] || null;
+      if (!currentSet) { renderEmpty("還沒有題組。", true); return; }
+      localStorage.setItem(SET_KEY, currentSet.id);
+      setSelect.value = currentSet.id;
+      cards = await listCards(currentSet.id);
+      queue = [];
+      if (!cards.length) { renderEmpty("這個題組沒有題目。", false); return; }
+      status.textContent = modeHint(runtime.state().mode);
+      await goNext();
+    };
+
+    const refreshSets = async (preferredId) => {
+      sets = await listSets();
+      setSelect.replaceChildren(...sets.map((set) => {
+        const option = document.createElement("option");
+        option.value = set.id;
+        option.textContent = `${set.name}（${set.cardCount} 題）`;
+        return option;
+      }));
+      $("setControl").hidden = !sets.length;
+      await selectSet(preferredId || localStorage.getItem(SET_KEY));
+    };
+
+    async function loadSample() {
+      try {
+        const response = await fetch("picture-sample.json", { cache: "no-cache" });
+        const result = await importPackage(await response.json());
+        await refreshSets(result.setId);
+      } catch (error) {
+        console.error(error);
+        status.textContent = `無法載入範例題組：${error.message}`;
+      }
+    }
+
+    setSelect.addEventListener("change", () => {
+      if (runtime.state().run) { setSelect.value = currentSet?.id; return; }
+      selectSet(setSelect.value);
+    });
+
+    onTap(nextButton, () => {
+      if (nextButton.disabled) return;
+      goNext();
+      const { mode, run } = runtime.state();
+      if (run) status.textContent = "看圖片，選出正確的注音。";
+      else if (!latestResult) status.textContent = modeHint(mode);
+    });
+
+    window.addEventListener("storage", (event) => {
+      if ([PRACTICE_MODE_KEY, CHALLENGE_TIMER_KEY, CHALLENGE_PROGRESS_DISPLAY_KEY].includes(event.key)) {
+        renderAll();
+        if (!runtime.state().run) status.textContent = modeHint(runtime.state().mode);
+      }
+    });
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) { reconcileRound(); renderAll(); } });
+    let resizeFrame = null;
+    window.addEventListener("resize", () => {
+      if (resizeFrame !== null) return;
+      resizeFrame = requestAnimationFrame(() => { resizeFrame = null; sizeOptions(); renderPanel(); });
+    });
+
+    reconcileRound();
+    refreshSets().catch((error) => {
+      console.error(error);
+      renderEmpty("這個瀏覽器無法保存題組（IndexedDB 無法使用）。", false);
+    });
+  </script>
+</body>
+</html>

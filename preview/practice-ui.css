@@ -1,0 +1,166 @@
+/* Practice panel styles shared by practice pages (copied from canvas_words.html
+   so the picture quiz looks the same; the flashcard page keeps its own copy for now). */
+.practice-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+.practice-summary.challenge-summary { grid-template-columns: 1fr; }
+.practice-summary > .challenge-timer,
+.practice-summary > .challenge-finished-note { grid-column: 1 / -1; }
+.practice-stat { display: grid; gap: 2px; text-align: center; }
+.practice-stat span { font-size: 13px; }
+.practice-stat strong { font-size: 24px; }
+.challenge-timer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 2px solid #2b2b2b;
+  border-radius: 8px;
+  background: #f8edcf;
+}
+.challenge-timer-copy { display: grid; gap: 2px; min-width: 0; }
+.challenge-timer-copy span { font-size: 13px; color: #5b554d; }
+.challenge-timer-copy strong { font-size: 17px; line-height: 1.2; }
+.challenge-timer-value {
+  min-width: 4.2ch;
+  font-family: system-ui, sans-serif;
+  font-size: 29px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: right;
+}
+.challenge-start-button {
+  min-height: 46px;
+  padding: 8px 14px;
+  border: 2px solid #2b2b2b;
+  border-radius: 8px;
+  background: #e1ead8;
+  color: inherit;
+  font: inherit;
+  font-size: 17px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.challenge-timer-actions { display: flex; align-items: center; gap: 8px; }
+.challenge-stop-button {
+  min-height: 42px;
+  padding: 7px 10px;
+  border: 2px solid #7e4439;
+  border-radius: 8px;
+  background: #fff3ef;
+  color: #65362d;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.challenge-finished-note {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border: 2px solid #2b2b2b;
+  border-radius: 8px;
+  background: #dce8d7;
+  text-align: center;
+}
+.challenge-finished-note span { color: #4c5945; font-size: 13px; }
+.challenge-finished-note strong { font-size: 19px; }
+.challenge-progress { display: grid; justify-items: center; gap: 8px; width: 100%; }
+.challenge-number { display: grid; justify-items: center; gap: 1px; }
+.challenge-number span, .challenge-empty { color: #5b554d; font-size: 13px; }
+.challenge-number strong { font-size: 28px; line-height: 1.05; }
+.challenge-pieces {
+  display: grid;
+  justify-items: start;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  gap: 8px;
+}
+.challenge-piece-row {
+  display: flex;
+  align-items: end;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: clamp(48px, 10vw, 62px);
+  padding: 6px 6px 3px;
+  border-bottom: 4px solid #2b2b2b;
+}
+.challenge-pieces--compact { gap: 4px; }
+.challenge-piece-row--compact {
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+  padding: 0;
+  border-bottom: 0;
+}
+.challenge-piece-shelf--compact {
+  display: flex;
+  align-items: end;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: clamp(23px, 5vw, 31px);
+  padding: 2px 3px 1px;
+  border-bottom: 2px solid #2b2b2b;
+}
+.challenge-book {
+  position: relative;
+  box-sizing: border-box;
+  width: clamp(22px, 5.25vw, 29px);
+  height: clamp(42px, 9vw, 56px);
+  border: 2px solid #2b2b2b;
+  border-right: 0;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.38), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.13)), var(--piece-color);
+  box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.28), inset -3px 0 0 rgba(0, 0, 0, 0.12);
+}
+.challenge-book--compact {
+  width: clamp(11px, 2.625vw, 14.5px);
+  height: clamp(21px, 4.5vw, 28px);
+  border-width: 1px;
+  border-right: 0;
+  border-radius: 2px 2px 0 0;
+}
+.challenge-book:last-child { border-right: 2px solid #2b2b2b; }
+.challenge-book--compact:last-child { border-right-width: 1px; }
+.challenge-book::before {
+  position: absolute;
+  top: 7px;
+  right: 4px;
+  left: 4px;
+  height: 2px;
+  background: rgba(255, 249, 236, 0.66);
+  box-shadow: 0 6px 0 rgba(255, 249, 236, 0.45), 0 12px 0 rgba(255, 249, 236, 0.28);
+  content: "";
+}
+.challenge-book--compact::before {
+  top: 3px;
+  right: 2px;
+  left: 2px;
+  height: 1px;
+  box-shadow: 0 3px 0 rgba(255, 249, 236, 0.45), 0 6px 0 rgba(255, 249, 236, 0.28);
+}
+.challenge-overflow {
+  align-self: center;
+  padding: 2px 4px;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+}
+@media (max-width: 720px) and (orientation: portrait) {
+  .challenge-timer { grid-template-columns: 1fr; gap: 8px; }
+  .challenge-timer--running { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+  .challenge-start-button { width: 100%; min-height: 50px; }
+}

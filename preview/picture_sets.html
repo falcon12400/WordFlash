@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>看圖選注音題組 - WordFlash</title>
+  <style>
+    :root { color-scheme: light; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background: radial-gradient(circle at top, #f7f4e8 0%, #efe6d5 45%, #e8dcc8 100%);
+      font-family: "Noto Serif TC", "PingFang TC", "Heiti TC", serif;
+      color: #2b2b2b;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 24px;
+      border-bottom: 2px solid #2b2b2b;
+      background: rgba(255, 249, 236, 0.92);
+    }
+    header .title { font-size: 20px; font-weight: 700; letter-spacing: 0.08em; }
+    header nav { display: flex; gap: 10px; }
+    header a, button, .file-button {
+      border: 2px solid #2b2b2b;
+      border-radius: 8px;
+      padding: 8px 14px;
+      background: #fff9ec;
+      font: inherit;
+      font-size: 15px;
+      color: inherit;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    main { width: min(100% - 24px, 900px); margin: 18px auto 32px; display: grid; gap: 16px; }
+    section {
+      padding: 16px 18px;
+      border: 2px solid #2b2b2b;
+      border-radius: 12px;
+      background: rgba(255, 249, 236, 0.94);
+    }
+    h2 { margin: 0 0 10px; font-size: 19px; }
+    p { margin: 0 0 10px; line-height: 1.6; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .primary { background: #f7c948; font-weight: 700; }
+    .danger { border-color: #7e4439; background: #fff3ef; color: #65362d; }
+    .file-button input { display: none; }
+    .message { white-space: pre-line; margin-top: 10px; font-size: 15px; }
+    .message.is-error { color: #8a2f22; }
+    .set { border-top: 1px solid rgba(43, 43, 43, 0.25); padding-top: 12px; margin-top: 12px; }
+    .set:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+    .set-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+    .set-name { font-size: 18px; font-weight: 700; }
+    .set-meta { font-size: 14px; color: #5b554d; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+    .card {
+      display: grid;
+      grid-template-rows: auto auto auto auto;
+      gap: 4px;
+      padding: 8px;
+      border: 2px solid #2b2b2b;
+      border-radius: 10px;
+      background: #fffdf6;
+      font-size: 14px;
+    }
+    .card img { width: 100%; aspect-ratio: 1; object-fit: contain; background: #fff9ec; border-radius: 6px; }
+    .card strong { font-size: 16px; }
+    .card .accuracy { color: #5b554d; }
+    .card .reading { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; letter-spacing: 0.05em; }
+    code { font-size: 13px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">看圖選注音題組</div>
+    <nav>
+      <a href="picture_quiz.html">開始練習</a>
+      <a href="settings.html">設定</a>
+    </nav>
+  </header>
+  <main>
+    <section>
+      <h2>匯入題組</h2>
+      <p>題組是一個 <code>.json</code> 檔，內含圖片、2 到 4 個注音選項和正確答案。可以請 agent 依照 <code>docs/PICTURE_QUIZ_PLAN.md</code> 的格式準備。</p>
+      <p>目前題組只存在這個瀏覽器；換裝置或清除網站資料後需要重新匯入。雲端同步之後再加。</p>
+      <div class="actions">
+        <label class="file-button primary">選擇題組檔<input id="fileInput" type="file" accept=".json,application/json" /></label>
+        <button id="sampleButton" type="button">載入範例題組</button>
+      </div>
+      <div class="message" id="message" role="status"></div>
+    </section>
+    <section>
+      <h2>已匯入的題組</h2>
+      <div id="setList"><p>載入中...</p></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { ACTIVITY, listSets, listCards, loadImage, importPackage, deleteSet } from "./picture-questions.js?v=1";
+    import { questionStats } from "./question-progress.js?v=1";
+    import { accuracyOf } from "./practice-runtime.js?v=1";
+
+    const message = document.getElementById("message");
+    const setList = document.getElementById("setList");
+
+    const say = (text, isError = false) => {
+      message.textContent = text;
+      message.classList.toggle("is-error", isError);
+    };
+
+    const render = async () => {
+      const sets = await listSets();
+      if (!sets.length) { setList.innerHTML = "<p>還沒有題組。</p>"; return; }
+      setList.replaceChildren();
+      for (const set of sets) {
+        const box = document.createElement("div");
+        box.className = "set";
+        const head = document.createElement("div");
+        head.className = "set-head";
+        const title = document.createElement("div");
+        const name = document.createElement("div");
+        name.className = "set-name";
+        name.textContent = set.name;
+        const meta = document.createElement("div");
+        meta.className = "set-meta";
+        meta.textContent = `${set.cardCount} 題・代號 ${set.id}`;
+        title.append(name, meta);
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "danger";
+        remove.textContent = "從這台裝置移除";
+        remove.addEventListener("click", async () => {
+          if (!confirm(`要從這台裝置移除「${set.name}」嗎？\n答題紀錄會保留，之後再匯入同一個題組就會接回。`)) return;
+          await deleteSet(set.id);
+          say(`已移除「${set.name}」。`);
+          render();
+        });
+        head.append(title, remove);
+        box.append(head);
+
+        const grid = document.createElement("div");
+        grid.className = "cards";
+        for (const card of await listCards(set.id)) {
+          const item = document.createElement("div");
+          item.className = "card";
+          const img = document.createElement("img");
+          img.alt = card.word || card.answer;
+          img.src = await loadImage(card.id);
+          const label = document.createElement("strong");
+          label.textContent = card.word || card.answer;
+          const reading = document.createElement("span");
+          reading.className = "reading";
+          reading.textContent = card.answer;
+          const stats = questionStats({ activity: ACTIVITY, id: card.id });
+          const accuracy = accuracyOf(stats.correct, stats.incorrect);
+          const line = document.createElement("span");
+          line.className = "accuracy";
+          line.textContent = accuracy === null
+            ? `尚未作答・${card.options.length} 個選項`
+            : `答對 ${stats.correct}・答錯 ${stats.incorrect}・正確率 ${accuracy.toFixed(1)}%`;
+          item.append(img, label, reading, line);
+          grid.append(item);
+        }
+        box.append(grid);
+        setList.append(box);
+      }
+    };
+
+    const importData = async (data) => {
+      const result = await importPackage(data);
+      say(`已${result.replaced ? "更新" : "匯入"}「${result.setName}」，共 ${result.count} 題。`);
+      await render();
+    };
+
+    document.getElementById("fileInput").addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) return;
+      try {
+        await importData(JSON.parse(await file.text()));
+      } catch (error) {
+        say(`無法匯入：\n${error.message}`, true);
+      }
+    });
+
+    document.getElementById("sampleButton").addEventListener("click", async () => {
+      try {
+        const response = await fetch("picture-sample.json", { cache: "no-cache" });
+        await importData(await response.json());
+      } catch (error) {
+        say(`無法載入範例題組：${error.message}`, true);
+      }
+    });
+
+    render().catch((error) => { console.error(error); setList.innerHTML = "<p>這個瀏覽器無法保存題組（IndexedDB 無法使用）。</p>"; });
+  </script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+{
+ "format": "wordflash-picture-set",
+ "version": 1,
+ "set": {
+  "id": "sample-daily",
+  "name": "範例：生活圖卡"
+ },
+ "cards": [
+  {
+   "id": "sun",
+   "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZmFmMCIvPjxsaW5lIHgxPSIxMDAiIHkxPSIxMDAiIHgyPSIxODAuMCIgeTI9IjEwMC4wIiBzdHJva2U9IiMzYTNhM2EiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGxpbmUgeDE9IjEwMCIgeTE9IjEwMCIgeDI9IjE1Ni42IiB5Mj0iMTU2LjYiIHN0cm9rZT0iIzNhM2EzYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48bGluZSB4MT0iMTAwIiB5MT0iMTAwIiB4Mj0iMTAwLjAiIHkyPSIxODAuMCIgc3Ryb2tlPSIjM2EzYTNhIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxsaW5lIHgxPSIxMDAiIHkxPSIxMDAiIHgyPSI0My40IiB5Mj0iMTU2LjYiIHN0cm9rZT0iIzNhM2EzYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48bGluZSB4MT0iMTAwIiB5MT0iMTAwIiB4Mj0iMjAuMCIgeTI9IjEwMC4wIiBzdHJva2U9IiMzYTNhM2EiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGxpbmUgeDE9IjEwMCIgeTE9IjEwMCIgeDI9IjQzLjQiIHkyPSI0My40IiBzdHJva2U9IiMzYTNhM2EiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGxpbmUgeDE9IjEwMCIgeTE9IjEwMCIgeDI9IjEwMC4wIiB5Mj0iMjAuMCIgc3Ryb2tlPSIjM2EzYTNhIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxsaW5lIHgxPSIxMDAiIHkxPSIxMDAiIHgyPSIxNTYuNiIgeTI9IjQzLjQiIHN0cm9rZT0iIzNhM2EzYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjQ1IiBmaWxsPSIjZjdjOTQ4IiBzdHJva2U9IiMzYTNhM2EiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+",
+   "options": [
+    "ㄊㄞˋ ㄧㄤˊ",
+    "ㄊㄞˊ ㄧㄤˊ",
+    "ㄉㄞˋ ㄧㄤˊ",
+    "ㄊㄞˋ ㄧㄢˊ"
+   ],
+   "answer": "ㄊㄞˋ ㄧㄤˊ",
+   "word": "太陽"
+  },
+  {
+   "id": "fish",
+   "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZmFmMCIvPjxwYXRoIGQ9Ik00MCAxMDAgUTkwIDQ1IDE0NSAxMDAgUTkwIDE1NSA0MCAxMDAgWiIgZmlsbD0iIzdjYjdlOCIgc3Ryb2tlPSIjM2EzYTNhIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik0xNDUgMTAwIEwxODAgNzAgTDE4MCAxMzAgWiIgZmlsbD0iIzdjYjdlOCIgc3Ryb2tlPSIjM2EzYTNhIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjcwIiBjeT0iOTIiIHI9IjYiIGZpbGw9IiMzYTNhM2EiLz48L3N2Zz4=",
+   "options": [
+    "ㄩˊ",
+    "ㄩˇ",
+    "ㄧˊ"
+   ],
+   "answer": "ㄩˊ",
+   "word": "魚"
+  },
+  {
+   "id": "apple",
+   "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZmFmMCIvPjxwYXRoIGQ9Ik0xMDAgNjUgQzYwIDQ1IDMwIDg1IDQ1IDEzMCBDNTggMTY4IDg1IDE3MCAxMDAgMTU4IEMxMTUgMTcwIDE0MiAxNjggMTU1IDEzMCBDMTcwIDg1IDE0MCA0NSAxMDAgNjUgWiIgZmlsbD0iI2U4NTc0YSIgc3Ryb2tlPSIjM2EzYTNhIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik0xMDAgNjUgUTEwMiA0NSAxMTIgMzIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNhM2EzYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMTA4IDUwIFExMzAgMzAgMTQ4IDQ0IFExMjggNjIgMTA4IDUwIFoiIGZpbGw9IiM3YmJmNmEiIHN0cm9rZT0iIzNhM2EzYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=",
+   "options": [
+    "ㄆㄧㄥˊ ㄍㄨㄛˇ",
+    "ㄅㄧㄥˊ ㄍㄨㄛˇ",
+    "ㄆㄧㄣˊ ㄍㄨㄛˇ",
+    "ㄆㄧㄥˊ ㄍㄨㄛˋ"
+   ],
+   "answer": "ㄆㄧㄥˊ ㄍㄨㄛˇ",
+   "word": "蘋果"
+  },
+  {
+   "id": "moon",
+   "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZmFmMCIvPjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMmYzZDVjIi8+PHBhdGggZD0iTTEyMCAzNSBBNzAgNzAgMCAxIDAgMTUwIDE1MCBBNTUgNTUgMCAxIDEgMTIwIDM1IFoiIGZpbGw9IiNmNmUyN2EiIHN0cm9rZT0iIzNhM2EzYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=",
+   "options": [
+    "ㄩㄝˋ ㄌㄧㄤˋ",
+    "ㄩㄝˊ ㄌㄧㄤˋ"
+   ],
+   "answer": "ㄩㄝˋ ㄌㄧㄤˋ",
+   "word": "月亮"
+  },
+  {
+   "id": "star",
+   "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZmFmMCIvPjxwYXRoIGQ9Ik0xMDAgMjUgTDEyMCA3OCBMMTc3IDgwIEwxMzIgMTE1IEwxNDggMTcwIEwxMDAgMTM4IEw1MiAxNzAgTDY4IDExNSBMMjMgODAgTDgwIDc4IFoiIGZpbGw9IiNmN2M5NDgiIHN0cm9rZT0iIzNhM2EzYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=",
+   "options": [
+    "ㄒㄧㄥ ㄒㄧㄥ",
+    "ㄒㄧㄣ ㄒㄧㄣ",
+    "ㄒㄧㄥˊ ㄒㄧㄥˊ",
+    "ㄕㄥ ㄕㄥ"
+   ],
+   "answer": "ㄒㄧㄥ ㄒㄧㄥ",
+   "word": "星星"
+  },
+  {
+   "id": "umbrella",
+   "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZmFmMCIvPjxwYXRoIGQ9Ik0yNSAxMDUgUTEwMCAxMCAxNzUgMTA1IFExNTYgOTIgMTM3IDEwNSBRMTE4IDkyIDEwMCAxMDUgUTgyIDkyIDYzIDEwNSBRNDQgOTIgMjUgMTA1IFoiIGZpbGw9IiNiNjdmZDEiIHN0cm9rZT0iIzNhM2EzYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMTAwIDEwNSBMMTAwIDE2MCBRMTAwIDE3OCA4NCAxNzggUTcwIDE3OCA3MCAxNjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNhM2EzYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=",
+   "options": [
+    "ㄩˇ ㄙㄢˇ",
+    "ㄩˋ ㄙㄢˇ",
+    "ㄩˇ ㄕㄢˇ"
+   ],
+   "answer": "ㄩˇ ㄙㄢˇ",
+   "word": "雨傘"
+  },
+  {
+   "id": "flower",
+   "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZmFmMCIvPjxjaXJjbGUgY3g9IjEzOC4wIiBjeT0iODUuMCIgcj0iMjYiIGZpbGw9IiNmNGEzYzAiIHN0cm9rZT0iIzNhM2EzYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48Y2lyY2xlIGN4PSIxMTEuNyIgY3k9IjEyMS4xIiByPSIyNiIgZmlsbD0iI2Y0YTNjMCIgc3Ryb2tlPSIjM2EzYTNhIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjY5LjMiIGN5PSIxMDcuMyIgcj0iMjYiIGZpbGw9IiNmNGEzYzAiIHN0cm9rZT0iIzNhM2EzYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48Y2lyY2xlIGN4PSI2OS4zIiBjeT0iNjIuNyIgcj0iMjYiIGZpbGw9IiNmNGEzYzAiIHN0cm9rZT0iIzNhM2EzYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48Y2lyY2xlIGN4PSIxMTEuNyIgY3k9IjQ4LjkiIHI9IjI2IiBmaWxsPSIjZjRhM2MwIiBzdHJva2U9IiMzYTNhM2EiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBjeD0iMTAwIiBjeT0iODUiIHI9IjIwIiBmaWxsPSIjZjdjOTQ4IiBzdHJva2U9IiMzYTNhM2EiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTEwMCAxMjggTDEwMCAxODUiIHN0cm9rZT0iIzNhM2EzYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMTAwIDE2MCBRMTI1IDE0MCAxNDAgMTUwIFExMjIgMTcwIDEwMCAxNjAgWiIgZmlsbD0iIzdiYmY2YSIgc3Ryb2tlPSIjM2EzYTNhIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==",
+   "options": [
+    "ㄏㄨㄚ",
+    "ㄏㄨㄚˊ",
+    "ㄈㄨㄚ",
+    "ㄏㄨㄛ"
+   ],
+   "answer": "ㄏㄨㄚ",
+   "word": "花"
+  },
+  {
+   "id": "cup",
+   "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZmFmMCIvPjxwYXRoIGQ9Ik01NSA2MCBMMTQ1IDYwIEwxMzUgMTY1IFExMzMgMTc1IDEyMiAxNzUgTDc4IDE3NSBRNjcgMTc1IDY1IDE2NSBaIiBmaWxsPSIjOWZkM2M3IiBzdHJva2U9IiMzYTNhM2EiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTE0MiA4NSBRMTc1IDg1IDE3MiAxMTUgUTE3MCAxNDAgMTM4IDEzOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2EzYTNhIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik04MCA0MCBROTAgMjUgODAgMTIgTTEwNSA0MiBRMTE1IDI3IDEwNSAxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOWE5YTlhIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==",
+   "options": [
+    "ㄅㄟ ㄗ˙",
+    "ㄆㄟ ㄗ˙",
+    "ㄅㄟ ㄗˇ"
+   ],
+   "answer": "ㄅㄟ ㄗ˙",
+   "word": "杯子"
+  }
+ ]
+}

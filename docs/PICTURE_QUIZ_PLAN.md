@@ -99,6 +99,15 @@ Firebase Realtime Database 的獨立路徑（現有規則已允許，不必修�
 
 - 選項上的注音採**直式**（和課本、閃卡頁一致），重用閃卡頁的直式注音呈現方式。
 
+## 進度
+
+- 2026-11-08 試做版（測試版 `preview/picture_quiz.html`、`preview/picture_sets.html`）：
+  - 新模組：`practice-runtime.js`、`practice-ui.js`／`practice-ui.css`、`question-progress.js`、`answer-input.js`、`bopomofo.js`、`picture-questions.js`；範例題組 `picture-sample.json`（8 題、2–4 個選項）。
+  - 為了先讓擁有者看到效果，順序和原計畫不同：先做圖片題頁面與新的共用模組，閃卡頁（`canvas_words.html`）**尚未**改用這些模組，也沒有被修改。之後再讓閃卡頁改用共用模組。
+  - 練習模式、計時開關、書架顯示沿用設定頁的同一組設定；圖片題的連勝、本輪狀態與挑戰紀錄另外存放（`:picture-quiz` 結尾的 localStorage key），不會動到閃卡的紀錄。
+  - 題組只存在這台裝置的 IndexedDB，雲端同步還沒做。
+  - 測試：`WORDFLASH_SITE=preview npx playwright test`：59 項通過、1 項略過（新增 8 項圖片題測試）；正式版 51 項通過。
+
 ## 未來可考慮（未決定）
 
 - 一個帳號多位使用者（例如爸爸和孩子）：圖片題素材共用，答題紀錄依使用者分開。
