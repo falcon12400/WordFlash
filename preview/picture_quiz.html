@@ -274,7 +274,7 @@
     import { onTap } from "./answer-input.js?v=1";
     import { playAnswerSound } from "./sound-effects.js?v=1";
     import { renderVerticalZhuyin, zhuyinHeight, syllablesOf } from "./bopomofo.js?v=1";
-    import { ACTIVITY, BUILT_IN_SETS, listSets, listCards, loadImage, importBuiltIn } from "./picture-questions.js?v=3";
+    import { ACTIVITY, BUILT_IN_SETS, PICTURE_DISABLED_KEY, isCardEnabled, listSets, listCards, loadImage, importBuiltIn } from "./picture-questions.js?v=4";
 
     const SET_KEY = "wordflash_picture_set_v1";
     if (/\/preview\/[^/]*$/.test(location.pathname)) document.getElementById("flashcardLink").href = "../canvas_words.html";
@@ -562,9 +562,11 @@
       $("credit").textContent = currentSet.credit || "";
       $("credit").hidden = !currentSet.credit;
       setSelect.value = currentSet.id;
-      cards = await listCards(currentSet.id);
+      const allCards = await listCards(currentSet.id);
+      cards = allCards.filter(card => isCardEnabled(card.id));
       queue = [];
-      if (!cards.length) { renderEmpty("這個題組沒有題目。", false); return; }
+      if (!allCards.length) { renderEmpty("這個題組沒有題目。", false); return; }
+      if (!cards.length) { renderEmpty("這個題組的題目都設成不出題了，請到「題組管理」勾選要練習的題目。", false); return; }
       status.textContent = modeHint(runtime.state().mode);
       await goNext();
     };
@@ -605,6 +607,12 @@
     });
 
     window.addEventListener("storage", (event) => {
+      // Question choices changed in the sets page (another tab): reload the set
+      // unless a timed round is running, whose questions stay fixed.
+      if (event.key === PICTURE_DISABLED_KEY && !runtime.state().run && currentSet) {
+        selectSet(currentSet.id);
+        return;
+      }
       if ([PRACTICE_MODE_KEY, CHALLENGE_TIMER_KEY, CHALLENGE_PROGRESS_DISPLAY_KEY].includes(event.key)) {
         renderAll();
         if (!runtime.state().run) status.textContent = modeHint(runtime.state().mode);

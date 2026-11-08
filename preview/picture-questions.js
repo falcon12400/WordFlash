@@ -43,7 +43,29 @@ const MAX_PACKAGE_CHARS = 40_000_000;
 const SYLLABLE_PATTERN = /^˙?[ㄅ-ㄯ]{1,3}[ˊˇˋ˙ˉ]?$/u;
 const isZhuyin = (value) => value.split(" ").every(part => SYLLABLE_PATTERN.test(part));
 
+const DISABLED_KEY = "wordflash_picture_disabled_v1";
+export const PICTURE_DISABLED_KEY = DISABLED_KEY;
+
 let dbPromise = null;
+
+// Which cards are left out of practice. Kept per device in localStorage, by
+// lasting card id, so re-importing a set keeps the choice.
+const readDisabled = () => {
+  try {
+    const value = JSON.parse(localStorage.getItem(DISABLED_KEY) || "[]");
+    return new Set(Array.isArray(value) ? value.filter(id => typeof id === "string") : []);
+  } catch {
+    return new Set();
+  }
+};
+
+export const isCardEnabled = (cardId) => !readDisabled().has(cardId);
+
+export function setCardsEnabled(cardIds, enabled) {
+  const disabled = readDisabled();
+  cardIds.forEach(id => (enabled ? disabled.delete(id) : disabled.add(id)));
+  localStorage.setItem(DISABLED_KEY, JSON.stringify([...disabled]));
+}
 
 function openDb() {
   if (!dbPromise) {

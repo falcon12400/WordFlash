@@ -224,3 +224,26 @@ test("內建題組：載入翰林課文詞語 7 題", async ({ page }, testInfo)
   await expect(page.locator(".card")).toHaveCount(7);
   await shot(page, testInfo, "lesson-sets");
 });
+
+test("題組管理：取消勾選的題目不會出現在練習中", async ({ page }) => {
+  await setMode(page, "none");
+  await loadSample(page);
+  await page.goto("/picture_sets.html");
+  await page.getByRole("button", { name: "全部不出" }).click();
+  await expect(page.locator(".set-tools span")).toHaveText("出題 0 / 8 題");
+  await page.getByRole("checkbox", { name: "魚出題" }).check();
+  await page.getByRole("checkbox", { name: "花出題" }).check();
+  await expect(page.locator(".set-tools span")).toHaveText("出題 2 / 8 題");
+  await page.goto("/picture_quiz.html");
+  const seen = new Set();
+  for (let i = 0; i < 8; i += 1) {
+    seen.add(await page.locator("#pictureWord").textContent());
+    await page.locator("#nextButton").click();
+  }
+  expect([...seen].sort()).toEqual(["花", "魚"]);
+
+  await page.goto("/picture_sets.html");
+  await page.getByRole("button", { name: "全部不出" }).click();
+  await page.goto("/picture_quiz.html");
+  await expect(page.locator("#emptyState")).toContainText("都設成不出題");
+});

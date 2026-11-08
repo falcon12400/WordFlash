@@ -59,7 +59,7 @@
     .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
     .card {
       display: grid;
-      grid-template-rows: auto auto auto auto;
+      grid-template-rows: auto auto auto auto auto;
       gap: 4px;
       padding: 8px;
       border: 2px solid #2b2b2b;
@@ -70,6 +70,12 @@
     .card img { width: 100%; aspect-ratio: 1; object-fit: contain; background: #fff9ec; border-radius: 6px; }
     .card strong { font-size: 16px; }
     .card .accuracy { color: #5b554d; }
+    .card.is-off { opacity: 0.55; background: #f1ece2; }
+    .card.is-off img { filter: grayscale(1); }
+    .card-toggle { display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: 15px; cursor: pointer; }
+    .card-toggle input { width: 22px; height: 22px; margin: 0; accent-color: #2f6b2a; }
+    .set-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; }
+    .set-tools button { padding: 6px 10px; font-size: 14px; }
     .card .reading { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; letter-spacing: 0.05em; }
     code { font-size: 13px; }
     .built-in-list { display: grid; gap: 10px; }
@@ -109,7 +115,7 @@
   </main>
 
   <script type="module">
-    import { ACTIVITY, BUILT_IN_SETS, listSets, listCards, loadImage, importPackage, importBuiltIn, deleteSet } from "./picture-questions.js?v=3";
+    import { ACTIVITY, BUILT_IN_SETS, isCardEnabled, setCardsEnabled, listSets, listCards, loadImage, importPackage, importBuiltIn, deleteSet } from "./picture-questions.js?v=4";
     import { questionStats } from "./question-progress.js?v=1";
     import { accuracyOf } from "./practice-runtime.js?v=1";
 
@@ -156,12 +162,37 @@
         });
         head.append(title, remove);
         box.append(head);
+        const setCards = await listCards(set.id);
+        const tools = document.createElement("div");
+        tools.className = "set-tools";
+        const countLine = document.createElement("span");
+        const enabledCount = setCards.filter(card => isCardEnabled(card.id)).length;
+        countLine.textContent = `出題 ${enabledCount} / ${setCards.length} 題`;
+        const allOn = document.createElement("button");
+        allOn.type = "button";
+        allOn.textContent = "全部出題";
+        allOn.addEventListener("click", () => { setCardsEnabled(setCards.map(card => card.id), true); render(); });
+        const allOff = document.createElement("button");
+        allOff.type = "button";
+        allOff.textContent = "全部不出";
+        allOff.addEventListener("click", () => { setCardsEnabled(setCards.map(card => card.id), false); render(); });
+        tools.append(countLine, allOn, allOff);
+        box.append(tools);
 
         const grid = document.createElement("div");
         grid.className = "cards";
-        for (const card of await listCards(set.id)) {
+        for (const card of setCards) {
+          const enabled = isCardEnabled(card.id);
           const item = document.createElement("div");
-          item.className = "card";
+          item.className = `card${enabled ? "" : " is-off"}`;
+          const toggle = document.createElement("label");
+          toggle.className = "card-toggle";
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = enabled;
+          checkbox.setAttribute("aria-label", `${card.word || card.answer}出題`);
+          checkbox.addEventListener("change", () => { setCardsEnabled([card.id], checkbox.checked); render(); });
+          toggle.append(checkbox, document.createTextNode(enabled ? "出題" : "不出題"));
           const img = document.createElement("img");
           img.alt = card.word || card.answer;
           img.src = await loadImage(card.id);
@@ -177,7 +208,7 @@
           line.textContent = accuracy === null
             ? `尚未作答・${card.options.length} 個選項`
             : `答對 ${stats.correct}・答錯 ${stats.incorrect}・正確率 ${accuracy.toFixed(1)}%`;
-          item.append(img, label, reading, line);
+          item.append(img, label, reading, line, toggle);
           grid.append(item);
         }
         box.append(grid);
