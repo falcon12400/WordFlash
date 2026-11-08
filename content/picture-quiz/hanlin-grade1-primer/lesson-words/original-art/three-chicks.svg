@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72">
+  <defs>
+    <g id="chick">
+      <ellipse cx="0" cy="8" rx="9" ry="8" fill="#FCEA2B" stroke="#000" stroke-width="2"/>
+      <circle cx="3" cy="-4" r="6" fill="#FCEA2B" stroke="#000" stroke-width="2"/>
+      <path d="M8.5 -4.5 L12.5 -3 L8.5 -1.5 Z" fill="#F4AA41" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/>
+      <circle cx="4.5" cy="-5.5" r="1" fill="#000"/>
+      <path d="M-4 9 Q0 13 4 9" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M-3 16 V19 M3 16 V19" fill="none" stroke="#F4AA41" stroke-width="2" stroke-linecap="round"/>
+    </g>
+  </defs>
+  <path d="M4 56 H68" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"/>
+  <use href="#chick" x="14" y="37"/>
+  <use href="#chick" x="35" y="37"/>
+  <use href="#chick" x="56" y="37"/>
+</svg>

@@ -215,3 +215,12 @@ test("內建題組：載入翰林易混注音，顯示圖片來源署名", async
   await noHorizontalScroll(page, testInfo);
   await shot(page, testInfo, "hanlin-question");
 });
+
+test("內建題組：載入翰林課文詞語 7 題", async ({ page }, testInfo) => {
+  await setMode(page, "statistics");
+  await page.goto("/picture_sets.html");
+  await page.getByRole("button", { name: "載入「翰林首冊：課文詞語」" }).click();
+  await expect(page.locator("#message")).toContainText("共 7 題");
+  await expect(page.locator(".card")).toHaveCount(7);
+  await shot(page, testInfo, "lesson-sets");
+});

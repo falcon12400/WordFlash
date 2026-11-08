@@ -24,7 +24,8 @@ export const PACKAGE_FORMAT = "wordflash-picture-set";
 // copied into this device's storage when someone presses "載入".
 export const BUILT_IN_SETS = [
   { file: "picture-sets/sample-daily.json", id: "sample-daily", name: "範例：生活圖卡", description: "8 題生活物品，2 到 4 個選項。" },
-  { file: "picture-sets/hanlin-g1-confusable.json", id: "hanlin-g1-confusable", name: "翰林首冊：易混注音", description: "10 題，練習 ㄓ／ㄗ、ㄔ／ㄘ、ㄕ／ㄙ、ㄥ／ㄣ、ㄛ／ㄡ。" }
+  { file: "picture-sets/hanlin-g1-confusable.json", id: "hanlin-g1-confusable", name: "翰林首冊：易混注音", description: "10 題，練習 ㄓ／ㄗ、ㄔ／ㄘ、ㄕ／ㄙ、ㄥ／ㄣ、ㄛ／ㄡ。" },
+  { file: "picture-sets/hanlin-g1-lesson-words.json", id: "hanlin-g1-lesson-words", name: "翰林首冊：課文詞語", description: "7 題：老師、收起來、籃子、數一數、一張圖、三隻、大樹。" }
 ];
 
 export async function importBuiltIn(file) {

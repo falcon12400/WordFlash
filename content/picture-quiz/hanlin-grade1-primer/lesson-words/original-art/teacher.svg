@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72">
+  <g id="color">
+    <rect x="30" y="10" width="36" height="26" rx="2" fill="#5C9E31"/>
+    <path fill="#FFFFFF" d="M36 18 h12 M36 24 h18 M36 30 h9" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+    <path fill="#61B2E4" d="M8 64 V52 Q8 42 19 42 Q30 42 30 52 V64 Z"/>
+  </g>
+  <g id="skin">
+    <circle cx="19" cy="31" r="8" fill="#FADCBC"/>
+  </g>
+  <g id="hair">
+    <path fill="#6A462F" d="M11 30 Q11 21 19 21 Q27 21 27 30 Q24 25 19 26 Q14 25 11 30 Z"/>
+  </g>
+  <g id="line" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+    <rect x="30" y="10" width="36" height="26" rx="2"/>
+    <path d="M30 40 h36"/>
+    <circle cx="19" cy="31" r="8"/>
+    <path d="M11 30 Q11 21 19 21 Q27 21 27 30"/>
+    <path d="M8 64 V52 Q8 42 19 42 Q30 42 30 52 V64"/>
+    <path d="M26 48 L34 40 L46 26"/>
+    <circle cx="16" cy="31" r="0.8" fill="#000"/>
+    <circle cx="22" cy="31" r="0.8" fill="#000"/>
+    <path d="M17 35 Q19 36.5 21 35"/>
+  </g>
+</svg>
