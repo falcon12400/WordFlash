@@ -1,0 +1,1662 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>中文練習 - 大字顯示</title>
+  <style>
+    :root {
+      color-scheme: light;
+    }
+    [hidden] {
+      display: none !important;
+    }
+    html, body {
+      margin: 0;
+      height: 100%;
+    }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #f7f4e8 0%, #efe6d5 45%, #e8dcc8 100%);
+      font-family: "Noto Serif TC", "PingFang TC", "Heiti TC", serif;
+      color: #2b2b2b;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-height: 100dvh;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-bottom: 2px solid #2b2b2b;
+      background: rgba(255, 249, 236, 0.92);
+      backdrop-filter: blur(6px);
+    }
+    header .title {
+      font-size: 20px;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+    header .menu {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      flex-wrap: wrap;
+    }
+    header select,
+    header a,
+    header button {
+      border: 2px solid #2b2b2b;
+      border-radius: 6px;
+      padding: 6px 10px;
+      background: #fff9ec;
+      font-family: inherit;
+      font-size: 14px;
+      color: inherit;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    main {
+      display: grid;
+      place-items: center;
+      min-height: 0;
+      padding: 28px 24px 32px;
+      box-sizing: border-box;
+    }
+    .flashcard-layout {
+      width: min(92vw, 1000px);
+      display: grid;
+      grid-template-rows: auto auto auto;
+      justify-items: center;
+      gap: 16px;
+    }
+    .stage {
+      width: 100%;
+      height: min(70vh, 700px);
+      border: 6px solid #2b2b2b;
+      background: #fff9ec;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    .word-display {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 82%;
+      color: #2b2b2b;
+      font-family: var(--word-font);
+      font-size: var(--word-size);
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .zhuyin-cell {
+      position: relative;
+      display: inline-block;
+      width: 1em;
+      padding-inline-end: 1.2em;
+    }
+    .semantic-ruby {
+      display: none;
+    }
+    .character-visual {
+      display: block;
+      width: 1em;
+      line-height: 1;
+    }
+    .zhuyin-visual {
+      position: absolute;
+      left: 47%;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #2b2b2b;
+      font-family: "Microsoft JhengHei", "Noto Sans TC", "PingFang TC", sans-serif;
+      font-size: 0.22em;
+      font-weight: 600;
+      line-height: 1.05;
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+    }
+    .hint {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+    .controls button {
+      border: 2px solid #2b2b2b;
+      border-radius: 8px;
+      padding: 10px 24px;
+      background: #fff9ec;
+      font-family: inherit;
+      font-size: 16px;
+      color: inherit;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+    }
+    .practice-panel {
+      width: 100%;
+      box-sizing: border-box;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      padding: 14px 18px;
+      border: 2px solid #2b2b2b;
+      border-radius: 10px;
+      background: rgba(255, 249, 236, 0.94);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+    }
+    .practice-summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      min-width: 0;
+    }
+    .practice-summary.challenge-summary {
+      grid-template-columns: 1fr;
+    }
+    .practice-stat {
+      display: grid;
+      gap: 2px;
+      text-align: center;
+    }
+    .practice-stat span { font-size: 13px; }
+    .practice-stat strong { font-size: 24px; }
+    .answer-controls {
+      display: flex;
+      gap: 10px;
+    }
+    .answer-controls button {
+      min-height: 50px;
+      padding: 8px 18px;
+      border: 2px solid #2b2b2b;
+      border-radius: 8px;
+      background: #fff9ec;
+      color: inherit;
+      font-family: inherit;
+      font-size: 18px;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .answer-controls .correct-button { background: #e1ead8; }
+    .answer-controls .incorrect-button { background: #f1dfd7; }
+    .answer-controls button:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
+    }
+    .challenge-timer {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 2px solid #2b2b2b;
+      border-radius: 8px;
+      background: #f8edcf;
+    }
+    .challenge-timer-copy {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+    .challenge-timer-copy span { font-size: 13px; color: #5b554d; }
+    .challenge-timer-copy strong { font-size: 18px; line-height: 1.15; }
+    .challenge-timer-value {
+      min-width: 4.2ch;
+      font-family: system-ui, sans-serif;
+      font-size: 29px;
+      font-weight: 700;
+      line-height: 1;
+      text-align: right;
+    }
+    .challenge-start-button {
+      min-height: 46px;
+      padding: 8px 14px;
+      border: 2px solid #2b2b2b;
+      border-radius: 8px;
+      background: #e1ead8;
+      color: inherit;
+      font: inherit;
+      font-size: 17px;
+      cursor: pointer;
+    }
+    .challenge-timer-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .challenge-stop-button {
+      min-height: 42px;
+      padding: 7px 10px;
+      border: 2px solid #7e4439;
+      border-radius: 8px;
+      background: #fff3ef;
+      color: #65362d;
+      font: inherit;
+      font-size: 15px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .challenge-finished-note {
+      display: grid;
+      gap: 3px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 9px 12px;
+      border: 2px solid #2b2b2b;
+      border-radius: 8px;
+      background: #dce8d7;
+      text-align: center;
+    }
+    .challenge-finished-note span { color: #4c5945; font-size: 13px; }
+    .challenge-finished-note strong { font-size: 19px; }
+    .challenge-progress {
+      display: grid;
+      justify-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .challenge-number {
+      display: grid;
+      justify-items: center;
+      gap: 1px;
+    }
+    .challenge-number span, .challenge-piece-label, .challenge-empty {
+      color: #5b554d;
+      font-size: 13px;
+    }
+    .challenge-number strong {
+      font-size: 28px;
+      line-height: 1.05;
+    }
+    .challenge-pieces {
+      display: grid;
+      justify-items: start;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
+      gap: 8px;
+    }
+    .challenge-piece-row {
+      display: flex;
+      align-items: end;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
+      min-height: clamp(48px, 10vw, 62px);
+      padding: 6px 6px 3px;
+      border-bottom: 4px solid #2b2b2b;
+    }
+    /*
+       A full three-shelf bookcase changes into three compact bookcase bays.
+       Each bay holds two half-height shelves, so books are half-width and
+       half-height while the overall challenge panel remains the same height.
+       That gives roughly four times the normal capacity without adding a
+       fourth full-size row or making the page wider.
+    */
+    .challenge-pieces--compact {
+      gap: 4px;
+    }
+    .challenge-piece-row--compact {
+      display: grid;
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      gap: 2px;
+      min-height: clamp(48px, 10vw, 62px);
+      padding: 0;
+      border-bottom: 0;
+    }
+    .challenge-piece-shelf--compact {
+      display: flex;
+      align-items: end;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      min-height: clamp(23px, 5vw, 31px);
+      padding: 2px 3px 1px;
+      border-bottom: 2px solid #2b2b2b;
+    }
+    .challenge-book {
+      position: relative;
+      box-sizing: border-box;
+      width: clamp(22px, 5.25vw, 29px);
+      height: clamp(42px, 9vw, 56px);
+      border: 2px solid #2b2b2b;
+      border-right: 0;
+      border-radius: 3px 3px 0 0;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.38), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.13)), var(--piece-color);
+      box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.28), inset -3px 0 0 rgba(0, 0, 0, 0.12);
+    }
+    .challenge-book--compact {
+      width: clamp(11px, 2.625vw, 14.5px);
+      height: clamp(21px, 4.5vw, 28px);
+      border-width: 1px;
+      border-right: 0;
+      border-radius: 2px 2px 0 0;
+      box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.28), inset -1px 0 0 rgba(0, 0, 0, 0.12);
+    }
+    .challenge-book:last-child {
+      border-right: 2px solid #2b2b2b;
+    }
+    .challenge-book--compact:last-child {
+      border-right-width: 1px;
+    }
+    .challenge-book::before {
+      position: absolute;
+      top: 7px;
+      right: 4px;
+      left: 4px;
+      height: 2px;
+      background: rgba(255, 249, 236, 0.66);
+      box-shadow: 0 6px 0 rgba(255, 249, 236, 0.45), 0 12px 0 rgba(255, 249, 236, 0.28);
+      content: "";
+    }
+    .challenge-book--compact::before {
+      top: 3px;
+      right: 2px;
+      left: 2px;
+      height: 1px;
+      box-shadow: 0 3px 0 rgba(255, 249, 236, 0.45), 0 6px 0 rgba(255, 249, 236, 0.28);
+    }
+    .challenge-overflow {
+      align-self: center;
+      padding: 2px 4px;
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    /* Phone portrait: compact controls above a card that fills the remaining view. */
+    @media (max-width: 720px) and (orientation: portrait) {
+      header {
+        display: grid;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 12px 16px 14px;
+      }
+      header .title {
+        font-size: 21px;
+      }
+      header .menu {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        width: 100%;
+        gap: 9px;
+      }
+      header .menu label {
+        display: grid;
+        gap: 4px;
+        grid-column: 1 / -1;
+      }
+      header select,
+      header a,
+      header button {
+        box-sizing: border-box;
+        min-width: 0;
+        min-height: 48px;
+        padding: 8px;
+        font-size: 16px;
+      }
+      header a,
+      header button {
+        display: grid;
+        place-items: center;
+      }
+      header select {
+        width: 100%;
+      }
+      main {
+        display: block;
+        padding: 14px 12px 16px;
+      }
+      .flashcard-layout {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        grid-template-rows: minmax(220px, 1fr) auto auto auto;
+        gap: 12px;
+      }
+      .controls button {
+        width: 100%;
+        min-height: 56px;
+        padding: 12px 24px;
+        font-size: 20px;
+      }
+      .practice-panel {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 12px;
+      }
+      .challenge-number strong { font-size: 30px; }
+      .answer-controls { display: grid; grid-template-columns: 1fr 1fr; }
+      .answer-controls button { min-height: 52px; font-size: 19px; }
+      .challenge-timer { grid-template-columns: 1fr; gap: 8px; }
+      .challenge-timer--running {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+      }
+      .challenge-timer--running .challenge-timer-value { text-align: right; }
+      .challenge-start-button { width: 100%; min-height: 50px; }
+      .hint {
+        max-width: 32rem;
+        padding: 0 6px;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+      .stage {
+        min-height: 0;
+        height: 100%;
+        border-width: 5px;
+      }
+    }
+    /* Tablet and desktop: the toolbar stays horizontal and the card uses a wide reading area. */
+    @media (min-width: 721px) {
+      .flashcard-layout {
+        grid-template-rows: auto auto auto;
+      }
+      .stage {
+        width: min(88vw, 1080px);
+        height: min(68vh, 720px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">WordFlash</div>
+    <div class="menu">
+      <label id="unitControl">
+        字庫
+        <select id="unitSelect"></select>
+      </label>
+      <label id="fontControl">
+        字型
+        <select id="fontSelect"></select>
+      </label>
+      <button id="speakButton" type="button">播放讀音</button>
+      <a id="settingsLink" href="settings.html">設定</a>
+      <a id="manageLink" href="manage_words.html">字庫管理</a>
+    </div>
+  </header>
+  <main>
+    <div class="flashcard-layout">
+      <div id="stage" class="stage" role="img" aria-label="中文字卡"></div>
+      <section class="practice-panel" id="practicePanel" aria-live="polite" hidden>
+        <div class="practice-summary" id="practiceSummary"></div>
+        <div class="answer-controls">
+          <button class="correct-button" id="correctButton" type="button">答對</button>
+          <button class="incorrect-button" id="incorrectButton" type="button">答錯</button>
+        </div>
+      </section>
+      <div class="controls">
+        <button id="nextButton" type="button">換字</button>
+      </div>
+      <div class="hint" id="status">載入中...</div>
+    </div>
+  </main>
+
+  <script type="module">
+    import {
+      loadCloudUnits,
+      removeLegacyReviewUnits,
+      saveCloudUnits,
+      subscribeToUser
+    } from "./firebase-wordflash.js?v=4";
+    import * as study from "./study-data.js?v=5";
+
+    const DEFAULT_WORDS = [
+      "郭",
+      "柚",
+      "讓",
+      "推",
+      "拉",
+      "茶",
+      "走",
+      "招",
+      "地",
+      "朵",
+      "笑",
+      "臉"
+    ];
+
+    const stage = document.getElementById("stage");
+    const status = document.getElementById("status");
+    const unitSelect = document.getElementById("unitSelect");
+    const fontSelect = document.getElementById("fontSelect");
+    const speakButton = document.getElementById("speakButton");
+    const nextButton = document.getElementById("nextButton");
+    const practicePanel = document.getElementById("practicePanel");
+    const practiceSummary = document.getElementById("practiceSummary");
+    const correctButton = document.getElementById("correctButton");
+    const incorrectButton = document.getElementById("incorrectButton");
+    let index = 0;
+    let wordList = [];
+    let remaining = [];
+    let currentText = "";
+    const STORAGE_KEY = "wordflash_units_v1";
+    const FONT_KEY = "wordflash_font_family";
+    const ZHUYIN_ENABLED_KEY = "wordflash_zhuyin_enabled";
+    const DISPLAY_PREFERENCES_KEY = "wordflash_display_preferences_v1";
+    const PRACTICE_MODE_KEY = "wordflash_practice_mode_v1";
+    const PRACTICE_SESSION_KEY = "wordflash_practice_session_v1";
+    const CHALLENGE_PROGRESS_DISPLAY_KEY = "wordflash_challenge_progress_display_v1";
+    const CHALLENGE_TIMER_KEY = "wordflash_challenge_timer_v1";
+    const TIMED_CHALLENGE_RUN_KEY = "wordflash_timed_challenge_run_v1";
+    const CHALLENGE_RECORDS_KEY = "wordflash_challenge_records_v1";
+    const PRACTICE_MODES = new Set(["none", "statistics", "challenge"]);
+    const CHALLENGE_PROGRESS_DISPLAYS = new Set(["number", "blocks", "both"]);
+    const MAX_VISIBLE_CHALLENGE_ROWS = 3;
+    const DEFAULT_CHALLENGE_TIMER = { enabled: false, durationSeconds: 60 };
+    const DEFAULT_DISPLAY_PREFERENCES = {
+      showUnitControl: true,
+      showFontControl: true,
+      showSpeakButton: true,
+      showManageLink: true,
+      showHint: true
+    };
+    const DEFAULT_FONT = "'Noto Serif TC', 'PingFang TC', 'Heiti TC', serif";
+    const AUTO_ZHUYIN_MAP = {
+      "一": "ㄧ",
+      "二": "ㄦˋ",
+      "三": "ㄙㄢ",
+      "人": "ㄖㄣˊ",
+      "大": "ㄉㄚˋ",
+      "小": "ㄒㄧㄠˇ",
+      "上": "ㄕㄤˋ",
+      "下": "ㄒㄧㄚˋ",
+      "手": "ㄕㄡˇ",
+      "口": "ㄎㄡˇ",
+      "天": "ㄊㄧㄢ",
+      "地": "ㄉㄧˋ",
+      "中": "ㄓㄨㄥ",
+      "文": "ㄨㄣˊ",
+      "字": "ㄗˋ",
+      "學": "ㄒㄩㄝˊ",
+      "生": "ㄕㄥ",
+      "老": "ㄌㄠˇ",
+      "師": "ㄕ",
+      "我": "ㄨㄛˇ",
+      "你": "ㄋㄧˇ",
+      "他": "ㄊㄚ",
+      "她": "ㄊㄚ",
+      "它": "ㄊㄚ",
+      "們": "ㄇㄣ˙",
+      "的": "ㄉㄜ˙",
+      "是": "ㄕˋ",
+      "在": "ㄗㄞˋ",
+      "來": "ㄌㄞˊ",
+      "去": "ㄑㄩˋ",
+      "看": "ㄎㄢˋ",
+      "說": "ㄕㄨㄛ",
+      "讀": "ㄉㄨˊ",
+      "寫": "ㄒㄧㄝˇ",
+      "走": "ㄗㄡˇ",
+      "笑": "ㄒㄧㄠˋ",
+      "臉": "ㄌㄧㄢˇ",
+      "茶": "ㄔㄚˊ",
+      "推": "ㄊㄨㄟ",
+      "拉": "ㄌㄚ",
+      "招": "ㄓㄠ",
+      "朵": "ㄉㄨㄛˇ",
+      "讓": "ㄖㄤˋ",
+      "郭": "ㄍㄨㄛ",
+      "柚": "ㄧㄡˋ"
+    };
+    let fontFamily = localStorage.getItem(FONT_KEY) || DEFAULT_FONT;
+    let zhuyinEnabled = localStorage.getItem(ZHUYIN_ENABLED_KEY) !== "false";
+    let displayPreferences = { ...DEFAULT_DISPLAY_PREFERENCES };
+    let practiceMode = "none";
+    let practiceSession = null;
+    let challengeProgressDisplay = "both";
+    let currentUser = null;
+    let timerIntervalId = null;
+    let lastRenderedTimerSecond = null;
+    let lastTouchAnswerAt = 0;
+    let resizeRenderFrame = null;
+    let latestTimedChallengeResult = null;
+
+    const loadDisplayPreferences = () => {
+      try {
+        return {
+          ...DEFAULT_DISPLAY_PREFERENCES,
+          ...JSON.parse(localStorage.getItem(DISPLAY_PREFERENCES_KEY) || "{}")
+        };
+      } catch {
+        return { ...DEFAULT_DISPLAY_PREFERENCES };
+      }
+    };
+
+    const applyDisplayPreferences = () => {
+      document.getElementById("unitControl").hidden = !displayPreferences.showUnitControl;
+      document.getElementById("fontControl").hidden = !displayPreferences.showFontControl;
+      speakButton.hidden = !displayPreferences.showSpeakButton;
+      document.getElementById("manageLink").hidden = !displayPreferences.showManageLink;
+      status.hidden = !displayPreferences.showHint;
+    };
+
+    const loadPracticeMode = () => {
+      const savedMode = localStorage.getItem(PRACTICE_MODE_KEY);
+      return PRACTICE_MODES.has(savedMode) ? savedMode : "none";
+    };
+
+    const loadChallengeProgressDisplay = () => {
+      const savedDisplay = localStorage.getItem(CHALLENGE_PROGRESS_DISPLAY_KEY);
+      return CHALLENGE_PROGRESS_DISPLAYS.has(savedDisplay) ? savedDisplay : "both";
+    };
+
+    const normalizeChallengeDuration = (value) => {
+      const seconds = Math.round(Number(value));
+      return Number.isFinite(seconds) ? Math.min(3600, Math.max(10, seconds)) : DEFAULT_CHALLENGE_TIMER.durationSeconds;
+    };
+
+    const loadChallengeTimer = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(CHALLENGE_TIMER_KEY) || "{}");
+        return {
+          enabled: saved.enabled === true,
+          durationSeconds: normalizeChallengeDuration(saved.durationSeconds)
+        };
+      } catch {
+        return { ...DEFAULT_CHALLENGE_TIMER };
+      }
+    };
+
+    const isTimedRunStatus = (value) => value === "running" || value === "finished";
+
+    const normalizeTimedRun = (value) => {
+      if (!value || typeof value !== "object" || !isTimedRunStatus(value.status)) return null;
+      const unitName = typeof value.unitName === "string" ? value.unitName.trim() : "";
+      const startedAtMs = Number(value.startedAtMs);
+      const endsAtMs = Number(value.endsAtMs);
+      if (!unitName || !Number.isFinite(startedAtMs) || !Number.isFinite(endsAtMs) || endsAtMs <= startedAtMs) return null;
+      return {
+        version: 1,
+        mode: value.mode === "statistics" ? "statistics" : "challenge",
+        id: typeof value.id === "string" && value.id ? value.id : createTimedRunId(),
+        unitName,
+        unitNames: Array.isArray(value.unitNames) ? value.unitNames.filter(name => typeof name === "string") : [unitName],
+        words: Array.isArray(value.words) ? value.words.filter(word => typeof word === "string") : null,
+        durationSeconds: normalizeChallengeDuration(value.durationSeconds),
+        startedAtMs,
+        endsAtMs,
+        status: value.status,
+        currentStreak: Math.max(0, Math.floor(Number(value.currentStreak) || 0)),
+        bestStreak: Math.max(0, Math.floor(Number(value.bestStreak) || 0)),
+        correctCount: Math.max(0, Math.floor(Number(value.correctCount) || 0)),
+        incorrectCount: Math.max(0, Math.floor(Number(value.incorrectCount) || 0)),
+        weightSnapshot: value.weightSnapshot && typeof value.weightSnapshot === "object" ? value.weightSnapshot : null,
+        finishedAtMs: Number.isFinite(Number(value.finishedAtMs)) ? Number(value.finishedAtMs) : null
+      };
+    };
+
+    const createTimedRunId = () => (
+      globalThis.crypto?.randomUUID?.() || `timed-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    );
+
+    const loadTimedChallengeRun = () => {
+      try {
+        return normalizeTimedRun(JSON.parse(localStorage.getItem(TIMED_CHALLENGE_RUN_KEY) || "null"));
+      } catch {
+        return null;
+      }
+    };
+
+    const saveTimedChallengeRun = (run) => {
+      localStorage.setItem(TIMED_CHALLENGE_RUN_KEY, JSON.stringify(run));
+    };
+
+    const clearTimedChallengeRun = () => {
+      localStorage.removeItem(TIMED_CHALLENGE_RUN_KEY);
+    };
+
+    const loadChallengeRecords = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(CHALLENGE_RECORDS_KEY) || "null");
+        if (!saved || typeof saved !== "object" || !saved.units || typeof saved.units !== "object") {
+          return { version: 1, units: {} };
+        }
+        const units = Object.entries(saved.units).reduce((result, [name, records]) => {
+          if (typeof name === "string" && Array.isArray(records)) result[name] = records.filter((record) => record && typeof record === "object");
+          return result;
+        }, {});
+        return { version: 1, units };
+      } catch {
+        return { version: 1, units: {} };
+      }
+    };
+
+    const saveChallengeRecords = (records) => {
+      localStorage.setItem(CHALLENGE_RECORDS_KEY, JSON.stringify(records));
+    };
+
+    const getTimedChallengeRemainingSeconds = (run) => Math.max(0, Math.ceil((run.endsAtMs - Date.now()) / 1000));
+
+    const formatTimer = (seconds) => {
+      const wholeSeconds = Math.max(0, Math.floor(seconds));
+      const minutes = Math.floor(wholeSeconds / 60);
+      const remainder = String(wholeSeconds % 60).padStart(2, "0");
+      return `${minutes}:${remainder}`;
+    };
+
+    const createDefaultPracticeSession = () => ({
+      statistics: { correct: 0, incorrect: 0 },
+      challenge: { correct: 0 }
+    });
+
+    const loadPracticeSession = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(PRACTICE_SESSION_KEY) || "{}");
+        return {
+          statistics: {
+            ...createDefaultPracticeSession().statistics,
+            ...saved.statistics
+          },
+          challenge: {
+            ...createDefaultPracticeSession().challenge,
+            ...saved.challenge
+          }
+        };
+      } catch {
+        return createDefaultPracticeSession();
+      }
+    };
+
+    const savePracticeSession = () => {
+      localStorage.setItem(PRACTICE_SESSION_KEY, JSON.stringify(practiceSession));
+    };
+
+    const stopChallengeTimerTicker = () => {
+      if (timerIntervalId !== null) {
+        window.clearInterval(timerIntervalId);
+        timerIntervalId = null;
+      }
+      lastRenderedTimerSecond = null;
+    };
+
+    const upsertTimedChallengeRecord = (run, reason = "time_up") => {
+      const records = loadChallengeRecords();
+      const completedAtMs = run.finishedAtMs || Date.now();
+      const elapsedSeconds = Math.min(
+        run.durationSeconds,
+        Math.max(0, Math.round((completedAtMs - run.startedAtMs) / 1000))
+      );
+      const isStatisticsRun = run.mode === "statistics";
+      const record = {
+        id: run.id,
+        mode: isStatisticsRun ? "statistics" : "challenge",
+        unitName: run.unitName,
+        unitNames: run.unitNames,
+        completedAt: new Date(completedAtMs).toISOString(),
+        durationSeconds: run.durationSeconds,
+        elapsedSeconds,
+        correct: isStatisticsRun ? run.correctCount : run.bestStreak,
+        totalCorrect: run.correctCount,
+        incorrect: run.incorrectCount,
+        ...(isStatisticsRun ? {
+          accuracy: run.correctCount + run.incorrectCount
+            ? Number(((run.correctCount / (run.correctCount + run.incorrectCount)) * 100).toFixed(1))
+            : null
+        } : {}),
+        reason
+      };
+      const groupKey = run.unitNames?.length > 1 ? `@combined:${JSON.stringify([...run.unitNames].sort())}` : run.unitName;
+      const existing = Array.isArray(records.units[groupKey]) ? records.units[groupKey] : [];
+      const indexOfExisting = existing.findIndex((item) => item?.id === run.id);
+      if (indexOfExisting >= 0) {
+        existing[indexOfExisting] = record;
+      } else {
+        existing.unshift(record);
+      }
+      records.units[groupKey] = existing
+        .sort((first, second) => new Date(second.completedAt).getTime() - new Date(first.completedAt).getTime())
+        .slice(0, 50);
+      saveChallengeRecords(records);
+      return record;
+    };
+
+    const finishTimedChallenge = (suppliedRun = loadTimedChallengeRun(), reason = "time_up") => {
+      if (!suppliedRun) return null;
+      const run = { ...suppliedRun };
+      if (run.status === "running") {
+        run.status = "finished";
+        run.finishedAtMs = Date.now();
+        saveTimedChallengeRun(run);
+      }
+      const isStatisticsRun = run.mode === "statistics";
+      const record = upsertTimedChallengeRecord(run, reason);
+      latestTimedChallengeResult = record;
+      clearTimedChallengeRun();
+      stopChallengeTimerTicker();
+      renderPracticePanel();
+      const endingLabel = reason === "manual_stop" ? "已結束本輪" : "時間到";
+      status.textContent = isStatisticsRun
+        ? `${endingLabel}！本輪答對 ${record.correct} 題、答錯 ${record.incorrect} 題${record.accuracy === null ? "。" : `，正確率 ${Number(record.accuracy).toFixed(1)}%。`} 已保存到「${record.unitName}」的挑戰紀錄。`
+        : `${endingLabel}！本輪最高連續答對 ${record.correct} 題，已保存到「${record.unitName}」的挑戰紀錄。`;
+      return record;
+    };
+
+    const stopTimedChallenge = () => {
+      const run = loadTimedChallengeRun();
+      if (!run || run.status !== "running") return;
+      finishTimedChallenge(run, "manual_stop");
+    };
+
+    const startChallengeTimerTicker = () => {
+      if (timerIntervalId !== null) return;
+      timerIntervalId = window.setInterval(() => {
+        const run = loadTimedChallengeRun();
+        if (!run) {
+          stopChallengeTimerTicker();
+          return;
+        }
+        if (run.status === "finished" || getTimedChallengeRemainingSeconds(run) <= 0) {
+          finishTimedChallenge(run);
+          return;
+        }
+        // The controls stay usable while a child is tapping. Rebuilding the
+        // whole practice panel four times per second can interrupt a mobile
+        // hit-test, so only redraw when the visible second actually changes.
+        const remainingSeconds = getTimedChallengeRemainingSeconds(run);
+        if (remainingSeconds !== lastRenderedTimerSecond) {
+          lastRenderedTimerSecond = remainingSeconds;
+          renderPracticePanel();
+        }
+      }, 250);
+    };
+
+    const reconcileTimedChallenge = () => {
+      const run = loadTimedChallengeRun();
+      if (!run) {
+        stopChallengeTimerTicker();
+        return null;
+      }
+      if (run.status === "finished" || getTimedChallengeRemainingSeconds(run) <= 0) {
+        finishTimedChallenge(run);
+        return null;
+      }
+      startChallengeTimerTicker();
+      return run;
+    };
+
+    const startTimedChallenge = () => {
+      const timer = loadChallengeTimer();
+      if (!new Set(["statistics", "challenge"]).has(practiceMode) || !timer.enabled) return;
+      const existingRun = loadTimedChallengeRun();
+      if (existingRun?.status === "running") return;
+      if (existingRun) finishTimedChallenge(existingRun);
+      if (!wordList.length) { status.textContent = "目前沒有啟用的字詞，請到字庫管理開啟。"; return; }
+      const now = Date.now();
+      const unitNames = study.selectedUnits(state);
+      const run = {
+        version: 1,
+        mode: practiceMode,
+        id: createTimedRunId(),
+        unitName: unitNames.join("＋"),
+        unitNames,
+        words: [...wordList],
+        weightSnapshot: study.weightedSnapshot(wordList),
+        durationSeconds: timer.durationSeconds,
+        startedAtMs: now,
+        endsAtMs: now + timer.durationSeconds * 1000,
+        status: "running",
+        currentStreak: 0,
+        bestStreak: 0,
+        correctCount: 0,
+        incorrectCount: 0,
+        finishedAtMs: null
+      };
+      latestTimedChallengeResult = null;
+      saveTimedChallengeRun(run);
+      lastRenderedTimerSecond = null;
+      refillRemaining();
+      showNext();
+      startChallengeTimerTicker();
+      renderPracticePanel();
+      drawCurrentWord();
+      status.textContent = practiceMode === "statistics"
+        ? `已開始 ${timer.durationSeconds} 秒統計，本輪從 0 題開始。`
+        : `已開始 ${timer.durationSeconds} 秒計時挑戰，加油！`;
+    };
+
+    const shuffle = (arr) => {
+      for (let i = arr.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    };
+
+    const getAutoZhuyin = (text) => {
+      if (!/[\u3400-\u9fff]/.test(text) || /[A-Za-z]/.test(text)) {
+        return "";
+      }
+      const syllables = [];
+      for (const char of [...text]) {
+        const zhuyin = AUTO_ZHUYIN_MAP[char];
+        if (!zhuyin) {
+          return "";
+        }
+        syllables.push(zhuyin);
+      }
+      return syllables.join(" ");
+    };
+
+    const parseEntry = (rawValue) => {
+      const raw = String(rawValue ?? "").trim();
+      if (!raw) {
+        return { text: "", zhuyin: "" };
+      }
+      const parts = raw.split("|");
+      const text = (parts.shift() || "").trim();
+      const manualZhuyin = parts.join("|").trim();
+      return {
+        text,
+        zhuyin: manualZhuyin || getAutoZhuyin(text)
+      };
+    };
+
+    const CHINESE_CHARACTER = /[\u3400-\u9fff]/u;
+    const getZhuyinByCharacter = (text, zhuyinText) => {
+      const syllables = String(zhuyinText).trim().split(/\s+/).filter(Boolean);
+      const chineseCount = [...text].filter((character) => CHINESE_CHARACTER.test(character)).length;
+      if (!syllables.length || syllables.length !== chineseCount) return [];
+
+      let syllableIndex = 0;
+      return [...text].map((character) => (
+        CHINESE_CHARACTER.test(character) ? syllables[syllableIndex++] : ""
+      ));
+    };
+
+    const drawWord = (text, zhuyinText = "", sizingZhuyinText = zhuyinText) => {
+      const annotations = getZhuyinByCharacter(text, zhuyinText);
+      // Reserve the same horizontal room for annotations even when their
+      // visibility is turned off. This keeps the Chinese glyphs from jumping
+      // between two sizes when the user toggles the zhuyin hint.
+      const sizingAnnotations = getZhuyinByCharacter(text, sizingZhuyinText);
+      const characterCount = Math.max([...text].length, 1);
+      const annotationCount = sizingAnnotations.filter(Boolean).length;
+      const stageWidth = stage.clientWidth || 1000;
+      const stageHeight = stage.clientHeight || 700;
+      const widthLimitedSize = Math.floor((stageWidth * 0.78) / (characterCount + annotationCount * 1.1));
+      // The practice panel makes the card shorter on a phone. Cap the word by
+      // usable card height as well, so a large unannotated character is never
+      // hidden behind the card's overflow boundary.
+      const heightLimitedSize = Math.floor(stageHeight * 0.78);
+      const size = Math.max(64, Math.min(420, widthLimitedSize, heightLimitedSize));
+      const word = document.createElement("span");
+      word.className = "word-display";
+      word.style.setProperty("--word-font", fontFamily);
+      word.style.setProperty("--word-size", `${size}px`);
+
+      [...text].forEach((character, index) => {
+        const annotation = annotations[index] || "";
+        if (!annotation) {
+          word.append(document.createTextNode(character));
+          return;
+        }
+        const cell = document.createElement("span");
+        cell.className = "zhuyin-cell";
+        cell.setAttribute("aria-label", `${character}，注音 ${annotation}`);
+        const ruby = document.createElement("ruby");
+        ruby.className = "semantic-ruby";
+        ruby.setAttribute("aria-hidden", "true");
+        ruby.append(document.createTextNode(character));
+        const rt = document.createElement("rt");
+        rt.textContent = annotation;
+        ruby.append(rt);
+        const characterVisual = document.createElement("span");
+        characterVisual.className = "character-visual";
+        characterVisual.setAttribute("aria-hidden", "true");
+        characterVisual.textContent = character;
+        const visual = document.createElement("span");
+        visual.className = "zhuyin-visual";
+        visual.setAttribute("aria-hidden", "true");
+        visual.textContent = annotation;
+        cell.append(ruby, characterVisual, visual);
+        word.append(cell);
+      });
+
+      stage.replaceChildren(word);
+      stage.setAttribute("aria-label", zhuyinText ? `${text}，注音 ${zhuyinText}` : text);
+    };
+
+    const drawCurrentWord = () => {
+      const entry = parseEntry(currentText);
+      drawWord(entry.text, zhuyinEnabled ? entry.zhuyin : "", entry.zhuyin);
+    };
+
+    const getSpeechConfig = (text) => {
+      const normalized = text.trim();
+      const hasCjk = /[\u3400-\u9fff]/.test(normalized);
+      const hasLatin = /[A-Za-z]/.test(normalized);
+
+      if (hasLatin && !hasCjk) {
+        return {
+          lang: "en-US",
+          rate: 0.9
+        };
+      }
+
+      return {
+        lang: "zh-TW",
+        rate: 0.85
+      };
+    };
+
+    const speakCurrentWord = () => {
+      if (!currentText) return;
+      const entry = parseEntry(currentText);
+      if (!entry.text) return;
+      if (!("speechSynthesis" in window)) {
+        status.textContent = "這個瀏覽器不支援語音朗讀。";
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(entry.text);
+      const speechConfig = getSpeechConfig(entry.text);
+      utterance.lang = speechConfig.lang;
+      utterance.rate = speechConfig.rate;
+      utterance.onend = () => {
+        status.textContent = "點畫布或按「播放讀音」朗讀，按下方「換字」切換下一個字";
+      };
+      utterance.onerror = () => {
+        status.textContent = "播放讀音失敗，請再試一次。";
+      };
+      status.textContent = `正在播放：${entry.text}`;
+      window.speechSynthesis.speak(utterance);
+    };
+
+    const refillRemaining = () => {
+      remaining = [...wordList];
+      shuffle(remaining);
+    };
+
+    const showNext = () => {
+      if (!wordList.length) { currentText = ""; stage.replaceChildren(); return; }
+      if (practiceMode === "challenge" && localStorage.getItem(study.SAMPLING_KEY) === "weighted") {
+        const activeRun = loadTimedChallengeRun();
+        currentText = study.chooseWeighted(
+          wordList,
+          currentText,
+          activeRun?.status === "running" ? activeRun.weightSnapshot : null
+        );
+        drawCurrentWord();
+        index += 1;
+        return;
+      }
+      if (!remaining.length) {
+        refillRemaining();
+      }
+      const previousText = currentText;
+      currentText = remaining.pop();
+      // At the end of a shuffled round the next round may begin with the same
+      // card. Use another available card first, so an answer always visibly
+      // advances when the selected libraries contain more than one question.
+      const previousKey = study.wordKey(previousText);
+      const alternativeIndex = previousText
+        ? remaining.findIndex(word => study.wordKey(word) !== previousKey)
+        : -1;
+      if (alternativeIndex >= 0 && study.wordKey(currentText) === previousKey) {
+        remaining.push(currentText);
+        currentText = remaining.splice(alternativeIndex, 1)[0];
+      }
+      drawCurrentWord();
+      index += 1;
+    };
+
+    const createPracticeStat = (label, value) => {
+      const item = document.createElement("div");
+      item.className = "practice-stat";
+      const labelElement = document.createElement("span");
+      labelElement.textContent = label;
+      const valueElement = document.createElement("strong");
+      valueElement.textContent = value;
+      item.append(labelElement, valueElement);
+      return item;
+    };
+
+    const getChallengePiecesPerRow = ({ compact = false } = {}) => {
+      const sample = document.createElement("span");
+      sample.className = compact ? "challenge-book challenge-book--compact" : "challenge-book";
+      sample.setAttribute("aria-hidden", "true");
+      practiceSummary.append(sample);
+      const pieceWidth = Math.ceil(sample.getBoundingClientRect().width) || 22;
+      sample.remove();
+      const rowHorizontalInsets = compact ? 8 : 16;
+      return Math.max(1, Math.floor((practiceSummary.clientWidth - rowHorizontalInsets) / pieceWidth));
+    };
+
+    const createChallengeProgress = (correctCount) => {
+      const progress = document.createElement("div");
+      progress.className = `challenge-progress challenge-progress--${challengeProgressDisplay}`;
+      const showNumber = challengeProgressDisplay !== "blocks";
+      const showBlocks = challengeProgressDisplay !== "number";
+
+      if (showNumber) {
+        const number = document.createElement("div");
+        number.className = "challenge-number";
+        const label = document.createElement("span");
+        label.textContent = "目前連續答對";
+        const value = document.createElement("strong");
+        value.textContent = String(correctCount);
+        number.append(label, value);
+        progress.append(number);
+      }
+
+      if (showBlocks) {
+        const normalPiecesPerRow = getChallengePiecesPerRow();
+        const normalVisibleCapacity = normalPiecesPerRow * MAX_VISIBLE_CHALLENGE_ROWS;
+        const useCompactBookcase = correctCount > normalVisibleCapacity;
+        const shelvesPerCompactRow = 2;
+        const piecesPerRow = useCompactBookcase
+          ? getChallengePiecesPerRow({ compact: true })
+          : normalPiecesPerRow;
+        const visibleCapacity = piecesPerRow * MAX_VISIBLE_CHALLENGE_ROWS * (useCompactBookcase ? shelvesPerCompactRow : 1);
+        const pieces = document.createElement("div");
+        pieces.className = `challenge-pieces${useCompactBookcase ? " challenge-pieces--compact" : ""}`;
+        pieces.setAttribute("role", "img");
+        pieces.setAttribute("aria-label", `目前連續答對 ${correctCount} 題${useCompactBookcase ? "，以縮小書架顯示" : ""}`);
+        pieces.dataset.piecesPerRow = String(piecesPerRow);
+        pieces.dataset.visibleCapacity = String(visibleCapacity);
+        pieces.dataset.normalVisibleCapacity = String(normalVisibleCapacity);
+        pieces.dataset.mode = useCompactBookcase ? "compact" : "normal";
+        if (challengeProgressDisplay === "blocks") {
+          const label = document.createElement("span");
+          label.className = "challenge-piece-label";
+          label.setAttribute("aria-hidden", "true");
+          label.textContent = "連續答對積木";
+          pieces.append(label);
+        }
+
+        if (!correctCount) {
+          const empty = document.createElement("span");
+          empty.className = "challenge-empty";
+          empty.setAttribute("aria-hidden", "true");
+          empty.textContent = "答對一題，就會多一片積木";
+          pieces.append(empty);
+        } else {
+          const colors = ["#dce8d7", "#f3ddd4", "#d9e4ee", "#f1e5bd"];
+          const visibleCount = Math.min(correctCount, visibleCapacity);
+          const shelvesPerRow = useCompactBookcase ? shelvesPerCompactRow : 1;
+          for (let rowIndex = 0; rowIndex < MAX_VISIBLE_CHALLENGE_ROWS; rowIndex += 1) {
+            const rowStart = rowIndex * piecesPerRow * shelvesPerRow;
+            if (rowStart >= visibleCount) break;
+            const row = document.createElement("div");
+            row.className = `challenge-piece-row${useCompactBookcase ? " challenge-piece-row--compact" : ""}`;
+            for (let shelfIndex = 0; shelfIndex < shelvesPerRow; shelfIndex += 1) {
+              const shelfStart = rowStart + (shelfIndex * piecesPerRow);
+              if (shelfStart >= visibleCount) break;
+              const shelf = useCompactBookcase ? document.createElement("div") : row;
+              if (useCompactBookcase) {
+                shelf.className = "challenge-piece-shelf--compact";
+              }
+              for (let position = shelfStart; position < Math.min(shelfStart + piecesPerRow, visibleCount); position += 1) {
+                const piece = document.createElement("span");
+                piece.className = `challenge-book${useCompactBookcase ? " challenge-book--compact" : ""}`;
+                piece.style.setProperty("--piece-color", colors[position % colors.length]);
+                piece.setAttribute("aria-hidden", "true");
+                shelf.append(piece);
+              }
+              if (useCompactBookcase) {
+                row.append(shelf);
+              }
+            }
+            pieces.append(row);
+          }
+          if (correctCount > visibleCapacity) {
+            const overflow = document.createElement("span");
+            overflow.className = "challenge-overflow";
+            overflow.setAttribute("aria-hidden", "true");
+            overflow.textContent = `+${correctCount - visibleCapacity}`;
+            pieces.append(overflow);
+          }
+        }
+        progress.append(pieces);
+      }
+      return progress;
+    };
+
+    const createTimedChallengeControls = (run, timer) => {
+      const items = [];
+      const panel = document.createElement("div");
+      panel.className = `challenge-timer${run?.status === "running" ? " challenge-timer--running" : ""}`;
+      const copy = document.createElement("div");
+      copy.className = "challenge-timer-copy";
+      const label = document.createElement("span");
+      const value = document.createElement("strong");
+      const isStatisticsRun = run?.mode === "statistics" || (!run && practiceMode === "statistics");
+      const modeLabel = isStatisticsRun ? "統計倒數" : "計時挑戰";
+
+      if (run?.status === "running") {
+        label.textContent = `「${run.unitName}」${modeLabel}`;
+        value.textContent = "倒數中";
+        copy.append(label, value);
+        const timerValue = document.createElement("output");
+        timerValue.className = "challenge-timer-value";
+        timerValue.setAttribute("aria-label", `剩餘 ${getTimedChallengeRemainingSeconds(run)} 秒`);
+        timerValue.textContent = formatTimer(getTimedChallengeRemainingSeconds(run));
+        const actions = document.createElement("div");
+        actions.className = "challenge-timer-actions";
+        const stop = document.createElement("button");
+        stop.className = "challenge-stop-button";
+        stop.type = "button";
+        stop.dataset.action = "stop-timed-challenge";
+        stop.textContent = "結束本輪";
+        actions.append(timerValue, stop);
+        panel.append(copy, actions);
+      } else {
+        label.textContent = `準備開始${modeLabel}`;
+        value.textContent = isStatisticsRun
+          ? `每輪 ${timer.durationSeconds} 秒；答對與答錯會計入統計。`
+          : `每輪 ${timer.durationSeconds} 秒；答錯會讓連勝歸零。`;
+        copy.append(label, value);
+        const start = document.createElement("button");
+        start.className = "challenge-start-button";
+        start.type = "button";
+        start.dataset.action = "start-timed-challenge";
+        start.textContent = isStatisticsRun
+          ? `開始 ${timer.durationSeconds} 秒統計`
+          : `開始 ${timer.durationSeconds} 秒挑戰`;
+        panel.append(copy, start);
+      }
+      items.push(panel);
+
+      if (!run && latestTimedChallengeResult) {
+        const result = document.createElement("div");
+        result.className = "challenge-finished-note";
+        const label = document.createElement("span");
+        const isStatisticsResult = latestTimedChallengeResult.mode === "statistics";
+        label.textContent = isStatisticsResult
+          ? `「${latestTimedChallengeResult.unitName}」本輪統計已結束`
+          : `已保存到「${latestTimedChallengeResult.unitName}」的挑戰紀錄`;
+        const score = document.createElement("strong");
+        score.textContent = isStatisticsResult
+          ? `答對 ${latestTimedChallengeResult.correct} 題、答錯 ${latestTimedChallengeResult.incorrect} 題${latestTimedChallengeResult.accuracy === null ? "" : `，正確率 ${Number(latestTimedChallengeResult.accuracy).toFixed(1)}%`}`
+          : `本輪最高連續答對 ${latestTimedChallengeResult.correct} 題`;
+        result.append(label, score);
+        items.push(result);
+      }
+      return items;
+    };
+
+    const renderPracticePanel = () => {
+      const isPracticeActive = practiceMode !== "none";
+      const timer = loadChallengeTimer();
+      const timedRun = loadTimedChallengeRun();
+      const isTimedRunActive = timedRun?.status === "running";
+      const isTimedChallenge = timer.enabled || isTimedRunActive;
+      practicePanel.hidden = !isPracticeActive;
+      nextButton.textContent = isPracticeActive && !(isTimedChallenge && !isTimedRunActive) ? "跳過" : "換字";
+      practiceSummary.classList.toggle("challenge-summary", practiceMode === "challenge");
+      correctButton.disabled = !wordList.length || (isTimedChallenge && !isTimedRunActive);
+      incorrectButton.disabled = !wordList.length || (isTimedChallenge && !isTimedRunActive);
+      nextButton.disabled = !wordList.length;
+      unitSelect.disabled = Boolean(isTimedRunActive);
+      if (!isPracticeActive) return;
+
+      if (practiceMode === "statistics") {
+        // A timed statistics run is a new round. Keep the long-term total in
+        // practiceSession, but show this round's counters while it is active.
+        const correct = isTimedRunActive && timedRun.mode === "statistics"
+          ? timedRun.correctCount
+          : practiceSession.statistics.correct;
+        const incorrect = isTimedRunActive && timedRun.mode === "statistics"
+          ? timedRun.incorrectCount
+          : practiceSession.statistics.incorrect;
+        const total = correct + incorrect;
+        const accuracy = total ? `${((correct / total) * 100).toFixed(1)}%` : "—";
+        const statisticsItems = [
+          createPracticeStat("答對", String(correct)),
+          createPracticeStat("答錯", String(incorrect)),
+          createPracticeStat("正確率", accuracy)
+        ];
+        practiceSummary.replaceChildren(
+          ...(isTimedChallenge ? [...createTimedChallengeControls(timedRun, timer), ...statisticsItems] : statisticsItems)
+        );
+        return;
+      }
+
+      const score = isTimedChallenge ? (isTimedRunActive ? timedRun.currentStreak : 0) : practiceSession.challenge.correct;
+      const challengeItems = isTimedChallenge
+        ? [...createTimedChallengeControls(timedRun, timer), createChallengeProgress(score)]
+        : [createChallengeProgress(score)];
+      practiceSummary.replaceChildren(...challengeItems);
+    };
+
+    const recordAnswer = (isCorrect) => {
+      if (practiceMode === "none" || !currentText) return;
+      if (practiceMode === "statistics") {
+        const timer = loadChallengeTimer();
+        const timedRun = loadTimedChallengeRun();
+        const isTimedStatistics = timer.enabled || timedRun?.status === "running";
+        if (isTimedStatistics) {
+          if (!timedRun || timedRun.status !== "running") {
+            status.textContent = "請先按「開始統計」，再記錄答對或答錯。";
+            return;
+          }
+          if (getTimedChallengeRemainingSeconds(timedRun) <= 0) {
+            finishTimedChallenge(timedRun);
+            return;
+          }
+          const key = isCorrect ? "correct" : "incorrect";
+          timedRun[`${key}Count`] += 1;
+          saveTimedChallengeRun(timedRun);
+        }
+        const key = isCorrect ? "correct" : "incorrect";
+        practiceSession.statistics[key] += 1;
+        savePracticeSession();
+      } else {
+        const timer = loadChallengeTimer();
+        const timedRun = loadTimedChallengeRun();
+        const isTimedChallenge = timer.enabled || timedRun?.status === "running";
+        if (isTimedChallenge) {
+          if (!timedRun || timedRun.status !== "running") {
+            status.textContent = "請先按「開始挑戰」，再記錄答對或答錯。";
+            return;
+          }
+          if (getTimedChallengeRemainingSeconds(timedRun) <= 0) {
+            finishTimedChallenge(timedRun);
+            return;
+          }
+          if (isCorrect) {
+            timedRun.currentStreak += 1;
+            timedRun.bestStreak = Math.max(timedRun.bestStreak, timedRun.currentStreak);
+            timedRun.correctCount += 1;
+          } else {
+            timedRun.currentStreak = 0;
+            timedRun.incorrectCount += 1;
+          }
+          saveTimedChallengeRun(timedRun);
+        } else if (isCorrect) {
+          practiceSession.challenge.correct += 1;
+          savePracticeSession();
+        } else {
+          practiceSession.challenge.correct = 0;
+          savePracticeSession();
+        }
+      }
+      study.recordWordAnswer(currentText, isCorrect);
+      // Answer results are part of the signed-in practice record too.
+      saveUnits(state);
+      renderPracticePanel();
+      showNext();
+      status.textContent = isCorrect ? "已記錄答對，已換下一題。" : "已記錄答錯，已換下一題。";
+    };
+
+    stage.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      speakCurrentWord();
+    });
+
+    const loadUnits = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+      return null;
+    };
+
+    const saveUnits = (data) => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      if (currentUser) {
+        saveCloudUnits(currentUser, data, study.organizer(), study.cloudData()).catch((error) => {
+          console.error("WordFlash cloud sync failed", error);
+          status.textContent = "已儲存在這台裝置，但雲端同步失敗；請稍後再試。";
+        });
+      }
+    };
+
+    const startWithWords = (words) => {
+      wordList = [...(words || [])];
+      index = 0;
+      refillRemaining();
+      showNext();
+      status.textContent = wordList.length ? "點畫布或按「播放讀音」朗讀，按下方「換字」切換下一個字" : "目前沒有啟用的字詞，請到字庫管理開啟。";
+    };
+
+    const refreshUnitSelect = (units, current) => {
+      unitSelect.innerHTML = "";
+      study.sortUnitNames(Object.keys(units)).forEach((name) => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        unitSelect.appendChild(option);
+      });
+      const selected = study.selectedUnits({ units, current });
+      if (selected.length > 1) {
+        const option = document.createElement("option");
+        option.value = "__wordflash_combined__";
+        option.textContent = selected.join("＋");
+        unitSelect.appendChild(option);
+        unitSelect.value = option.value;
+      } else {
+        unitSelect.value = selected[0] || current;
+      }
+    };
+
+    const fontOptions = [
+      { label: "微軟正黑體（Microsoft JhengHei）", value: "'Microsoft JhengHei', 'PingFang TC', sans-serif" },
+      { label: "新細明體（PMingLiU）", value: "'PMingLiU', 'MingLiU', serif" },
+      { label: "標楷體", value: "'標楷體-繁', 'BiauKaiTC-Regular', 'BiauKai', 'DFKai-SB', 'KaiU', serif" },
+      { label: "仿宋（FangSong）", value: "'FangSong', 'STFangsong', serif" },
+      { label: "黑體（Heiti TC）", value: "'Heiti TC', 'PingFang TC', sans-serif" },
+      { label: "Times New Roman", value: "'Times New Roman', Times, serif" },
+      { label: "Georgia", value: "Georgia, serif" },
+      { label: "Arial", value: "Arial, Helvetica, sans-serif" },
+      { label: "Helvetica", value: "Helvetica, Arial, sans-serif" },
+      { label: "Verdana", value: "Verdana, Geneva, sans-serif" }
+    ];
+
+    const initFonts = () => {
+      fontSelect.innerHTML = "";
+      fontOptions.forEach((font) => {
+        const option = document.createElement("option");
+        option.value = font.value;
+        option.textContent = font.label;
+        fontSelect.appendChild(option);
+      });
+      fontSelect.value = fontFamily;
+    };
+
+    const initUnits = () => {
+      let data = loadUnits();
+      if (!data || !data.units || !Object.keys(data.units).length) {
+        data = {
+          current: "第一字庫",
+          units: {
+            "第一字庫": DEFAULT_WORDS
+          }
+        };
+        saveUnits(data);
+      }
+      refreshUnitSelect(data.units, data.current);
+      startWithWords(study.practiceWords(data));
+      return data;
+    };
+
+    let state = initUnits();
+    initFonts();
+    displayPreferences = loadDisplayPreferences();
+    practiceMode = loadPracticeMode();
+    practiceSession = loadPracticeSession();
+    challengeProgressDisplay = loadChallengeProgressDisplay();
+    const recoveredTimedRun = reconcileTimedChallenge();
+    if (recoveredTimedRun?.status === "running" && recoveredTimedRun.words) {
+      startWithWords(recoveredTimedRun.words);
+    }
+    if (recoveredTimedRun?.status === "running" && state.units[recoveredTimedRun.unitName] && state.current !== recoveredTimedRun.unitName) {
+      state.current = recoveredTimedRun.unitName;
+      refreshUnitSelect(state.units, state.current);
+      startWithWords(state.units[state.current]);
+    }
+    applyDisplayPreferences();
+    renderPracticePanel();
+    if (currentText) {
+      drawCurrentWord();
+    }
+    if (!latestTimedChallengeResult && wordList.length) {
+      status.textContent = "點畫布或按「播放讀音」朗讀，按下方「換字」切換下一個字";
+    }
+
+    unitSelect.addEventListener("change", () => {
+      if (loadTimedChallengeRun()?.status === "running") {
+        unitSelect.value = state.current;
+        status.textContent = "計時挑戰進行中，請等本輪結束後再切換字庫。";
+        return;
+      }
+      const name = unitSelect.value;
+      if (name === "__wordflash_combined__") return;
+      state.current = name;
+      study.saveSelectedUnits([name]);
+      saveUnits(state);
+      refreshUnitSelect(state.units, name);
+      startWithWords(study.practiceWords(state));
+      renderPracticePanel();
+    });
+
+    fontSelect.addEventListener("change", () => {
+      fontFamily = fontSelect.value;
+      localStorage.setItem(FONT_KEY, fontFamily);
+      if (currentText) {
+        drawCurrentWord();
+      }
+    });
+
+    speakButton.addEventListener("click", speakCurrentWord);
+    nextButton.addEventListener("click", showNext);
+    const answerWithTouchSupport = (isCorrect, event) => {
+      if (event.type === "pointerup" && (event.pointerType === "touch" || event.pointerType === "pen")) {
+        event.preventDefault();
+        lastTouchAnswerAt = Date.now();
+        recordAnswer(isCorrect);
+        return;
+      }
+      // A touch pointerup normally creates a click afterwards. It has already
+      // recorded the answer, so ignore only that duplicate click; keyboard and
+      // mouse clicks continue to use the standard event.
+      if (event.type === "click" && Date.now() - lastTouchAnswerAt < 750 && event.detail !== 0) return;
+      if (event.type === "click") recordAnswer(isCorrect);
+    };
+    correctButton.addEventListener("pointerup", (event) => answerWithTouchSupport(true, event));
+    incorrectButton.addEventListener("pointerup", (event) => answerWithTouchSupport(false, event));
+    correctButton.addEventListener("click", (event) => answerWithTouchSupport(true, event));
+    incorrectButton.addEventListener("click", (event) => answerWithTouchSupport(false, event));
+    practiceSummary.addEventListener("click", (event) => {
+      const startButton = event.target.closest('[data-action="start-timed-challenge"]');
+      if (startButton) startTimedChallenge();
+      const stopButton = event.target.closest('[data-action="stop-timed-challenge"]');
+      if (stopButton) stopTimedChallenge();
+    });
+    subscribeToUser(async (user) => {
+      currentUser = user;
+      if (!user) return;
+      try {
+        const cloudUnits = await loadCloudUnits(user);
+        if (!cloudUnits) {
+          status.textContent = "已登入 Google；請到設定頁上傳這台裝置的字庫。";
+          return;
+        }
+        if (loadTimedChallengeRun()?.status === "running") {
+          return;
+        }
+        const reviewCleanup = removeLegacyReviewUnits(cloudUnits);
+        state = reviewCleanup.library || cloudUnits;
+        if (state.organizer) study.saveOrganizer(state.organizer);
+        if (state.study) study.applyCloudData(state.study);
+        study.saveSelectedUnits(study.selectedUnits(state));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (reviewCleanup.removed.length) {
+          await saveCloudUnits(currentUser, state, study.organizer(), study.cloudData());
+        }
+        refreshUnitSelect(state.units, state.current);
+        startWithWords(study.practiceWords(state));
+        renderPracticePanel();
+        status.textContent = reviewCleanup.removed.length
+          ? `已移除舊字庫「${reviewCleanup.removed.join("、")}」；請改用複合字庫。`
+          : "已載入你的雲端字庫。";
+      } catch (error) {
+        console.error("WordFlash cloud load failed", error);
+        status.textContent = "Google 已登入，但暫時無法讀取雲端字庫。";
+      }
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        const run = loadTimedChallengeRun();
+        if (run && (run.status === "finished" || getTimedChallengeRemainingSeconds(run) <= 0)) {
+          finishTimedChallenge(run);
+        } else if (run?.status === "running") {
+          renderPracticePanel();
+        }
+      }
+    });
+
+    window.addEventListener("storage", (event) => {
+      if ([study.SELECTION_KEY, study.DISABLED_KEY, STORAGE_KEY].includes(event.key)) {
+        if (loadTimedChallengeRun()?.status === "running") return;
+        state = loadUnits() || state;
+        refreshUnitSelect(state.units, state.current);
+        startWithWords(study.practiceWords(state));
+        renderPracticePanel();
+        return;
+      }
+      if (event.key === FONT_KEY) {
+        fontFamily = localStorage.getItem(FONT_KEY) || DEFAULT_FONT;
+      } else if (event.key === ZHUYIN_ENABLED_KEY) {
+        zhuyinEnabled = localStorage.getItem(ZHUYIN_ENABLED_KEY) !== "false";
+      } else if (event.key === DISPLAY_PREFERENCES_KEY) {
+        displayPreferences = loadDisplayPreferences();
+        applyDisplayPreferences();
+      } else if (event.key === PRACTICE_MODE_KEY) {
+        practiceMode = loadPracticeMode();
+        renderPracticePanel();
+      } else if (event.key === PRACTICE_SESSION_KEY) {
+        practiceSession = loadPracticeSession();
+        renderPracticePanel();
+      } else if (event.key === CHALLENGE_PROGRESS_DISPLAY_KEY) {
+        challengeProgressDisplay = loadChallengeProgressDisplay();
+        renderPracticePanel();
+      } else if (event.key === CHALLENGE_TIMER_KEY) {
+        renderPracticePanel();
+      } else if (event.key === TIMED_CHALLENGE_RUN_KEY) {
+        reconcileTimedChallenge();
+        renderPracticePanel();
+      } else {
+        return;
+      }
+      if (currentText) {
+        drawCurrentWord();
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      if (resizeRenderFrame !== null) return;
+      resizeRenderFrame = window.requestAnimationFrame(() => {
+        resizeRenderFrame = null;
+        if (practiceMode === "challenge" && challengeProgressDisplay !== "number") {
+          renderPracticePanel();
+        }
+        if (currentText) {
+          drawCurrentWord();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

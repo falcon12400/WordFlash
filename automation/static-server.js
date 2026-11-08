@@ -2,7 +2,9 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
-const root = path.resolve(__dirname, "..");
+// WORDFLASH_SITE=preview serves the preview copy (../preview) instead of the live site files.
+const root = path.resolve(__dirname, "..", process.env.WORDFLASH_SITE || "");
+const port = Number(process.env.WORDFLASH_PORT || 4173);
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
@@ -31,6 +33,6 @@ http.createServer((request, response) => {
     });
     response.end(content);
   });
-}).listen(4173, "127.0.0.1", () => {
-  console.log("WordFlash test server: http://127.0.0.1:4173");
+}).listen(port, "127.0.0.1", () => {
+  console.log(`WordFlash test server: http://127.0.0.1:${port} (${root})`);
 });

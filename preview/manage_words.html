@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WordFlash - 字庫管理</title>
+  <style>
+    [hidden] { display: none !important; }
+    :root {
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+    }
+    body {
+      background: radial-gradient(circle at top, #f7f4e8 0%, #efe6d5 45%, #e8dcc8 100%);
+      font-family: "Noto Serif TC", "PingFang TC", "Heiti TC", serif;
+      color: #2b2b2b;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-bottom: 2px solid #2b2b2b;
+      background: rgba(255, 249, 236, 0.92);
+      backdrop-filter: blur(6px);
+    }
+    header .title {
+      font-size: 20px;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+    header a {
+      border: 2px solid #2b2b2b;
+      border-radius: 6px;
+      padding: 6px 10px;
+      background: #fff9ec;
+      font-family: inherit;
+      font-size: 14px;
+      color: inherit;
+      text-decoration: none;
+    }
+    header button {
+      border: 2px solid #2b2b2b;
+      border-radius: 6px;
+      padding: 6px 10px;
+      background: #fff9ec;
+      font-family: inherit;
+      font-size: 14px;
+      color: inherit;
+      cursor: pointer;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .account-status { font-size: 13px; color: #5b554d; }
+    main {
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      min-width: 0;
+    }
+    .panel {
+      width: min(100%, 820px);
+      min-width: 0;
+      background: rgba(255, 249, 236, 0.92);
+      border: 2px solid #2b2b2b;
+      border-radius: 10px;
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+    }
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+    .field label {
+      font-size: 14px;
+    }
+    select,
+    input,
+    textarea,
+    button {
+      padding: 8px 10px;
+      border: 2px solid #2b2b2b;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fff9ec;
+    }
+    input,
+    textarea {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 140px;
+    }
+    button:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .hint {
+      font-size: 14px;
+      letter-spacing: 0.06em;
+    }
+    .reading-choices {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 2px dashed #2b2b2b;
+      border-radius: 6px;
+      background: rgba(255, 249, 236, 0.62);
+    }
+    .reading-choices[hidden] {
+      display: none;
+    }
+    .reading-choice {
+      display: grid;
+      gap: 5px;
+    }
+    .study-panel { margin: 20px 0; padding: 16px; border: 2px solid #2b2b2b; border-radius: 10px; background: #fff9ec; }
+    .study-panel h2 { margin: 0 0 8px; font-size: 20px; }
+    .study-panel p { color: #5b554d; line-height: 1.5; }
+    .study-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .study-tools input, .study-tools select { min-height: 44px; max-width: 100%; }
+    .study-list { display: grid; gap: 7px; }
+    .study-word { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 10px; border: 1px solid #8f8676; border-radius: 8px; }
+    .study-word label { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; min-height: 44px; }
+    .study-word input { width: 23px; height: 23px; flex: 0 0 auto; accent-color: #756c58; }
+    .study-word-text { overflow-wrap: anywhere; font-size: 19px; }
+    .study-result { color: #5b554d; text-align: right; font-size: 14px; flex: 0 0 auto; }
+    @media (max-width: 720px) {
+      header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .header-actions { justify-content: flex-start; width: 100%; }
+      .actions {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">WordFlash</div>
+    <div class="header-actions">
+      <span class="account-status" id="accountStatus" aria-live="polite">正在確認登入狀態…</span>
+      <button id="googleSignIn" type="button">Google 登入</button>
+      <button id="googleSignOut" type="button" hidden>登出</button>
+      <a href="canvas_words.html">回到顯示頁</a>
+    </div>
+  </header>
+  <main>
+    <section class="panel">
+      <div class="field" id="unitSelectorField">
+        <label for="unitSelect">字庫</label>
+        <select id="unitSelect"></select>
+      </div>
+      <div class="actions" id="unitActions">
+        <button id="addUnit" type="button">新增字庫</button>
+        <button id="deleteUnit" type="button">刪除字庫</button>
+      </div>
+      <section class="study-panel" aria-labelledby="studyTitle">
+        <h2 id="studyTitle">單字清單與正確率</h2>
+        <p>關閉的字詞不會出題，紀錄仍會保留。文字及儲存的注音都相同時，不同字庫共用紀錄；資料只存在這台裝置。修改文字或注音後會視為另一個項目，原紀錄不會自動移轉。</p>
+        <div class="study-tools">
+          <input id="studySearch" type="search" placeholder="搜尋字詞" aria-label="搜尋字詞" />
+          <select id="studyFilter" aria-label="篩選字詞">
+            <option value="all">全部字詞</option>
+            <option value="unseen">尚未練習</option>
+            <option value="needs">需要練習</option>
+            <option value="disabled">已停用</option>
+          </select>
+          <button id="enableAllWords" type="button">全部啟用</button>
+          <button id="disableAllWords" type="button">全部停用</button>
+        </div>
+        <div id="studyList" class="study-list"></div>
+        <p id="studyListStatus" aria-live="polite"></p>
+      </section>
+      <div class="field" id="wordEditor">
+        <label for="unitWords">字庫內容（每行一個字或詞，可用「文字|注音」手動指定）</label>
+        <textarea id="unitWords" rows="8"></textarea>
+      </div>
+      <div class="actions" id="wordEditorActions">
+        <button id="saveUnit" type="button">儲存字庫</button>
+        <button id="refreshZhuyin" type="button">重新查詢注音</button>
+      </div>
+      <section class="reading-choices" id="readingChoices" hidden>
+        <strong>請選擇多音字讀音</strong>
+        <div id="readingChoiceList"></div>
+        <button id="applyReadings" type="button">套用選擇並儲存</button>
+      </section>
+      <div class="hint" id="status">按「儲存字庫」後，系統會先以整個詞向萌典查詢注音，再逐字補查。沒有詞條的多音字會請你選擇讀音；手動輸入「文字|注音」的內容會保留不變。</div>
+    </section>
+  </main>
+
+  <script type="module">
+    import {
+      loadCloudUnits,
+      saveCloudUnits,
+      signInWithGoogle,
+      signOutFromGoogle,
+      subscribeToUser
+    } from "./firebase-wordflash.js?v=3";
+    import * as study from "./study-data.js?v=5";
+
+    const DEFAULT_WORDS = [
+      "郭",
+      "柚",
+      "讓",
+      "推",
+      "拉",
+      "茶",
+      "走",
+      "招",
+      "地",
+      "朵",
+      "笑",
+      "臉"
+    ];
+
+    const STORAGE_KEY = "wordflash_units_v1";
+    const unitSelect = document.getElementById("unitSelect");
+    const addUnitBtn = document.getElementById("addUnit");
+    const deleteUnitBtn = document.getElementById("deleteUnit");
+    const unitWords = document.getElementById("unitWords");
+    const saveUnitBtn = document.getElementById("saveUnit");
+    const refreshZhuyinBtn = document.getElementById("refreshZhuyin");
+    const readingChoices = document.getElementById("readingChoices");
+    const readingChoiceList = document.getElementById("readingChoiceList");
+    const applyReadingsBtn = document.getElementById("applyReadings");
+    const status = document.getElementById("status");
+    const accountStatus = document.getElementById("accountStatus");
+    const googleSignIn = document.getElementById("googleSignIn");
+    const googleSignOut = document.getElementById("googleSignOut");
+    let pendingReadings = [];
+    let currentUser = null;
+
+    const loadUnits = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+      return null;
+    };
+
+    const saveUnits = (data) => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      queueMicrotask(() => renderWordList());
+      if (currentUser) {
+        saveCloudUnits(currentUser, data, study.organizer(), study.cloudData()).catch((error) => {
+          console.error("WordFlash cloud sync failed", error);
+          status.textContent = "已儲存在這台裝置，但雲端同步失敗；請稍後再試。";
+        });
+      }
+    };
+
+    const normalizeWords = (text) => text
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    const savePracticeData = () => {
+      if (!currentUser) return;
+      saveCloudUnits(currentUser, state, study.organizer(), study.cloudData()).catch((error) => {
+        console.error("WordFlash practice data sync failed", error);
+        status.textContent = "已儲存在這台裝置，但雲端同步失敗；請稍後再試。";
+      });
+    };
+
+    const CHINESE_CHARACTER = /[\u3400-\u9fff]/u;
+    const MOEDICT_API_BASE = "https://www.moedict.tw/a/";
+    const lookupCache = new Map();
+
+    const splitEntry = (rawValue) => {
+      const parts = String(rawValue ?? "").split("|");
+      return {
+        text: (parts.shift() || "").trim(),
+        zhuyin: parts.join("|").trim()
+      };
+    };
+
+    const lookupBopomofo = async (text) => {
+      if (lookupCache.has(text)) return lookupCache.get(text);
+
+      const request = fetch(`${MOEDICT_API_BASE}${encodeURIComponent(text)}.json`)
+        .then(async (response) => {
+          if (!response.ok) return [];
+          const data = await response.json();
+          return [...new Set((data.h || [])
+            .map((item) => typeof item.b === "string" ? item.b.trim() : "")
+            .filter(Boolean))];
+        })
+        .catch(() => []);
+
+      lookupCache.set(text, request);
+      return request;
+    };
+
+    const hasMatchingSyllableCount = (text, zhuyin) => {
+      const chineseCount = [...text].filter((character) => CHINESE_CHARACTER.test(character)).length;
+      const syllableCount = String(zhuyin).trim().split(/\s+/).filter(Boolean).length;
+      return chineseCount > 0 && chineseCount === syllableCount;
+    };
+
+    const lookupZhuyin = async (text) => {
+      const phraseZhuyin = (await lookupBopomofo(text))
+        .find((reading) => hasMatchingSyllableCount(text, reading));
+      // 詞條查詢能保留上下文，例如「重新」的「重」讀 ㄔㄨㄥˊ，
+      // 而「很重」中的「重」讀 ㄓㄨㄥˋ。
+      if (phraseZhuyin) return { zhuyin: phraseZhuyin, ambiguities: [] };
+
+      const characters = [...text].filter((character) => CHINESE_CHARACTER.test(character));
+      if (!characters.length) return { zhuyin: "", ambiguities: [] };
+
+      const candidates = await Promise.all(characters.map(lookupBopomofo));
+      if (!candidates.every((readings) => readings.length)) {
+        return { zhuyin: "", ambiguities: [] };
+      }
+
+      const ambiguities = candidates
+        .map((readings, index) => readings.length > 1 ? {
+          character: characters[index],
+          syllableIndex: index,
+          readings
+        } : null)
+        .filter(Boolean);
+
+      return {
+        zhuyin: ambiguities.length ? "" : candidates.map((readings) => readings[0]).join(" "),
+        ambiguities,
+        fallbackReadings: candidates.map((readings) => readings[0])
+      };
+    };
+
+    const annotateEntry = async (rawValue) => {
+      const entry = splitEntry(rawValue);
+      if (!entry.text) {
+        return { value: String(rawValue).trim(), annotated: false, failed: false };
+      }
+      if (entry.zhuyin) {
+        return { value: `${entry.text}|${entry.zhuyin}`, annotated: false, failed: false };
+      }
+      if (!CHINESE_CHARACTER.test(entry.text)) {
+        return { value: entry.text, annotated: false, failed: false };
+      }
+
+      const lookup = await lookupZhuyin(entry.text);
+      if (lookup.ambiguities.length) {
+        return {
+          value: entry.text,
+          annotated: false,
+          failed: false,
+          ambiguities: lookup.ambiguities,
+          fallbackReadings: lookup.fallbackReadings
+        };
+      }
+      if (!lookup.zhuyin) {
+        return { value: entry.text, annotated: false, failed: true };
+      }
+
+      return { value: `${entry.text}|${lookup.zhuyin}`, annotated: true, failed: false };
+    };
+
+
+    const refreshUnitSelect = (units, current) => {
+      unitSelect.innerHTML = "";
+      study.sortUnitNames(Object.keys(units)).forEach((name) => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        unitSelect.appendChild(option);
+      });
+      unitSelect.value = current;
+    };
+
+    const view = new URLSearchParams(location.search);
+    // 字庫管理中心以 unit= 指定要檢視的字庫。這個頁面登入後會再非同步
+    // 載入 Firebase 的完整資料；兩次載入都必須維持這個指定，不能被帳號
+    // 上次使用的 current 字庫覆蓋，否則樹狀目錄與右側內容會不一致。
+    const requestedUnit = view.get("unit")?.trim() || "";
+    const currentUnitForView = (units, savedCurrent) => {
+      if (requestedUnit && Object.hasOwn(units, requestedUnit)) return requestedUnit;
+      if (savedCurrent && Object.hasOwn(units, savedCurrent)) return savedCurrent;
+      return Object.keys(units)[0] || "";
+    };
+    const initUnits = () => {
+      let data = loadUnits();
+      if (!data || !data.units || !Object.keys(data.units).length) {
+        data = {
+          current: "第一字庫",
+          units: {
+            "第一字庫": DEFAULT_WORDS
+          }
+        };
+        saveUnits(data);
+      }
+      data.current = currentUnitForView(data.units, data.current);
+      refreshUnitSelect(data.units, data.current);
+      unitWords.value = data.units[data.current].join("\n");
+      return data;
+    };
+
+    let state = initUnits();
+    if (view.has("embedded")) {
+      document.querySelector("body > header").hidden = true;
+      document.querySelector("main").style.padding = "16px";
+      if (view.get("unit")) ["unitSelectorField", "unitActions"].forEach(id => document.getElementById(id).hidden = true);
+      if (["manage", "add"].includes(view.get("view"))) document.querySelector(".study-panel").hidden = true;
+      if (view.get("view") === "add") {
+        ["unitSelectorField", "wordEditor", "wordEditorActions", "deleteUnit"].forEach(id => document.getElementById(id).hidden = true);
+        status.textContent = "按「新增字庫」輸入名稱，接著輸入字詞並儲存。";
+      }
+      if (view.get("view") === "words") {
+        ["unitActions", "wordEditor", "wordEditorActions", "readingChoices", "status"].forEach(id => document.getElementById(id).hidden = true);
+      }
+    }
+    window.wordflashHasUnsavedChanges = () => view.get("view") !== "words" && unitWords.value !== (state.units[unitSelect.value] || []).join("\n");
+    window.addEventListener("beforeunload", event => { if (window.wordflashHasUnsavedChanges()) { event.preventDefault(); event.returnValue = ""; } });
+
+    const studyList = document.getElementById("studyList");
+    const studySearch = document.getElementById("studySearch");
+    const studyFilter = document.getElementById("studyFilter");
+    const studyListStatus = document.getElementById("studyListStatus");
+    const timerActive = () => {
+      try {
+        const run = JSON.parse(localStorage.getItem("wordflash_timed_challenge_run_v1") || "null");
+        return run?.status === "running" && Number(run.endsAtMs) > Date.now();
+      } catch { return false; }
+    };
+    const renderWordList = () => {
+      const name = unitSelect.value;
+      const words = state.units[name] || [];
+      const query = studySearch.value.trim().toLocaleLowerCase();
+      const filter = studyFilter.value;
+      const locked = timerActive();
+      studyList.replaceChildren();
+      let visible = 0;
+      words.forEach(raw => {
+        const { correct, incorrect } = study.wordStats(raw);
+        const total = correct + incorrect;
+        const enabled = study.isEnabled(name, raw);
+        if (query && !String(raw).toLocaleLowerCase().includes(query)) return;
+        if (filter === "unseen" && total) return;
+        if (filter === "needs" && (!total || (total >= 3 && correct / total >= 0.8))) return;
+        if (filter === "disabled" && enabled) return;
+        visible += 1;
+        const row = document.createElement("div");
+        row.className = "study-word";
+        const label = document.createElement("label");
+        const toggle = document.createElement("input");
+        toggle.type = "checkbox";
+        toggle.checked = enabled;
+        toggle.disabled = locked;
+        toggle.setAttribute("aria-label", `啟用 ${String(raw).split("|")[0]}`);
+        toggle.addEventListener("change", () => {
+          if (timerActive()) { renderWordList(); return; }
+          study.setEnabled(name, raw, toggle.checked);
+          savePracticeData();
+          renderWordList();
+        });
+        const word = document.createElement("span");
+        word.className = "study-word-text";
+        word.textContent = String(raw).replace("|", "　");
+        label.append(toggle, word);
+        const result = document.createElement("span");
+        result.className = "study-result";
+        result.textContent = total ? `${(correct / total * 100).toFixed(1)}%（對 ${correct}／錯 ${incorrect}）` : "尚未練習";
+        row.append(label, result);
+        studyList.append(row);
+      });
+      studyListStatus.textContent = locked ? "計時挑戰進行中，暫時不能變更字詞啟用狀態。" : `顯示 ${visible} / ${words.length} 個字詞。`;
+      document.getElementById("enableAllWords").disabled = locked || !words.length;
+      document.getElementById("disableAllWords").disabled = locked || !words.length;
+    };
+    studySearch.addEventListener("input", renderWordList);
+    studyFilter.addEventListener("change", renderWordList);
+    document.getElementById("enableAllWords").addEventListener("click", () => {
+      if (timerActive()) return;
+      (state.units[unitSelect.value] || []).forEach(raw => study.setEnabled(unitSelect.value, raw, true));
+      savePracticeData();
+      renderWordList();
+    });
+    document.getElementById("disableAllWords").addEventListener("click", () => {
+      if (timerActive()) return;
+      (state.units[unitSelect.value] || []).forEach(raw => study.setEnabled(unitSelect.value, raw, false));
+      savePracticeData();
+      renderWordList();
+    });
+    window.addEventListener("storage", event => {
+      if ([study.WORD_STATS_KEY, study.DISABLED_KEY, "wordflash_timed_challenge_run_v1"].includes(event.key)) renderWordList();
+    });
+    renderWordList();
+
+    unitSelect.addEventListener("change", () => {
+      const name = unitSelect.value;
+      if (view.get("view") !== "words" && unitWords.value !== (state.units[state.current] || []).join("\n") && !confirm("尚有未儲存的字庫內容，確定要切換嗎？")) { unitSelect.value = state.current; return; }
+      state.current = name;
+      unitWords.value = state.units[name].join("\n");
+      saveUnits(state);
+      hideReadingChoices();
+      renderWordList();
+      status.textContent = "切換字庫完成。";
+    });
+
+    addUnitBtn.addEventListener("click", () => {
+      const name = window.prompt("請輸入字庫名稱");
+      if (name === null) return;
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      if (state.units[trimmed]) {
+        status.textContent = "此字庫已存在。";
+        return;
+      }
+      state.units[trimmed] = [];
+      state.current = trimmed;
+      saveUnits(state);
+      refreshUnitSelect(state.units, trimmed);
+      unitWords.value = "";
+      if (view.get("view") === "add") {
+        ["unitSelectorField", "wordEditor", "wordEditorActions"].forEach(id => document.getElementById(id).hidden = false);
+        addUnitBtn.hidden = true;
+        unitSelect.disabled = true;
+      }
+      hideReadingChoices();
+      status.textContent = "已新增字庫，請輸入內容並儲存。";
+    });
+
+    deleteUnitBtn.addEventListener("click", () => {
+      const name = unitSelect.value;
+      if (Object.keys(state.units).length <= 1) {
+        status.textContent = "至少保留一個字庫。";
+        return;
+      }
+      if (!window.confirm(`確定要刪除字庫「${name}」？此操作會刪除字庫內容。`)) return;
+      delete state.units[name];
+      state.current = Object.keys(state.units)[0];
+      saveUnits(state);
+      refreshUnitSelect(state.units, state.current);
+      unitWords.value = state.units[state.current].join("\n");
+      hideReadingChoices();
+      status.textContent = "已刪除字庫。";
+    });
+
+    const hideReadingChoices = () => {
+      pendingReadings = [];
+      readingChoiceList.replaceChildren();
+      readingChoices.hidden = true;
+    };
+
+    const showReadingChoices = (results) => {
+      pendingReadings = results.flatMap((result, lineIndex) => result.ambiguities?.length ? [{
+        lineIndex,
+        text: result.value,
+        ambiguities: result.ambiguities,
+        fallbackReadings: result.fallbackReadings
+      }] : []);
+      readingChoiceList.replaceChildren();
+
+      pendingReadings.forEach((pending, pendingIndex) => {
+        pending.ambiguities.forEach((ambiguity, ambiguityIndex) => {
+          const field = document.createElement("label");
+          field.className = "reading-choice";
+          field.textContent = `「${pending.text}」中的「${ambiguity.character}」`;
+          const select = document.createElement("select");
+          select.dataset.pendingIndex = String(pendingIndex);
+          select.dataset.ambiguityIndex = String(ambiguityIndex);
+          const placeholder = document.createElement("option");
+          placeholder.value = "";
+          placeholder.textContent = "請選擇讀音";
+          placeholder.selected = true;
+          placeholder.disabled = true;
+          select.append(placeholder);
+          ambiguity.readings.forEach((reading) => {
+            const option = document.createElement("option");
+            option.value = reading;
+            option.textContent = reading;
+            select.append(option);
+          });
+          field.append(select);
+          readingChoiceList.append(field);
+        });
+      });
+      readingChoices.hidden = pendingReadings.length === 0;
+    };
+
+    const saveAndLookup = async (words) => {
+      const name = unitSelect.value;
+      if (!words.length) {
+        // An empty library is useful as a prepared category (for example,
+        // a future Katakana list). Save it explicitly so Firebase retains it.
+        state.units[name] = [];
+        unitWords.value = "";
+        saveUnits(state);
+        hideReadingChoices();
+        status.textContent = "已儲存空白字庫。";
+        return;
+      }
+
+      saveUnitBtn.disabled = true;
+      refreshZhuyinBtn.disabled = true;
+      status.textContent = "正在向萌典查詢注音...";
+      const results = await Promise.all(words.map(annotateEntry));
+      const annotatedCount = results.filter((result) => result.annotated).length;
+      const failedCount = results.filter((result) => result.failed).length;
+      const ambiguousCount = results.filter((result) => result.ambiguities?.length).length;
+
+      state.units[name] = results.map((result) => result.value);
+      unitWords.value = state.units[name].join("\n");
+      saveUnits(state);
+      saveUnitBtn.disabled = false;
+      refreshZhuyinBtn.disabled = false;
+      showReadingChoices(results);
+      if (ambiguousCount) {
+        status.textContent = `已儲存字庫，自動補上 ${annotatedCount} 筆注音；${ambiguousCount} 筆含多音字，請在下方選擇讀音。`;
+      } else if (failedCount) {
+        status.textContent = `已儲存字庫，自動補上 ${annotatedCount} 筆注音；${failedCount} 筆查不到，請手動指定。`;
+      } else {
+        status.textContent = `已儲存字庫，自動補上 ${annotatedCount} 筆注音。`;
+      }
+    };
+
+    saveUnitBtn.addEventListener("click", () => {
+      saveAndLookup(normalizeWords(unitWords.value));
+    });
+
+    refreshZhuyinBtn.addEventListener("click", () => {
+      if (!window.confirm("這會重新查詢目前字庫的全部注音，並覆蓋手動指定的注音。要繼續嗎？")) return;
+      const words = normalizeWords(unitWords.value).map((rawValue) => splitEntry(rawValue).text);
+      saveAndLookup(words);
+    });
+
+    applyReadingsBtn.addEventListener("click", () => {
+      const selects = [...readingChoiceList.querySelectorAll("select")];
+      if (selects.some((select) => !select.value)) {
+        status.textContent = "請先為每個多音字選擇讀音。";
+        return;
+      }
+
+      const selectedReadings = new Map(selects.map((select) => [
+        `${select.dataset.pendingIndex}:${select.dataset.ambiguityIndex}`,
+        select.value
+      ]));
+      const name = unitSelect.value;
+      pendingReadings.forEach((pending, pendingIndex) => {
+        const syllables = [...pending.fallbackReadings];
+        pending.ambiguities.forEach((ambiguity, ambiguityIndex) => {
+          syllables[ambiguity.syllableIndex] = selectedReadings.get(`${pendingIndex}:${ambiguityIndex}`);
+        });
+        state.units[name][pending.lineIndex] = `${pending.text}|${syllables.join(" ")}`;
+      });
+      unitWords.value = state.units[name].join("\n");
+      saveUnits(state);
+      hideReadingChoices();
+      status.textContent = "已套用選擇並儲存多音字注音。";
+    });
+
+    const renderAccount = () => {
+      const signedIn = Boolean(currentUser);
+      googleSignIn.hidden = false;
+      googleSignIn.textContent = signedIn ? "切換 Google 帳號" : "Google 登入";
+      googleSignOut.hidden = !signedIn;
+      accountStatus.textContent = signedIn
+        ? `已登入：${currentUser.displayName || currentUser.email || "Google 使用者"}`
+        : "未登入：字庫只會儲存在這台裝置";
+    };
+    googleSignIn.addEventListener("click", async () => {
+      googleSignIn.disabled = true;
+      accountStatus.textContent = "正在開啟 Google 登入…";
+      try {
+        await signInWithGoogle();
+      } catch (error) {
+        accountStatus.textContent = `登入失敗：${error.message || "請稍後再試。"}`;
+      } finally {
+        googleSignIn.disabled = false;
+      }
+    });
+    googleSignOut.addEventListener("click", () => signOutFromGoogle());
+    subscribeToUser(async (user) => {
+      currentUser = user;
+      renderAccount();
+      if (!user) return;
+      try {
+        const cloudUnits = await loadCloudUnits(user);
+        if (!cloudUnits) {
+          status.textContent = "已登入 Google；儲存字庫後會自動建立雲端備份。";
+          return;
+        }
+        // 字庫管理中心會先在本機建立空白字庫，再開啟本頁編輯。若雲端
+        // 尚未有這個名稱，不能在首次載入時把它以舊雲端版本覆蓋掉；首次
+        // 儲存時仍會透過 saveUnits 一併同步到雲端。
+        if (requestedUnit && Object.hasOwn(state.units, requestedUnit) && !Object.hasOwn(cloudUnits.units || {}, requestedUnit)) {
+          status.textContent = "正在編輯新的本機字庫；儲存後會同步到雲端。";
+          return;
+        }
+        state = cloudUnits;
+        // `unit=` is an explicit request from the library tree, so it takes
+        // priority over the account's last globally selected library.
+        state.current = currentUnitForView(state.units, state.current);
+        if (cloudUnits.organizer) study.saveOrganizer(cloudUnits.organizer);
+        if (cloudUnits.study) study.applyCloudData(cloudUnits.study);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        refreshUnitSelect(state.units, state.current);
+        renderWordList();
+        unitWords.value = state.units[state.current].join("\n");
+        hideReadingChoices();
+        status.textContent = "已載入你的雲端字庫；在此頁儲存後會自動同步。";
+      } catch (error) {
+        console.error("WordFlash cloud load failed", error);
+        status.textContent = "Google 已登入，但暫時無法讀取雲端字庫。";
+      }
+    });
+  </script>
+</body>
+</html>

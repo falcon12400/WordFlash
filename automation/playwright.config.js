@@ -1,12 +1,17 @@
 const { defineConfig } = require("@playwright/test");
 
+// `WORDFLASH_SITE=preview npx playwright test` runs the same tests against ../preview on another port.
+const site = process.env.WORDFLASH_SITE || "";
+const port = site ? 4174 : 4173;
+process.env.WORDFLASH_PORT = String(port);
+
 module.exports = defineConfig({
   testDir: "./tests",
   timeout: 30_000,
   fullyParallel: false,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://127.0.0.1:4173",
+    baseURL: `http://127.0.0.1:${port}`,
     screenshot: "only-on-failure",
     trace: "retain-on-failure"
   },
@@ -39,7 +44,7 @@ module.exports = defineConfig({
   webServer: {
     command: "node static-server.js",
     cwd: ".",
-    url: "http://127.0.0.1:4173/canvas_words.html",
+    url: `http://127.0.0.1:${port}/canvas_words.html`,
     reuseExistingServer: !process.env.CI
   }
 });
