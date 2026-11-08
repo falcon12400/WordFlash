@@ -242,7 +242,7 @@
     <nav class="menu">
       <label id="setControl">題組 <select id="setSelect"></select></label>
       <span class="links">
-        <a href="canvas_words.html">閃卡</a>
+        <a id="flashcardLink" href="canvas_words.html">閃卡</a>
         <a href="picture_sets.html">題組管理</a>
         <a href="settings.html">設定</a>
       </span>
@@ -276,6 +276,7 @@
     import { ACTIVITY, BUILT_IN_SETS, listSets, listCards, loadImage, importBuiltIn } from "./picture-questions.js?v=2";
 
     const SET_KEY = "wordflash_picture_set_v1";
+    if (/\/preview\/[^/]*$/.test(location.pathname)) document.getElementById("flashcardLink").href = "../canvas_words.html";
     const runtime = createPracticeRuntime(ACTIVITY);
     const $ = (id) => document.getElementById(id);
     const setSelect = $("setSelect");
