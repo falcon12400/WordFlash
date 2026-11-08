@@ -190,6 +190,7 @@
       cursor: pointer;
     }
     .empty-state a { color: inherit; }
+    .credit { grid-column: 1 / -1; margin: 0; font-size: 12px; color: #6b655c; text-align: center; }
 
     /* Phone portrait: picture on top, options below. */
     @media (max-width: 720px) and (orientation: portrait) {
@@ -262,6 +263,7 @@
         <div class="practice-summary" id="practiceSummary"></div>
       </section>
       <p class="hint" id="status">載入中...</p>
+      <p class="credit" id="credit" hidden></p>
     </div>
   </main>
 
@@ -271,7 +273,7 @@
     import { recordQuestionAnswer } from "./question-progress.js?v=1";
     import { onTap } from "./answer-input.js?v=1";
     import { renderVerticalZhuyin, zhuyinHeight, syllablesOf } from "./bopomofo.js?v=1";
-    import { ACTIVITY, listSets, listCards, loadImage, importPackage } from "./picture-questions.js?v=1";
+    import { ACTIVITY, BUILT_IN_SETS, listSets, listCards, loadImage, importBuiltIn } from "./picture-questions.js?v=2";
 
     const SET_KEY = "wordflash_picture_set_v1";
     const runtime = createPracticeRuntime(ACTIVITY);
@@ -468,15 +470,18 @@
       text.textContent = message;
       emptyState.append(text);
       if (withSample) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "secondary-button";
-        button.textContent = "載入範例題組";
-        button.addEventListener("click", loadSample);
+        BUILT_IN_SETS.forEach((builtIn) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "secondary-button";
+          button.textContent = `載入「${builtIn.name}」`;
+          button.addEventListener("click", () => loadBuiltIn(builtIn.file));
+          emptyState.append(button);
+        });
         const link = document.createElement("a");
         link.href = "picture_sets.html";
         link.textContent = "或到「題組管理」匯入自己的題組";
-        emptyState.append(button, link);
+        emptyState.append(link);
       }
       renderAll();
       status.textContent = "";
@@ -551,6 +556,8 @@
       currentSet = sets.find(set => set.id === setId) || sets[0] || null;
       if (!currentSet) { renderEmpty("還沒有題組。", true); return; }
       localStorage.setItem(SET_KEY, currentSet.id);
+      $("credit").textContent = currentSet.credit || "";
+      $("credit").hidden = !currentSet.credit;
       setSelect.value = currentSet.id;
       cards = await listCards(currentSet.id);
       queue = [];
@@ -571,14 +578,13 @@
       await selectSet(preferredId || localStorage.getItem(SET_KEY));
     };
 
-    async function loadSample() {
+    async function loadBuiltIn(file) {
       try {
-        const response = await fetch("picture-sample.json", { cache: "no-cache" });
-        const result = await importPackage(await response.json());
+        const result = await importBuiltIn(file);
         await refreshSets(result.setId);
       } catch (error) {
         console.error(error);
-        status.textContent = `無法載入範例題組：${error.message}`;
+        status.textContent = `無法載入題組：${error.message}`;
       }
     }
 

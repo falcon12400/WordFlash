@@ -21,7 +21,7 @@ const setMode = (page, mode, timer = { enabled: false, durationSeconds: 60 }) =>
 
 const loadSample = async (page) => {
   await page.goto("/picture_quiz.html");
-  await page.getByRole("button", { name: "載入範例題組" }).click();
+  await page.getByRole("button", { name: "載入「範例：生活圖卡」" }).click();
   await expect(page.locator("#picture")).toBeVisible();
   await expect(page.locator(".option").first()).toBeVisible();
 };
@@ -140,7 +140,7 @@ test("題組管理：顯示每題正確率，拒絕格式錯誤的題組", async
   await expect(page.locator(".set")).toHaveCount(1);
 });
 
-const samplePackage = async (page) => page.evaluate(async () => (await fetch("picture-sample.json")).json());
+const samplePackage = async (page) => page.evaluate(async () => (await fetch("picture-sets/sample-daily.json")).json());
 
 test("題組管理：重新匯入較短的題組，只留下新檔案裡的題目", async ({ page }) => {
   await setMode(page, "statistics");
@@ -199,4 +199,19 @@ test("看圖選注音：三個多音節選項在手機上排成兩欄", async ({
   }
   expect(Math.min(...widths)).toBeGreaterThan(100);
   await shot(page, testInfo, "three-long-options");
+});
+
+test("內建題組：載入翰林易混注音，顯示圖片來源署名", async ({ page }, testInfo) => {
+  await setMode(page, "statistics");
+  await page.goto("/picture_sets.html");
+  await page.getByRole("button", { name: "載入「翰林首冊：易混注音」" }).click();
+  await expect(page.locator("#message")).toContainText("共 10 題");
+  await expect(page.locator(".set-credit")).toContainText("OpenMoji");
+  await expect(page.locator(".card")).toHaveCount(10);
+  await shot(page, testInfo, "hanlin-sets");
+  await page.goto("/picture_quiz.html");
+  await expect(page.locator("#credit")).toContainText("CC BY-SA 4.0");
+  await expect(page.locator(".option")).toHaveCount(4);
+  await noHorizontalScroll(page, testInfo);
+  await shot(page, testInfo, "hanlin-question");
 });

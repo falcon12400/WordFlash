@@ -119,6 +119,11 @@ Firebase Realtime Database 的獨立路徑（現有規則已允許，不必修�
   - 尚待決定：計時統計的答題是否也算進長期統計（目前和閃卡頁相同：會算進去）。
   - 尚待驗證：實體 iPad Safari 的觸控與注音字型。
 
+- 2026-11-08 新增內建題組「翰林首冊：易混注音」：
+  - 詞與圖片來源由 Codex 整理（`content/picture-quiz/hanlin-grade1-primer/confusable-zhuyin/`），Claude 下載 OpenMoji 圖片並擬好錯誤選項，做成 `picture-set.json`。
+  - 匯入包可加 `set.credit`（圖片授權署名）。
+  - 範例題組移到 `preview/picture-sets/`；題組管理頁新增「內建題組」區。
+
 ## 未來可考慮（未決定）
 
 - 一個帳號多位使用者（例如爸爸和孩子）：圖片題素材共用，答題紀錄依使用者分開。

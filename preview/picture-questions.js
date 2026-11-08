@@ -19,6 +19,19 @@ import { normalizeZhuyin } from "./bopomofo.js";
 
 export const ACTIVITY = "picture-quiz";
 export const PACKAGE_FORMAT = "wordflash-picture-set";
+
+// Sets shipped with the site (files under picture-sets/). They are only
+// copied into this device's storage when someone presses "載入".
+export const BUILT_IN_SETS = [
+  { file: "picture-sets/sample-daily.json", id: "sample-daily", name: "範例：生活圖卡", description: "8 題生活物品，2 到 4 個選項。" },
+  { file: "picture-sets/hanlin-g1-confusable.json", id: "hanlin-g1-confusable", name: "翰林首冊：易混注音", description: "10 題，練習 ㄓ／ㄗ、ㄔ／ㄘ、ㄕ／ㄙ、ㄥ／ㄣ、ㄛ／ㄡ。" }
+];
+
+export async function importBuiltIn(file) {
+  const response = await fetch(file, { cache: "no-cache" });
+  if (!response.ok) throw new Error(`找不到內建題組（${response.status}）`);
+  return importPackage(await response.json());
+}
 const DB_NAME = "wordflash-picture-quiz";
 const DB_VERSION = 1;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
@@ -71,6 +84,9 @@ export function validatePackage(data) {
   const setName = String(data.set?.name ?? "").trim();
   if (!ID_PATTERN.test(setId)) problems.push("set.id 只能用英文字母、數字、- 或 _（最多 64 字）。");
   if (!setName) problems.push("set.name 不能是空的。");
+  // Optional credit line, e.g. the licence attribution for the pictures.
+  const setCredit = String(data.set?.credit ?? "").trim();
+  if (setCredit.length > 300) problems.push("set.credit 太長（最多 300 字）。");
   const cards = Array.isArray(data.cards) ? data.cards : [];
   if (!cards.length) problems.push("cards 至少要有一題。");
   const seen = new Set();
@@ -94,7 +110,7 @@ export function validatePackage(data) {
     return { id, image, options, answer, word };
   });
   if (problems.length) throw new Error(problems.join("\n"));
-  return { set: { id: setId, name: setName }, cards: cleanCards };
+  return { set: { id: setId, name: setName, credit: setCredit }, cards: cleanCards };
 }
 
 // Adds or replaces a whole set. The set afterwards holds exactly the cards in
@@ -113,7 +129,7 @@ export async function importPackage(data) {
   const now = new Date().toISOString();
   const keep = new Set(pkg.cards.map(card => `${pkg.set.id}/${card.id}`));
   const tx = db.transaction(["sets", "cards", "images"], "readwrite");
-  tx.objectStore("sets").put({ id: pkg.set.id, name: pkg.set.name, createdAt: existing?.createdAt || now, updatedAt: now });
+  tx.objectStore("sets").put({ id: pkg.set.id, name: pkg.set.name, credit: pkg.set.credit, createdAt: existing?.createdAt || now, updatedAt: now });
   oldCards.filter(id => !keep.has(id)).forEach((id) => {
     tx.objectStore("cards").delete(id);
     tx.objectStore("images").delete(id);

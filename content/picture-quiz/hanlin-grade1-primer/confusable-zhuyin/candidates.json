@@ -1,0 +1,132 @@
+{
+  "schema": "wordflash-picture-candidate-list",
+  "version": 1,
+  "title": "翰林一年級首冊：易混注音看圖題候選詞",
+  "status": "seed-list-not-imported",
+  "source": {
+    "publisher": "翰林",
+    "subject": "國語文",
+    "grade": "一年級",
+    "volume": "首冊",
+    "catalogPath": "docs/textbook-catalogs/hanlin-grade1-mandarin-primer/README.md"
+  },
+  "focusPairs": [
+    { "id": "zhi-zi", "label": "ㄓ／ㄗ" },
+    { "id": "chi-ci", "label": "ㄔ／ㄘ" },
+    { "id": "shi-si", "label": "ㄕ／ㄙ" },
+    { "id": "eng-en", "label": "ㄥ／ㄣ" },
+    { "id": "o-ou", "label": "ㄛ／ㄡ" }
+  ],
+  "candidates": [
+    {
+      "id": "spider",
+      "word": "蜘蛛",
+      "zhuyin": "ㄓ ㄓㄨ",
+      "focusPairs": ["zhi-zi"],
+      "sourceType": "practice-extension",
+      "sourceLesson": null,
+      "imagePrompt": "一隻小蜘蛛在單純淺色背景上，八隻腳清楚可見，主體置中，不含文字或蜘蛛網以外的動物。",
+      "imageStatus": "needs-image",
+      "reviewStatus": "seed-approved"
+    },
+    {
+      "id": "rabbit",
+      "word": "兔子",
+      "zhuyin": "ㄊㄨˋ ㄗ˙",
+      "focusPairs": ["zhi-zi"],
+      "sourceType": "textbook-related",
+      "sourceLesson": "第三課〈來數數〉（課文詞含「白兔」）",
+      "imagePrompt": "一隻白色兔子正面或側面坐著，耳朵與身體完整可見，淺色單純背景，不含文字。",
+      "imageStatus": "needs-image",
+      "reviewStatus": "seed-approved"
+    },
+    {
+      "id": "car",
+      "word": "車子",
+      "zhuyin": "ㄔㄜ ㄗ˙",
+      "focusPairs": ["chi-ci", "zhi-zi"],
+      "sourceType": "practice-extension",
+      "sourceLesson": null,
+      "imagePrompt": "一輛兒童容易辨識的小汽車，側面完整可見，純色背景，不含人物、文字或多輛車。",
+      "imageStatus": "needs-image",
+      "reviewStatus": "seed-approved"
+    },
+    {
+      "id": "grass",
+      "word": "草",
+      "zhuyin": "ㄘㄠˇ",
+      "focusPairs": ["chi-ci"],
+      "sourceType": "practice-extension",
+      "sourceLesson": null,
+      "imagePrompt": "一小叢綠草，能清楚看出一根根草葉，白色或淡色背景，不含花朵、樹木或文字。",
+      "imageStatus": "needs-image",
+      "reviewStatus": "seed-approved"
+    },
+    {
+      "id": "hand",
+      "word": "手",
+      "zhuyin": "ㄕㄡˇ",
+      "focusPairs": ["shi-si", "o-ou"],
+      "sourceType": "textbook",
+      "sourceLesson": "第一課〈手拉手〉",
+      "imagePrompt": "一隻張開的兒童小手，五根手指完整可見，主體置中，淺色背景，不含文字或其他手勢。",
+      "imageStatus": "needs-image",
+      "reviewStatus": "seed-approved"
+    },
+    {
+      "id": "umbrella",
+      "word": "傘",
+      "zhuyin": "ㄙㄢˇ",
+      "focusPairs": ["shi-si"],
+      "sourceType": "practice-extension",
+      "sourceLesson": null,
+      "imagePrompt": "一把打開的單色雨傘，傘面與傘柄完整可見，單純背景，不含人物、雨衣或文字。",
+      "imageStatus": "needs-image",
+      "reviewStatus": "seed-approved"
+    },
+    {
+      "id": "lamp",
+      "word": "燈",
+      "zhuyin": "ㄉㄥ",
+      "focusPairs": ["eng-en"],
+      "sourceType": "practice-extension",
+      "sourceLesson": null,
+      "imagePrompt": "一盞簡單的桌燈，燈罩、燈桿和底座完整可見，背景乾淨，不含桌上其他物品或文字。",
+      "imageStatus": "needs-image",
+      "reviewStatus": "seed-approved"
+    },
+    {
+      "id": "door",
+      "word": "門",
+      "zhuyin": "ㄇㄣˊ",
+      "focusPairs": ["eng-en"],
+      "sourceType": "practice-extension",
+      "sourceLesson": null,
+      "imagePrompt": "一扇關著的單扇門，門把清楚可見，正面視角，沒有門牌、文字或人物。",
+      "imageStatus": "needs-image",
+      "reviewStatus": "seed-approved"
+    },
+    {
+      "id": "hill",
+      "word": "山坡",
+      "zhuyin": "ㄕㄢ ㄆㄛ",
+      "focusPairs": ["shi-si", "o-ou"],
+      "sourceType": "textbook",
+      "sourceLesson": "第六課〈山坡上的學校〉",
+      "imagePrompt": "一座低矮、輪廓明顯的綠色山坡，單一主體、晴天背景，不含房屋、道路、人物或文字。",
+      "imageStatus": "needs-image",
+      "reviewStatus": "seed-approved"
+    },
+    {
+      "id": "ball",
+      "word": "球",
+      "zhuyin": "ㄑㄧㄡˊ",
+      "focusPairs": ["o-ou"],
+      "sourceType": "practice-extension",
+      "sourceLesson": null,
+      "imagePrompt": "一顆單色球放在白色或淡色背景中央，圓形輪廓清楚，不含球拍、人物、文字或其他玩具。",
+      "imageStatus": "needs-image",
+      "reviewStatus": "seed-approved"
+    }
+  ]
+}

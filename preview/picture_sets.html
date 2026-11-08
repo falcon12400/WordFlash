@@ -72,6 +72,11 @@
     .card .accuracy { color: #5b554d; }
     .card .reading { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; letter-spacing: 0.05em; }
     code { font-size: 13px; }
+    .built-in-list { display: grid; gap: 10px; }
+    .built-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+    .built-in strong { display: block; font-size: 17px; }
+    .built-in span { font-size: 14px; color: #5b554d; }
+    .set-credit { font-size: 12px; color: #6b655c; }
   </style>
 </head>
 <body>
@@ -89,9 +94,13 @@
       <p>目前題組只存在這個瀏覽器；換裝置或清除網站資料後需要重新匯入。雲端同步之後再加。</p>
       <div class="actions">
         <label class="file-button primary">選擇題組檔<input id="fileInput" type="file" accept=".json,application/json" /></label>
-        <button id="sampleButton" type="button">載入範例題組</button>
       </div>
       <div class="message" id="message" role="status"></div>
+    </section>
+    <section>
+      <h2>內建題組</h2>
+      <p>網站附的題組，按「載入」就會加到這台裝置。</p>
+      <div id="builtInList" class="built-in-list"></div>
     </section>
     <section>
       <h2>已匯入的題組</h2>
@@ -100,7 +109,7 @@
   </main>
 
   <script type="module">
-    import { ACTIVITY, listSets, listCards, loadImage, importPackage, deleteSet } from "./picture-questions.js?v=1";
+    import { ACTIVITY, BUILT_IN_SETS, listSets, listCards, loadImage, importPackage, importBuiltIn, deleteSet } from "./picture-questions.js?v=2";
     import { questionStats } from "./question-progress.js?v=1";
     import { accuracyOf } from "./practice-runtime.js?v=1";
 
@@ -129,6 +138,12 @@
         meta.className = "set-meta";
         meta.textContent = `${set.cardCount} 題・代號 ${set.id}`;
         title.append(name, meta);
+        if (set.credit) {
+          const credit = document.createElement("div");
+          credit.className = "set-credit";
+          credit.textContent = set.credit;
+          title.append(credit);
+        }
         const remove = document.createElement("button");
         remove.type = "button";
         remove.className = "danger";
@@ -187,13 +202,31 @@
       }
     });
 
-    document.getElementById("sampleButton").addEventListener("click", async () => {
-      try {
-        const response = await fetch("picture-sample.json", { cache: "no-cache" });
-        await importData(await response.json());
-      } catch (error) {
-        say(`無法載入範例題組：${error.message}`, true);
-      }
+    const builtInList = document.getElementById("builtInList");
+    BUILT_IN_SETS.forEach((builtIn) => {
+      const row = document.createElement("div");
+      row.className = "built-in";
+      const text = document.createElement("div");
+      const name = document.createElement("strong");
+      name.textContent = builtIn.name;
+      const description = document.createElement("span");
+      description.textContent = builtIn.description;
+      text.append(name, description);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "載入";
+      button.setAttribute("aria-label", `載入「${builtIn.name}」`);
+      button.addEventListener("click", async () => {
+        try {
+          const result = await importBuiltIn(builtIn.file);
+          say(`已${result.replaced ? "更新" : "載入"}「${result.setName}」，共 ${result.count} 題。`);
+          await render();
+        } catch (error) {
+          say(`無法載入題組：${error.message}`, true);
+        }
+      });
+      row.append(text, button);
+      builtInList.append(row);
     });
 
     render().catch((error) => { console.error(error); setList.innerHTML = "<p>這個瀏覽器無法保存題組（IndexedDB 無法使用）。</p>"; });

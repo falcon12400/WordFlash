@@ -1,0 +1,86 @@
+{
+  "schema": "wordflash-picture-source-shortlist",
+  "version": 1,
+  "status": "shortlisted-not-imported",
+  "provider": {
+    "name": "OpenMoji",
+    "version": "12.1.0",
+    "format": "color SVG",
+    "license": "CC BY-SA 4.0",
+    "attribution": "All emojis designed by OpenMoji – License: CC BY-SA 4.0",
+    "projectUrl": "https://openmoji.org/",
+    "assetBaseUrl": "https://unpkg.com/openmoji@12.1.0/color/svg/"
+  },
+  "items": [
+    {
+      "candidateId": "spider",
+      "word": "蜘蛛",
+      "unicode": "U+1F577",
+      "previewUrl": "https://unpkg.com/openmoji@12.1.0/color/svg/1F577.svg",
+      "suitability": "高：單一主體、八隻腳特徵明確。"
+    },
+    {
+      "candidateId": "rabbit",
+      "word": "兔子",
+      "unicode": "U+1F407",
+      "previewUrl": "https://unpkg.com/openmoji@12.1.0/color/svg/1F407.svg",
+      "suitability": "高：動物輪廓明確。"
+    },
+    {
+      "candidateId": "car",
+      "word": "車子",
+      "unicode": "U+1F697",
+      "previewUrl": "https://unpkg.com/openmoji@12.1.0/color/svg/1F697.svg",
+      "suitability": "高：車身與輪子明確；題目文字採「車子」。"
+    },
+    {
+      "candidateId": "grass",
+      "word": "草",
+      "unicode": "U+1F33F",
+      "previewUrl": "https://unpkg.com/openmoji@12.1.0/color/svg/1F33F.svg",
+      "suitability": "中：圖示為草本植物，建立正式題目前應先找孩子試看是否會答成「植物」。"
+    },
+    {
+      "candidateId": "hand",
+      "word": "手",
+      "unicode": "U+270B",
+      "previewUrl": "https://unpkg.com/openmoji@12.1.0/color/svg/270B.svg",
+      "suitability": "高：手掌與五指完整清楚。"
+    },
+    {
+      "candidateId": "umbrella",
+      "word": "傘",
+      "unicode": "U+2602",
+      "previewUrl": "https://unpkg.com/openmoji@12.1.0/color/svg/2602.svg",
+      "suitability": "高：傘面與傘柄明確。"
+    },
+    {
+      "candidateId": "lamp",
+      "word": "燈",
+      "unicode": "U+1F4A1",
+      "previewUrl": "https://unpkg.com/openmoji@12.1.0/color/svg/1F4A1.svg",
+      "suitability": "中：圖示是燈泡；若題目要答「燈」，可用，若要求「桌燈」則應另找圖。"
+    },
+    {
+      "candidateId": "door",
+      "word": "門",
+      "unicode": "U+1F6AA",
+      "previewUrl": "https://unpkg.com/openmoji@12.1.0/color/svg/1F6AA.svg",
+      "suitability": "高：門把與門板清楚。"
+    },
+    {
+      "candidateId": "hill",
+      "word": "山坡",
+      "unicode": "U+26F0",
+      "previewUrl": "https://unpkg.com/openmoji@12.1.0/color/svg/26F0.svg",
+      "suitability": "中：圖示偏「山」；要練「山坡」時，原創圖應用較低緩的坡形。"
+    },
+    {
+      "candidateId": "ball",
+      "word": "球",
+      "unicode": "U+26BD",
+      "previewUrl": "https://unpkg.com/openmoji@12.1.0/color/svg/26BD.svg",
+      "suitability": "高：雖是足球，但可作「球」的第一版圖片。"
+    }
+  ]
+}
