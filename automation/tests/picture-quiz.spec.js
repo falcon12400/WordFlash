@@ -247,3 +247,76 @@ test("題組管理：取消勾選的題目不會出現在練習中", async ({ pa
   await page.goto("/picture_quiz.html");
   await expect(page.locator("#emptyState")).toContainText("都設成不出題");
 });
+
+test("練習紀錄：每一輪分開記錄，含錯的字，並可上傳", async ({ page }, testInfo) => {
+  await setMode(page, "statistics");
+  await loadSample(page);
+  // Answer two questions: first wrong on purpose, second right.
+  for (const wantCorrect of [false, true]) {
+    const answer = await page.evaluate(async () => {
+      const word = document.getElementById("pictureWord").textContent;
+      const cards = await (await import("./picture-questions.js?v=4")).listCards("sample-daily");
+      return cards.find(card => card.word === word).answer;
+    });
+    const values = await page.locator(".option").evaluateAll(nodes => nodes.map(node => node.dataset.value));
+    const index = wantCorrect ? values.indexOf(answer) : values.findIndex(value => value !== answer);
+    await page.locator(".option").nth(index).click();
+    await page.locator("#nextButton").click();
+  }
+  await page.goto("/practice_logs.html");
+  await expect(page.locator(".log")).toHaveCount(1);
+  await expect(page.locator(".log .badge")).toHaveText("進行中");
+  await expect(page.locator(".log .score")).toContainText("共 2 題，答對 1、答錯 1");
+  await expect(page.locator(".log .wrong li")).toHaveCount(1);
+  await expect(page.locator(".log .wrong li")).toContainText("選了");
+  await noHorizontalScroll(page, testInfo);
+  await shot(page, testInfo, "practice-log");
+
+  // Switching to another set closes the round; a later answer starts a new one.
+  await page.goto("/picture_sets.html");
+  await page.getByRole("button", { name: "載入「翰林首冊：易混注音」" }).click();
+  await expect(page.locator("#message")).toContainText("共 10 題");
+  await page.goto("/picture_quiz.html");
+  await page.locator("#setSelect").selectOption("hanlin-g1-confusable");
+  await page.locator(".option").first().click();
+  await page.goto("/practice_logs.html");
+  await expect(page.locator(".log")).toHaveCount(2);
+
+  // Upload with a stand-in for Firebase: each round is written under its own id.
+  const saved = await page.evaluate(async () => {
+    const written = {};
+    const logs = await import("./practice-log.js?v=1");
+    await logs.syncLogs(async (log) => { written[log.id] = log; });
+    return { ids: Object.keys(written), pending: logs.pendingCount() };
+  });
+  expect(saved.ids).toHaveLength(2);
+  expect(saved.pending).toBe(0);
+});
+
+test("練習紀錄：舊的計時紀錄和累計答題會變成舊紀錄", async ({ page }) => {
+  await setMode(page, "challenge", { enabled: true, durationSeconds: 30 });
+  await loadSample(page);
+  await page.getByRole("button", { name: "開始 30 秒挑戰" }).click();
+  await page.locator(".option").first().click();
+  await page.getByRole("button", { name: "結束本輪" }).click();
+  // Pretend this happened before per-round logging existed.
+  await page.evaluate(() => {
+    localStorage.removeItem("wordflash_practice_logs_v1");
+    localStorage.removeItem("wordflash_practice_logs_legacy_done_v1");
+  });
+  await page.goto("/practice_logs.html");
+  await expect(page.locator(".log .note", { hasText: "當時沒有記下錯了哪些字" })).toHaveCount(1);
+  await expect(page.locator(".log .note", { hasText: "累計" })).toHaveCount(1);
+});
+
+test("注音練習：在設定頁換成挑戰模式，返回後立刻顯示挑戰", async ({ page }) => {
+  await setMode(page, "none");
+  await loadSample(page);
+  await expect(page.locator("#practicePanel")).toBeHidden();
+  await page.goto("/settings.html#practice");
+  await page.locator('label[for="practiceChallenge"]').click();
+  await expect(page.locator("#practiceChallenge")).toBeChecked();
+  await page.goBack();
+  await expect(page.locator("#practicePanel")).toBeVisible();
+  await expect(page.locator(".challenge-number")).toBeVisible();
+});

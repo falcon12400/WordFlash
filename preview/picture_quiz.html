@@ -273,6 +273,8 @@
     import { recordQuestionAnswer } from "./question-progress.js?v=1";
     import { onTap } from "./answer-input.js?v=1";
     import { playAnswerSound } from "./sound-effects.js?v=1";
+    import { logAttempt, closeOpenLog, closeStaleLog } from "./practice-log.js?v=1";
+    import { importPictureLegacy, startCloudSync } from "./picture-logs.js?v=1";
     import { renderVerticalZhuyin, zhuyinHeight, syllablesOf } from "./bopomofo.js?v=1";
     import { ACTIVITY, BUILT_IN_SETS, PICTURE_DISABLED_KEY, isCardEnabled, listSets, listCards, loadImage, importBuiltIn } from "./picture-questions.js?v=4";
 
@@ -359,6 +361,13 @@
       if (result?.finished) { finishRound(result.finished); return; }
       answered = { cardId: current.id, choice, correct };
       playAnswerSound(correct);
+      if (result?.counted) {
+        const { mode, run } = runtime.state();
+        logAttempt(
+          { activity: ACTIVITY, setId: currentSet.id, setName: currentSet.name, mode, timedRunId: run?.id || null },
+          { cardId: current.id, word: current.word || "", answer: current.answer, chosen: choice, correct }
+        );
+      }
       if (result?.counted) recordQuestionAnswer({ activity: ACTIVITY, id: current.id }, correct);
       pictureWord.classList.toggle("is-shown", Boolean(current.word));
       status.textContent = correct ? "答對了！按「下一題」繼續。" : "再看看正確答案，按「下一題」繼續。";
@@ -500,6 +509,9 @@
 
     const finishRound = (record) => {
       stopTicker();
+      // A timed round is one practice record; save it and upload if signed in.
+      closeOpenLog();
+      cloud?.sync();
       latestResult = record;
       answered = null;
       renderAll();
@@ -556,6 +568,7 @@
     // ---------- sets ----------
 
     const selectSet = async (setId) => {
+      if (setId !== currentSet?.id) closeOpenLog();
       currentSet = sets.find(set => set.id === setId) || sets[0] || null;
       if (!currentSet) { renderEmpty("還沒有題組。", true); return; }
       localStorage.setItem(SET_KEY, currentSet.id);
@@ -613,20 +626,42 @@
         selectSet(currentSet.id);
         return;
       }
+      if ([PRACTICE_MODE_KEY, CHALLENGE_TIMER_KEY].includes(event.key)) closeOpenLog();
       if ([PRACTICE_MODE_KEY, CHALLENGE_TIMER_KEY, CHALLENGE_PROGRESS_DISPLAY_KEY].includes(event.key)) {
         renderAll();
         if (!runtime.state().run) status.textContent = modeHint(runtime.state().mode);
       }
     });
     document.addEventListener("visibilitychange", () => { if (!document.hidden) { reconcileRound(); renderAll(); } });
+    // Coming back with the browser's Back button (or the iPad tab switcher)
+    // can show the page exactly as it was left, without running this script
+    // again. Re-read the settings so a mode chosen on the settings page shows.
+    window.addEventListener("pageshow", (event) => {
+      if (!event.persisted) return;
+      closeOpenLogIfModeChanged();
+      reconcileRound();
+      renderAll();
+      if (!runtime.state().run) status.textContent = modeHint(runtime.state().mode);
+    });
     let resizeFrame = null;
     window.addEventListener("resize", () => {
       if (resizeFrame !== null) return;
       resizeFrame = requestAnimationFrame(() => { resizeFrame = null; sizeOptions(); renderPanel(); });
     });
 
+    let cloud = null;
+    let shownMode = runtime.state().mode;
+    const closeOpenLogIfModeChanged = () => {
+      const { mode } = runtime.state();
+      if (mode !== shownMode) closeOpenLog();
+      shownMode = mode;
+    };
+    closeStaleLog();
     reconcileRound();
-    refreshSets().catch((error) => {
+    refreshSets().then(async () => {
+      await importPictureLegacy().catch(error => console.warn(error));
+      cloud = startCloudSync();
+    }).catch((error) => {
       console.error(error);
       renderEmpty("這個瀏覽器無法保存題組（IndexedDB 無法使用）。", false);
     });

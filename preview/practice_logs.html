@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>練習紀錄 - WordFlash</title>
+  <style>
+    :root { color-scheme: light; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background: radial-gradient(circle at top, #f7f4e8 0%, #efe6d5 45%, #e8dcc8 100%);
+      font-family: "Noto Serif TC", "PingFang TC", "Heiti TC", serif;
+      color: #2b2b2b;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 24px;
+      border-bottom: 2px solid #2b2b2b;
+      background: rgba(255, 249, 236, 0.92);
+    }
+    header .title { font-size: 20px; font-weight: 700; letter-spacing: 0.08em; }
+    header nav { display: flex; gap: 8px; }
+    header a, button {
+      border: 2px solid #2b2b2b;
+      border-radius: 8px;
+      padding: 8px 12px;
+      background: #fff9ec;
+      font: inherit;
+      font-size: 15px;
+      color: inherit;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    main { width: min(100% - 24px, 820px); margin: 16px auto 32px; display: grid; gap: 14px; }
+    .status {
+      padding: 12px 16px;
+      border: 2px solid #2b2b2b;
+      border-radius: 12px;
+      background: #f8edcf;
+      line-height: 1.6;
+    }
+    .status a { color: inherit; }
+    .log {
+      display: grid;
+      gap: 6px;
+      padding: 14px 16px;
+      border: 2px solid #2b2b2b;
+      border-radius: 12px;
+      background: rgba(255, 249, 236, 0.96);
+    }
+    .log-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; }
+    .log-title { font-size: 17px; font-weight: 700; }
+    .log-meta { font-size: 14px; color: #5b554d; }
+    .badge { align-self: start; padding: 2px 8px; border-radius: 999px; font-size: 13px; border: 1px solid currentColor; white-space: nowrap; }
+    .badge.is-uploaded { color: #2f6b2a; }
+    .badge.is-pending { color: #8a5a00; }
+    .badge.is-open { color: #2d5f8a; }
+    .score { font-size: 16px; }
+    .wrong { margin: 0; padding-left: 1.2em; font-size: 15px; line-height: 1.6; }
+    .note { font-size: 13px; color: #6b655c; }
+    .empty { text-align: center; padding: 24px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">練習紀錄</div>
+    <nav>
+      <a href="picture_quiz.html">注音練習</a>
+      <a href="picture_sets.html">題組管理</a>
+    </nav>
+  </header>
+  <main>
+    <div class="status" id="status">載入中...</div>
+    <div id="list"></div>
+  </main>
+
+  <script type="module">
+    import { loadLogs, openLogSummary, closeStaleLog } from "./practice-log.js?v=1";
+    import { importPictureLegacy, startCloudSync } from "./picture-logs.js?v=1";
+
+    const status = document.getElementById("status");
+    const list = document.getElementById("list");
+    const MODE_LABELS = { statistics: "統計", challenge: "挑戰", totals: "累計" };
+
+    const formatTime = (iso) => {
+      const date = new Date(iso);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toLocaleString("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    };
+
+    const describeWrong = (item) => {
+      const chosen = item.chosen?.length ? `，選了 ${item.chosen.join("、")}` : "";
+      return `${item.word}（${item.answer}${chosen}）${item.times > 1 ? ` × ${item.times}` : ""}`;
+    };
+
+    const render = (logs, signedIn) => {
+      list.replaceChildren();
+      if (!logs.length) {
+        const empty = document.createElement("div");
+        empty.className = "log empty";
+        empty.textContent = "還沒有練習紀錄。在「注音練習」用統計或挑戰模式答題後，這裡會出現每一輪的紀錄。";
+        list.append(empty);
+        return;
+      }
+      for (const log of logs) {
+        const box = document.createElement("article");
+        box.className = "log";
+        const head = document.createElement("div");
+        head.className = "log-head";
+        const text = document.createElement("div");
+        const title = document.createElement("div");
+        title.className = "log-title";
+        const timed = log.timedRunId ? "計時" : "";
+        title.textContent = `${log.setName || "練習"}・${timed}${MODE_LABELS[log.mode] || ""}`;
+        const meta = document.createElement("div");
+        meta.className = "log-meta";
+        meta.textContent = [formatTime(log.startedAt), log.device].filter(Boolean).join("・");
+        text.append(title, meta);
+        const badge = document.createElement("span");
+        if (log.status === "open") { badge.className = "badge is-open"; badge.textContent = "進行中"; }
+        else if (log.uploadedAt) { badge.className = "badge is-uploaded"; badge.textContent = "已上傳"; }
+        else { badge.className = "badge is-pending"; badge.textContent = signedIn ? "上傳中" : "尚未上傳"; }
+        head.append(text, badge);
+        box.append(head);
+
+        const score = document.createElement("div");
+        score.className = "score";
+        score.textContent = `共 ${log.total} 題，答對 ${log.correct}、答錯 ${log.incorrect}`
+          + (log.accuracy === null || log.accuracy === undefined ? "" : `，正確率 ${Number(log.accuracy).toFixed(1)}%`)
+          + (log.bestStreak ? `，最高連續答對 ${log.bestStreak} 題` : "");
+        box.append(score);
+
+        if (log.wrong?.length) {
+          const label = document.createElement("div");
+          label.className = "log-meta";
+          label.textContent = log.source === "legacy-totals" ? "曾經答錯：" : "答錯的題目：";
+          const wrong = document.createElement("ul");
+          wrong.className = "wrong";
+          log.wrong.forEach((item) => {
+            const li = document.createElement("li");
+            li.textContent = describeWrong(item);
+            wrong.append(li);
+          });
+          box.append(label, wrong);
+        }
+        if (log.note) {
+          const note = document.createElement("div");
+          note.className = "note";
+          note.textContent = log.note;
+          box.append(note);
+        }
+        list.append(box);
+      }
+    };
+
+    let cloudLogs = [];
+    let signedIn = false;
+    const refresh = () => {
+      const byId = new Map();
+      cloudLogs.forEach(log => byId.set(log.id, { ...log, uploadedAt: log.uploadedAt || true }));
+      loadLogs().forEach(log => byId.set(log.id, { ...byId.get(log.id), ...log, uploadedAt: log.uploadedAt || byId.get(log.id)?.uploadedAt || null }));
+      const open = openLogSummary();
+      if (open) byId.set(open.id, { ...open, status: "open" });
+      const logs = [...byId.values()].sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)));
+      render(logs, signedIn);
+    };
+
+    const showStatus = ({ signedIn: nowSignedIn, pending, error }) => {
+      signedIn = nowSignedIn;
+      if (error && !nowSignedIn) status.textContent = "目前連不上雲端；紀錄先存在這台裝置，之後再上傳。";
+      else if (!nowSignedIn) status.innerHTML = `這台裝置還沒登入 Google，紀錄先存在這台裝置${pending ? `（${pending} 筆待上傳）` : ""}。請到<a href="settings.html#cloud">設定頁</a>登入，回來後就會自動上傳。`;
+      else if (error) status.textContent = `上傳失敗，稍後會再試（${pending} 筆待上傳）。`;
+      else status.textContent = pending ? `上傳中（${pending} 筆）…` : "每一輪的紀錄都已上傳到雲端，各自分開保存，不會互相覆蓋。";
+      refresh();
+    };
+
+    closeStaleLog();
+    await importPictureLegacy().catch(error => console.warn(error));
+    refresh();
+    const cloud = startCloudSync(async (state) => {
+      showStatus(state);
+      if (state.signedIn && !state.error) {
+        try { cloudLogs = (await cloud.loadCloudLogs()) || []; refresh(); } catch (error) { console.warn(error); }
+      }
+    });
+    cloud.sync();
+  </script>
+</body>
+</html>

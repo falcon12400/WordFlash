@@ -159,6 +159,22 @@ export const signInWithGoogle = () => signInWithPopup(auth, provider);
 
 export const signOutFromGoogle = () => signOut(auth);
 
+// Practice logs: one record per round under its own id, so rounds from
+// different devices never overwrite each other. Kept apart from /library.
+const practiceLogsPath = (uid) => `wordflashUsers/${uid}/practiceLogs`;
+
+export const savePracticeLog = async (user, log) => {
+  if (!user?.uid) throw new Error("請先登入 Google 帳號。");
+  if (!/^[A-Za-z0-9_-]{1,120}$/.test(String(log?.id || ""))) throw new Error("練習紀錄的代號不正確。");
+  await set(ref(database, `${practiceLogsPath(user.uid)}/${log.id}`), { ...log, uploadedAt: serverTimestamp() });
+};
+
+export const loadPracticeLogs = async (user) => {
+  if (!user?.uid) return [];
+  const snapshot = await get(ref(database, practiceLogsPath(user.uid)));
+  return snapshot.exists() ? Object.values(snapshot.val()).filter(log => log && typeof log.id === "string") : [];
+};
+
 export const loadCloudUnits = async (user) => {
   if (!user?.uid) return null;
   const snapshot = await get(ref(database, cloudLibraryPath(user.uid)));
