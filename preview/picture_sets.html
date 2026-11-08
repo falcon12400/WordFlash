@@ -172,7 +172,7 @@
 
     const importData = async (data) => {
       const result = await importPackage(data);
-      say(`已${result.replaced ? "更新" : "匯入"}「${result.setName}」，共 ${result.count} 題。`);
+      say(`已${result.replaced ? "更新" : "匯入"}「${result.setName}」，共 ${result.count} 題${result.removed ? `；新檔案裡沒有的 ${result.removed} 題已從這台裝置移除（答題紀錄保留）` : ""}。`);
       await render();
     };
 

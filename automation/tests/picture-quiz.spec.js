@@ -139,3 +139,64 @@ test("題組管理：顯示每題正確率，拒絕格式錯誤的題組", async
   await expect(page.locator("#message")).toContainText("options 要有 2 到 4 個注音");
   await expect(page.locator(".set")).toHaveCount(1);
 });
+
+const samplePackage = async (page) => page.evaluate(async () => (await fetch("picture-sample.json")).json());
+
+test("題組管理：重新匯入較短的題組，只留下新檔案裡的題目", async ({ page }) => {
+  await setMode(page, "statistics");
+  await loadSample(page);
+  const pkg = await samplePackage(page);
+  pkg.cards = pkg.cards.slice(0, 3);
+  await page.goto("/picture_sets.html");
+  await page.locator("#fileInput").setInputFiles({ name: "short.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(pkg)) });
+  await expect(page.locator("#message")).toContainText("共 3 題");
+  await expect(page.locator("#message")).toContainText("5 題已從這台裝置移除");
+  await expect(page.locator(".card")).toHaveCount(3);
+  await page.goto("/picture_quiz.html");
+  await expect(page.locator("#setSelect option")).toHaveText("範例：生活圖卡（3 題）");
+});
+
+test("題組管理：選項不是注音時拒絕匯入", async ({ page }) => {
+  await page.goto("/picture_sets.html");
+  const pkg = { format: "wordflash-picture-set", version: 1, set: { id: "letters", name: "字母" },
+    cards: [{ id: "a", image: "data:image/png;base64,iVBORw0KGgo=", options: ["A", "ㄅㄚ"], answer: "ㄅㄚ" }] };
+  await page.locator("#fileInput").setInputFiles({ name: "letters.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(pkg)) });
+  await expect(page.locator("#message")).toContainText("這些選項不是注音：A");
+  await expect(page.locator(".set")).toHaveCount(0);
+});
+
+test("看圖選注音：時間剛好到時第一次點選會結算一次，不記題目", async ({ page }) => {
+  await setMode(page, "challenge", { enabled: true, durationSeconds: 10 });
+  await loadSample(page);
+  await page.getByRole("button", { name: "開始 10 秒挑戰" }).click();
+  await expect(page.locator(".option").first()).toBeEnabled();
+  // Move the end of the round into the past without waiting for the ticker.
+  await page.evaluate(() => {
+    const key = "wordflash_timed_run_v1:picture-quiz";
+    const run = JSON.parse(localStorage.getItem(key));
+    run.startedAtMs -= 20000; run.endsAtMs = Date.now() - 1;
+    localStorage.setItem(key, JSON.stringify(run));
+  });
+  await page.locator(".option").first().dispatchEvent("click");
+  await expect(page.locator(".challenge-finished-note")).toBeVisible();
+  const records = await page.evaluate(() => JSON.parse(localStorage.getItem("wordflash_challenge_records_v1:picture-quiz")));
+  expect(records.groups["sample-daily"]).toHaveLength(1);
+  expect(await page.evaluate(() => localStorage.getItem("wordflash_question_stats_v1"))).toBeNull();
+});
+
+test("看圖選注音：三個多音節選項在手機上排成兩欄", async ({ page }, testInfo) => {
+  await setMode(page, "none");
+  await loadSample(page);
+  // The umbrella card has three two-syllable options; skip until it appears.
+  for (let i = 0; i < 20; i += 1) {
+    if ((await page.locator("#pictureWord").textContent()) === "雨傘") break;
+    await page.locator("#nextButton").click();
+  }
+  await expect(page.locator("#pictureWord")).toHaveText("雨傘");
+  const widths = await page.locator(".option").evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().width));
+  if (testInfo.project.name === "pixel-10a") {
+    expect(await page.locator("#options").evaluate(node => getComputedStyle(node).gridTemplateColumns.split(" ").length)).toBe(2);
+  }
+  expect(Math.min(...widths)).toBeGreaterThan(100);
+  await shot(page, testInfo, "three-long-options");
+});

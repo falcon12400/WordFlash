@@ -24,6 +24,10 @@ const DB_VERSION = 1;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 const IMAGE_PATTERN = /^data:image\/(png|jpeg|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=]+$/;
 const MAX_IMAGE_CHARS = 2_000_000;
+const MAX_PACKAGE_CHARS = 40_000_000;
+// One syllable: optional light-tone dot, 1–3 bopomofo symbols, optional tone mark.
+const SYLLABLE_PATTERN = /^˙?[ㄅ-ㄯ]{1,3}[ˊˇˋ˙ˉ]?$/u;
+const isZhuyin = (value) => value.split(" ").every(part => SYLLABLE_PATTERN.test(part));
 
 let dbPromise = null;
 
@@ -60,6 +64,7 @@ const transactionDone = (tx) => new Promise((resolve, reject) => {
 export function validatePackage(data) {
   const problems = [];
   if (!data || typeof data !== "object") throw new Error("檔案不是題組格式（需要 JSON 物件）。");
+  if (JSON.stringify(data).length > MAX_PACKAGE_CHARS) throw new Error("題組檔太大（上限約 30 MB），請把圖片壓縮或分成幾個題組。");
   if (data.format !== PACKAGE_FORMAT) problems.push(`format 必須是 "${PACKAGE_FORMAT}"。`);
   if (data.version !== 1) problems.push("version 必須是 1。");
   const setId = String(data.set?.id ?? "").trim();
@@ -80,6 +85,8 @@ export function validatePackage(data) {
     else if (image.length > MAX_IMAGE_CHARS) problems.push(`${label}：圖片太大，請壓縮到約 1.5 MB 以下。`);
     const options = Array.isArray(card?.options) ? card.options.map(normalizeZhuyin).filter(Boolean) : [];
     if (options.length < 2 || options.length > 4) problems.push(`${label}：options 要有 2 到 4 個注音。`);
+    const notZhuyin = options.filter(option => !isZhuyin(option));
+    if (notZhuyin.length) problems.push(`${label}：這些選項不是注音：${notZhuyin.join("、")}（音節之間用空白分開）。`);
     if (new Set(options).size !== options.length) problems.push(`${label}：options 有重複的注音。`);
     const answer = normalizeZhuyin(card?.answer);
     if (!options.includes(answer)) problems.push(`${label}：answer 必須是 options 其中一個。`);
@@ -90,16 +97,27 @@ export function validatePackage(data) {
   return { set: { id: setId, name: setName }, cards: cleanCards };
 }
 
-// Adds or replaces a whole set. Cards of the same set that are not in the
-// package are kept, so re-importing a shorter file never loses answers.
+// Adds or replaces a whole set. The set afterwards holds exactly the cards in
+// the package; cards left out are removed from this device. Answer statistics
+// live in localStorage (question-progress.js) and are kept either way.
 export async function importPackage(data) {
   const pkg = validatePackage(data);
   const db = await openDb();
-  const tx = db.transaction(["sets", "cards", "images"], "readwrite");
+  // Read first in its own transaction. Every request of the write transaction
+  // below is queued synchronously, so Safari never sees an idle transaction.
+  const readTx = db.transaction(["sets", "cards"], "readonly");
+  const [existing, oldCards] = await Promise.all([
+    promisify(readTx.objectStore("sets").get(pkg.set.id)),
+    promisify(readTx.objectStore("cards").index("setId").getAllKeys(pkg.set.id))
+  ]);
   const now = new Date().toISOString();
-  const sets = tx.objectStore("sets");
-  const existing = await promisify(sets.get(pkg.set.id));
-  sets.put({ id: pkg.set.id, name: pkg.set.name, createdAt: existing?.createdAt || now, updatedAt: now });
+  const keep = new Set(pkg.cards.map(card => `${pkg.set.id}/${card.id}`));
+  const tx = db.transaction(["sets", "cards", "images"], "readwrite");
+  tx.objectStore("sets").put({ id: pkg.set.id, name: pkg.set.name, createdAt: existing?.createdAt || now, updatedAt: now });
+  oldCards.filter(id => !keep.has(id)).forEach((id) => {
+    tx.objectStore("cards").delete(id);
+    tx.objectStore("images").delete(id);
+  });
   pkg.cards.forEach((card, order) => {
     const id = `${pkg.set.id}/${card.id}`;
     tx.objectStore("images").put({ id, dataUrl: card.image });
@@ -108,14 +126,17 @@ export async function importPackage(data) {
     });
   });
   await transactionDone(tx);
-  return { setId: pkg.set.id, setName: pkg.set.name, count: pkg.cards.length, replaced: Boolean(existing) };
+  const removed = oldCards.filter(id => !keep.has(id)).length;
+  return { setId: pkg.set.id, setName: pkg.set.name, count: pkg.cards.length, replaced: Boolean(existing), removed };
 }
 
 export async function listSets() {
   const db = await openDb();
   const tx = db.transaction(["sets", "cards"], "readonly");
-  const sets = await promisify(tx.objectStore("sets").getAll());
-  const cards = await promisify(tx.objectStore("cards").getAll());
+  const [sets, cards] = await Promise.all([
+    promisify(tx.objectStore("sets").getAll()),
+    promisify(tx.objectStore("cards").getAll())
+  ]);
   return sets
     .map(set => ({ ...set, cardCount: cards.filter(card => card.setId === set.id).length }))
     .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant", { numeric: true }));

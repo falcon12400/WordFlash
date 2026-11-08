@@ -136,7 +136,7 @@
     .vzy {
       display: inline-flex;
       align-items: flex-start;
-      gap: 0.55em;
+      gap: 0.85em;
       font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
       font-size: var(--zy-size, 40px);
       font-weight: 600;
@@ -204,6 +204,8 @@
       .picture-card { height: clamp(170px, 28dvh, 320px); border-width: 5px; }
       .picture-word { font-size: 26px; padding-bottom: 4px; }
       .options { height: max(180px, 23dvh); gap: 10px; }
+      .options[data-count="3"][data-long="true"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .options[data-count="3"][data-long="true"] .option:last-child { grid-column: 1 / -1; justify-self: center; width: calc(50% - 5px); }
       .next-button { min-height: 50px; }
       .practice-panel { padding: 10px 12px; }
       .hint { font-size: 14px; }
@@ -344,7 +346,9 @@
 
     const choose = (choice) => {
       if (!current || answered) return;
-      const { locked } = runtime.state();
+      const { locked, expired } = runtime.state();
+      // The round may have just run out between two timer ticks: settle it now.
+      if (expired) { finishRound(runtime.finishRun("time_up")); return; }
       if (locked) return;
       const correct = choice === current.answer;
       const result = runtime.recordAttempt(correct);
@@ -365,7 +369,7 @@
       const columns = Math.max(...current.displayOptions.map(value => syllablesOf(value).length));
       const { width, height } = buttons[0].getBoundingClientRect();
       const byHeight = (height - 24) / (longest * 1.12 + 0.3);
-      const byWidth = (width - 56) / (columns * 1.75);
+      const byWidth = (width - 56) / (columns * 2.05);
       const size = Math.max(16, Math.min(64, byHeight, byWidth));
       optionsBox.style.setProperty("--zy-size", `${Math.floor(size)}px`);
     };
@@ -377,6 +381,9 @@
       if (!current) return;
       const list = current.displayOptions || current.options;
       optionsBox.dataset.count = String(list.length);
+      // Three long readings would be squeezed into three narrow columns on a
+      // phone; use two columns there (the third button sits centred below).
+      optionsBox.dataset.long = String(list.some(value => syllablesOf(value).length > 1));
       optionsBox.classList.toggle("is-answered", Boolean(answered));
       optionsBox.classList.toggle("is-locked", locked && !answered);
       list.forEach((value, index) => {
@@ -436,6 +443,12 @@
     };
 
     const renderAll = () => {
+      // A round cannot continue once the settings switch practice off.
+      const check = runtime.state();
+      if (check.mode === "none" && runtime.loadRun()) {
+        latestResult = runtime.finishRun("settings_changed");
+        stopTicker();
+      }
       const { run } = runtime.state();
       setSelect.disabled = Boolean(run);
       document.body.classList.toggle("is-running", Boolean(run));
