@@ -64,6 +64,9 @@
     .wrong { margin: 0; padding-left: 1.2em; font-size: 15px; line-height: 1.6; }
     .note { font-size: 13px; color: #6b655c; }
     .empty { text-align: center; padding: 24px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .actions button:disabled { opacity: 0.5; cursor: default; }
+    .message { min-height: 1.2em; font-size: 15px; }
   </style>
 </head>
 <body>
@@ -76,12 +79,18 @@
   </header>
   <main>
     <div class="status" id="status">載入中...</div>
+    <div class="actions">
+      <button id="uploadAll" type="button">把這台裝置的紀錄全部上傳</button>
+      <button id="downloadAll" type="button">下載帳號裡的全部紀錄</button>
+      <button id="exportCsv" type="button">匯出成表格檔（CSV）</button>
+    </div>
+    <div class="message" id="message" role="status"></div>
     <div id="list"></div>
   </main>
 
   <script type="module">
-    import { loadLogs, openLogSummary, closeStaleLog } from "./practice-log.js?v=1";
-    import { importPictureLegacy, startCloudSync } from "./picture-logs.js?v=1";
+    import { loadLogs, openLogSummary, closeStaleLog, logsToCsv } from "./practice-log.js?v=3";
+    import { importPictureLegacy, startCloudSync } from "./picture-logs.js?v=2";
 
     const status = document.getElementById("status");
     const list = document.getElementById("list");
@@ -160,6 +169,7 @@
 
     let cloudLogs = [];
     let signedIn = false;
+    let shownLogs = [];
     const refresh = () => {
       const byId = new Map();
       cloudLogs.forEach(log => byId.set(log.id, { ...log, uploadedAt: log.uploadedAt || true }));
@@ -167,15 +177,22 @@
       const open = openLogSummary();
       if (open) byId.set(open.id, { ...open, status: "open" });
       const logs = [...byId.values()].sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)));
+      shownLogs = logs;
+      document.getElementById("uploadAll").disabled = !signedIn;
+      document.getElementById("downloadAll").disabled = !signedIn;
+      document.getElementById("exportCsv").disabled = !logs.length;
       render(logs, signedIn);
     };
 
-    const showStatus = ({ signedIn: nowSignedIn, pending, error }) => {
+    let checkedSummary = 0;
+    const showStatus = ({ signedIn: nowSignedIn, pending, error, cloudCount }) => {
+      if (cloudCount) checkedSummary = cloudCount;
       signedIn = nowSignedIn;
       if (error && !nowSignedIn) status.textContent = "目前連不上雲端；紀錄先存在這台裝置，之後再上傳。";
       else if (!nowSignedIn) status.innerHTML = `這台裝置還沒登入 Google，紀錄先存在這台裝置${pending ? `（${pending} 筆待上傳）` : ""}。請到<a href="settings.html#cloud">設定頁</a>登入，回來後就會自動上傳。`;
       else if (error) status.textContent = `上傳失敗，稍後會再試（${pending} 筆待上傳）。`;
-      else status.textContent = pending ? `上傳中（${pending} 筆）…` : "每一輪的紀錄都已上傳到雲端，各自分開保存，不會互相覆蓋。";
+      else if (pending) status.textContent = `上傳中（${pending} 筆）…`;
+      else status.textContent = `已核對：這台裝置和雲端的紀錄一致${checkedSummary ? `（雲端共 ${checkedSummary} 筆）` : ""}。每一輪各自分開保存，不會互相覆蓋。`;
       refresh();
     };
 
@@ -189,6 +206,31 @@
       }
     });
     cloud.sync();
+
+    const message = document.getElementById("message");
+    document.getElementById("uploadAll").addEventListener("click", async () => {
+      message.textContent = "上傳中…";
+      try { await cloud.uploadAll(); message.textContent = "這台裝置的紀錄都已上傳。"; }
+      catch (error) { message.textContent = `上傳失敗：${error.message}`; }
+      refresh();
+    });
+    document.getElementById("downloadAll").addEventListener("click", async () => {
+      message.textContent = "下載中…";
+      try {
+        const added = await cloud.downloadAll();
+        cloudLogs = (await cloud.loadCloudLogs()) || cloudLogs;
+        message.textContent = added ? `已下載 ${added} 筆其他裝置的紀錄。` : "帳號裡的紀錄都已經在這台裝置上了。";
+      } catch (error) { message.textContent = `下載失敗：${error.message}`; }
+      refresh();
+    });
+    document.getElementById("exportCsv").addEventListener("click", () => {
+      const blob = new Blob([logsToCsv(shownLogs.filter(log => log.status !== "open"))], { type: "text/csv;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `WordFlash-練習紀錄-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    });
   </script>
 </body>
 </html>

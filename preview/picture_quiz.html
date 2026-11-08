@@ -29,6 +29,7 @@
     header .title { font-size: 20px; letter-spacing: 0.08em; font-weight: 700; }
     header .menu { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
     header .links { display: flex; gap: 8px; }
+    header .review-link { margin-left: 8px; }
     header select, header a {
       border: 2px solid #2b2b2b;
       border-radius: 6px;
@@ -199,7 +200,8 @@
       header .title { font-size: 18px; align-self: center; white-space: nowrap; }
       header .menu { display: contents; }
       header .links { grid-column: 2; grid-row: 1; justify-content: end; gap: 6px; }
-      header .menu label { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px; }
+      header .menu label { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
+      header .review-link { margin-left: 0; }
       header select, header a { min-height: 40px; box-sizing: border-box; font-size: 15px; display: grid; place-items: center; padding: 4px 8px; }
       main { padding: 10px 12px 14px; }
       .quiz-layout { gap: 10px; }
@@ -241,7 +243,7 @@
   <header>
     <div class="title">注音練習</div>
     <nav class="menu">
-      <label id="setControl">題組 <select id="setSelect"></select></label>
+      <label id="setControl">題組 <select id="setSelect"></select><a class="review-link" href="picture_review.html">複習</a></label>
       <span class="links">
         <a id="flashcardLink" href="canvas_words.html">閃卡</a>
         <a href="picture_sets.html">題組管理</a>
@@ -265,6 +267,7 @@
       </section>
       <p class="hint" id="status">載入中...</p>
       <p class="credit" id="credit" hidden></p>
+      <p class="credit" id="syncStatus" hidden></p>
     </div>
   </main>
 
@@ -274,8 +277,8 @@
     import { recordQuestionAnswer } from "./question-progress.js?v=1";
     import { onTap } from "./answer-input.js?v=1";
     import { playAnswerSound } from "./sound-effects.js?v=1";
-    import { logAttempt, closeOpenLog, closeStaleLog } from "./practice-log.js?v=1";
-    import { importPictureLegacy, startCloudSync } from "./picture-logs.js?v=1";
+    import { logAttempt, closeOpenLog, closeStaleLog } from "./practice-log.js?v=3";
+    import { importPictureLegacy, startCloudSync } from "./picture-logs.js?v=2";
     import { renderVerticalZhuyin, zhuyinHeight, syllablesOf } from "./bopomofo.js?v=1";
     import { ACTIVITY, BUILT_IN_SETS, PICTURE_DISABLED_KEY, isCardEnabled, listSets, listCards, loadImage, importBuiltIn } from "./picture-questions.js?v=5";
 
@@ -374,6 +377,7 @@
           { activity: ACTIVITY, setId: currentSet.id, setName: currentSet.name, mode, timedRunId: run?.id || null },
           { cardId: current.id, word: current.word || "", answer: current.answer, chosen: choice, correct }
         );
+        cloud?.syncSoon();
       }
       if (result?.counted) recordQuestionAnswer({ activity: ACTIVITY, id: current.id }, correct);
       pictureWord.classList.toggle("is-shown", Boolean(current.word));
@@ -669,7 +673,15 @@
     reconcileRound();
     refreshSets().then(async () => {
       await importPictureLegacy().catch(error => console.warn(error));
-      cloud = startCloudSync();
+      // One quiet line for parents; the child page shows no account controls.
+      const syncLine = document.getElementById("syncStatus");
+      cloud = startCloudSync((state) => {
+        if (!state.signedIn) { syncLine.hidden = true; return; }
+        syncLine.hidden = false;
+        if (state.error) syncLine.textContent = `練習紀錄暫時無法同步（${state.pending} 筆待上傳）`;
+        else if (state.pending) syncLine.textContent = `練習紀錄同步中（${state.pending} 筆）…`;
+        else if (state.checked) syncLine.textContent = `練習紀錄已同步：雲端共 ${state.cloudCount} 筆`;
+      });
     }).catch((error) => {
       console.error(error);
       renderEmpty("這個瀏覽器無法保存題組（IndexedDB 無法使用）。", false);

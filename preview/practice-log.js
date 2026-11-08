@@ -189,3 +189,65 @@ export async function syncLogs(save) {
 }
 
 export const pendingCount = () => loadLogs().filter(log => !log.uploadedAt).length;
+
+// Marks every record on this device for upload again. Each record keeps its
+// own id, so re-uploading only refreshes the same records in the cloud.
+export function markAllForUpload() {
+  saveLogs(loadLogs().map(log => ({ ...log, uploadedAt: null })));
+}
+
+// Records this device has but the cloud does not (for example an upload that
+// never arrived) are queued again. Returns how many were queued.
+export function markMissingForUpload(cloudIds) {
+  let missing = 0;
+  const logs = loadLogs().map((log) => {
+    if (cloudIds.has(log.id) || !log.uploadedAt) return log;
+    missing += 1;
+    return { ...log, uploadedAt: null };
+  });
+  saveLogs(logs);
+  return missing;
+}
+
+// Adds records downloaded from the cloud. A record that this device has not
+// uploaded yet is never replaced by the cloud copy.
+export function mergeCloudLogs(cloudLogs) {
+  const logs = loadLogs();
+  const byId = new Map(logs.map(log => [log.id, log]));
+  let added = 0;
+  cloudLogs.forEach((cloud) => {
+    if (!cloud?.id) return;
+    const local = byId.get(cloud.id);
+    if (local && !local.uploadedAt) return;
+    if (!local) added += 1;
+    const uploadedAt = typeof cloud.uploadedAt === "number" ? new Date(cloud.uploadedAt).toISOString() : (cloud.uploadedAt || new Date().toISOString());
+    byId.set(cloud.id, { ...cloud, uploadedAt });
+  });
+  saveLogs([...byId.values()]);
+  return added;
+}
+
+const MODE_NAMES = { statistics: "統計", challenge: "挑戰", totals: "累計" };
+const csvCell = (value) => {
+  const text = String(value ?? "");
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+// One row per round, for opening in a spreadsheet.
+export function logsToCsv(logs) {
+  const header = ["開始時間", "裝置", "題組", "模式", "題數", "答對", "答錯", "正確率", "答錯的字", "備註"];
+  const rows = logs.map(log => [
+    log.startedAt ? new Date(log.startedAt).toLocaleString("zh-TW") : "",
+    log.device,
+    log.setName,
+    `${log.timedRunId ? "計時" : ""}${MODE_NAMES[log.mode] || log.mode || ""}`,
+    log.total,
+    log.correct,
+    log.incorrect,
+    log.accuracy === null || log.accuracy === undefined ? "" : `${log.accuracy}%`,
+    (log.wrong || []).map(item => `${item.word}（${item.answer}）${item.times > 1 ? `×${item.times}` : ""}`).join("、"),
+    log.note || ""
+  ]);
+  // A byte-order mark lets Excel open the Chinese text correctly.
+  return "\ufeff" + [header, ...rows].map(row => row.map(csvCell).join(",")).join("\r\n");
+}

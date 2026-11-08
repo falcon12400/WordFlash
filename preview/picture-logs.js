@@ -3,7 +3,7 @@
 // signed in to Google (sign in on the settings page; the quiz page itself has
 // no account buttons).
 
-import { importLegacy, syncLogs, pendingCount } from "./practice-log.js?v=1";
+import { importLegacy, syncLogs, pendingCount, markAllForUpload, mergeCloudLogs, markMissingForUpload, loadLogs } from "./practice-log.js?v=3";
 import { ACTIVITY, listSets, listCards } from "./picture-questions.js?v=5";
 import { createPracticeRuntime } from "./practice-runtime.js?v=1";
 import { QUESTION_STATS_KEY } from "./question-progress.js?v=1";
@@ -54,18 +54,52 @@ export function startCloudSync(onStatus = () => {}) {
     return running;
   };
 
+  // Each time the page opens (and on sign-in): compare this device with the
+  // cloud by record id, upload what the cloud lacks, download what this
+  // device lacks, and report one summary line instead of every record.
+  const reconcile = async () => {
+    if (!firebase || !user) { onStatus({ signedIn: Boolean(user), pending: pendingCount() }); return; }
+    try {
+      const cloudLogs = await firebase.loadPracticeLogs(user);
+      markMissingForUpload(new Set(cloudLogs.map(log => log.id)));
+      const downloaded = mergeCloudLogs(cloudLogs);
+      await syncLogs(log => firebase.savePracticeLog(user, log));
+      const cloudCount = new Set([...cloudLogs.map(log => log.id), ...loadLogs().map(log => log.id)]).size;
+      onStatus({ signedIn: true, pending: pendingCount(), checked: true, downloaded, cloudCount, checkedAt: new Date() });
+    } catch (error) {
+      console.error("WordFlash practice log check failed", error);
+      onStatus({ signedIn: true, pending: pendingCount(), error });
+    }
+  };
+
   // Loaded on demand: if the network is down the quiz keeps working offline.
   import("./firebase-wordflash.js?v=5").then((module) => {
     firebase = module;
-    module.subscribeToUser((nextUser) => { user = nextUser; sync(); });
+    module.subscribeToUser((nextUser) => { user = nextUser; reconcile(); });
   }).catch((error) => {
     console.warn("WordFlash cloud unavailable", error);
     onStatus({ signedIn: false, pending: pendingCount(), error });
   });
 
   document.addEventListener("visibilitychange", () => { if (document.hidden) sync(); });
+  // Uploads at most every 20 seconds while a child keeps answering.
+  let lastQuickSync = 0;
+  const syncSoon = () => {
+    if (Date.now() - lastQuickSync < 20000) return;
+    lastQuickSync = Date.now();
+    sync();
+  };
+
   return {
     sync,
+    reconcile,
+    syncSoon,
+    uploadAll: async () => { markAllForUpload(); await sync(); },
+    // Copies every record of this account onto this device; returns how many were new.
+    downloadAll: async () => {
+      if (!firebase || !user) throw new Error("請先在設定頁登入 Google。");
+      return mergeCloudLogs(await firebase.loadPracticeLogs(user));
+    },
     loadCloudLogs: async () => (firebase && user ? firebase.loadPracticeLogs(user) : null),
     isSignedIn: () => Boolean(user)
   };

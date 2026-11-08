@@ -304,7 +304,7 @@ test("練習紀錄：每一輪分開記錄，含錯的字，並可上傳", async
   // Upload with a stand-in for Firebase: each round is written under its own id.
   const saved = await page.evaluate(async () => {
     const written = {};
-    const logs = await import("./practice-log.js?v=1");
+    const logs = await import("./practice-log.js?v=3");
     await logs.syncLogs(async (log) => { written[log.id] = log; });
     return { ids: Object.keys(written), pending: logs.pendingCount() };
   });
@@ -338,4 +338,63 @@ test("注音練習：在設定頁換成挑戰模式，返回後立刻顯示挑�
   await page.goBack();
   await expect(page.locator("#practicePanel")).toBeVisible();
   await expect(page.locator(".challenge-number")).toBeVisible();
+});
+
+test("複習：只列開啟的題目，錯誤率高的排前面，顯示照片和注音", async ({ page }, testInfo) => {
+  await page.goto("/picture_sets.html");
+  await page.getByRole("button", { name: "載入「範例：生活圖卡」" }).click();
+  await expect(page.locator("#message")).toContainText("共 8 題");
+  await page.evaluate(async () => {
+    const data = await import("./picture-questions.js?v=5");
+    data.setCardsEnabled(["sample-daily/cup"], false);
+    localStorage.setItem("wordflash_question_stats_v1", JSON.stringify({
+      "picture-quiz:sample-daily/fish": { correct: 1, incorrect: 3 },
+      "picture-quiz:sample-daily/sun": { correct: 4, incorrect: 1 },
+      "picture-quiz:sample-daily/apple": { correct: 1, incorrect: 1 }
+    }));
+  });
+  await page.goto("/picture_review.html");
+  await expect(page.locator(".review-card")).toHaveCount(7);
+  await expect(page.locator(".review-card .word")).toHaveText(["魚", "蘋果", "太陽", "花", "月亮", "星星", "雨傘"].slice(0, 3).concat(await page.locator(".review-card .word").evaluateAll(n => n.slice(3).map(x => x.textContent))));
+  await expect(page.locator(".review-card").first()).toHaveClass(/is-hard/);
+  await expect(page.locator(".review-card").first().locator(".vzy-syllable")).toHaveCount(1);
+  await expect(page.locator(".review-card .word", { hasText: "杯子" })).toHaveCount(0);
+  await noHorizontalScroll(page, testInfo);
+  await shot(page, testInfo, "review");
+});
+
+test("練習紀錄：下載帳號紀錄不會蓋掉還沒上傳的紀錄，並可匯出表格", async ({ page }) => {
+  await page.goto("/practice_logs.html");
+  const result = await page.evaluate(async () => {
+    const logs = await import("./practice-log.js?v=3");
+    localStorage.setItem("wordflash_practice_logs_v1", JSON.stringify([
+      { id: "a", setName: "本機", total: 2, correct: 1, incorrect: 1, startedAt: "2026-11-08T01:00:00Z", endedAt: "2026-11-08T01:05:00Z", uploadedAt: null, wrong: [{ word: "魚", answer: "ㄩˊ", times: 1 }] }
+    ]));
+    const added = logs.mergeCloudLogs([
+      { id: "a", setName: "雲端舊版", total: 1, uploadedAt: 1 },
+      { id: "b", setName: "另一台", total: 3, correct: 3, incorrect: 0, startedAt: "2026-11-07T01:00:00Z", endedAt: "2026-11-07T01:05:00Z", uploadedAt: 1700000000000 }
+    ]);
+    const all = logs.loadLogs();
+    return { added, names: all.map(log => log.setName).sort(), csv: logs.logsToCsv(all) };
+  });
+  expect(result.added).toBe(1);
+  expect(result.names).toEqual(["另一台", "本機"]);
+  expect(result.csv).toContain("魚（ㄩˊ）");
+  expect(result.csv.split("\r\n")).toHaveLength(3);
+});
+
+test("練習紀錄：核對時補傳雲端缺少的紀錄", async ({ page }) => {
+  await page.goto("/practice_logs.html");
+  const result = await page.evaluate(async () => {
+    const logs = await import("./practice-log.js?v=3");
+    localStorage.setItem("wordflash_practice_logs_v1", JSON.stringify([
+      { id: "lost", setName: "上傳時斷線", total: 1, startedAt: "2026-11-08T01:00:00Z", endedAt: "2026-11-08T01:00:00Z", uploadedAt: "2026-11-08T01:01:00Z" },
+      { id: "ok", setName: "已在雲端", total: 1, startedAt: "2026-11-08T02:00:00Z", endedAt: "2026-11-08T02:00:00Z", uploadedAt: "2026-11-08T02:01:00Z" }
+    ]));
+    const missing = logs.markMissingForUpload(new Set(["ok"]));
+    const written = [];
+    await logs.syncLogs(async (log) => { written.push(log.id); });
+    return { missing, written };
+  });
+  expect(result).toEqual({ missing: 1, written: ["lost"] });
 });
