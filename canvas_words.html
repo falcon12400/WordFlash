@@ -1398,8 +1398,19 @@
       status.textContent = isCorrect ? "已記錄答對，已換下一題。" : "已記錄答錯，已換下一題。";
     };
 
-    stage.addEventListener("pointerdown", (event) => {
+    // iPhone and iPad only start speech from a finished tap (touch release or
+    // click), not from the moment the finger touches down. Speak on release
+    // and ignore the click the browser sends right after it.
+    let lastStageTouchAt = 0;
+    stage.addEventListener("pointerdown", (event) => event.preventDefault());
+    stage.addEventListener("pointerup", (event) => {
+      if (event.pointerType !== "touch" && event.pointerType !== "pen") return;
       event.preventDefault();
+      lastStageTouchAt = Date.now();
+      speakCurrentWord();
+    });
+    stage.addEventListener("click", (event) => {
+      if (event.detail !== 0 && Date.now() - lastStageTouchAt < 750) return;
       speakCurrentWord();
     });
 
