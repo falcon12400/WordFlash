@@ -9,7 +9,6 @@
 const LOGS_KEY = "wordflash_practice_logs_v1";
 const OPEN_KEY = "wordflash_practice_log_open_v1";
 const LEGACY_KEY = "wordflash_practice_logs_legacy_done_v1";
-const MAX_LOCAL_LOGS = 300;
 const IDLE_MS = 15 * 60 * 1000;
 
 const readJSON = (key, fallback) => {
@@ -36,10 +35,9 @@ export const loadLogs = () => {
 };
 
 const saveLogs = (logs) => {
+  // Every record is kept, so "下載全部" really holds all of them on this device.
   const sorted = [...logs].sort((a, b) => String(b.endedAt).localeCompare(String(a.endedAt)));
-  // Never drop a record that has not reached the cloud yet.
-  const kept = sorted.filter((log, index) => index < MAX_LOCAL_LOGS || !log.uploadedAt);
-  localStorage.setItem(LOGS_KEY, JSON.stringify(kept));
+  localStorage.setItem(LOGS_KEY, JSON.stringify(sorted));
 };
 
 const upsertLog = (log) => {
@@ -229,7 +227,9 @@ export function mergeCloudLogs(cloudLogs) {
 
 const MODE_NAMES = { statistics: "統計", challenge: "挑戰", totals: "累計" };
 const csvCell = (value) => {
-  const text = String(value ?? "");
+  let text = String(value ?? "");
+  // A cell starting with = + - @ would run as a formula in Excel or Sheets.
+  if (/^[=+\-@]/.test(text)) text = `'${text}`;
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
 

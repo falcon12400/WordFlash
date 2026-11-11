@@ -5,6 +5,20 @@ const path = require("path");
 // The picture quiz exists only in the preview copy for now.
 test.skip(process.env.WORDFLASH_SITE !== "preview", "看圖選注音目前只在 preview 測試版");
 
+// Each test starts from an empty picture-quiz database and empty storage, so
+// tests running side by side never see each other's sets.
+test.beforeEach(async ({ page }) => {
+  await page.goto("/picture_sets.html");
+  await page.evaluate(async () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    await new Promise((resolve) => {
+      const request = indexedDB.deleteDatabase("wordflash-picture-quiz");
+      request.onsuccess = request.onerror = request.onblocked = () => resolve();
+    });
+  });
+});
+
 const shot = async (page, testInfo, name) => {
   const dir = path.join(__dirname, "..", "artifacts");
   fs.mkdirSync(dir, { recursive: true });
