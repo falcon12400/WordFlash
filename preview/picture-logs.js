@@ -3,7 +3,7 @@
 // signed in to Google (sign in on the settings page; the quiz page itself has
 // no account buttons).
 
-import { importLegacy, syncLogs, pendingCount, markAllForUpload, mergeCloudLogs, markMissingForUpload, loadLogs } from "./practice-log.js?v=3";
+import { importLegacy, syncLogs, pendingCount, markAllForUpload, mergeCloudLogs, markMissingForUpload, loadLogs } from "./practice-log.js?v=4";
 import { ACTIVITY, listSets, listCards } from "./picture-questions.js?v=5";
 import { createPracticeRuntime } from "./practice-runtime.js?v=1";
 import { QUESTION_STATS_KEY } from "./question-progress.js?v=1";

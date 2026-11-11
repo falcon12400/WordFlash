@@ -318,7 +318,7 @@ test("練習紀錄：每一輪分開記錄，含錯的字，並可上傳", async
   // Upload with a stand-in for Firebase: each round is written under its own id.
   const saved = await page.evaluate(async () => {
     const written = {};
-    const logs = await import("./practice-log.js?v=3");
+    const logs = await import("./practice-log.js?v=4");
     await logs.syncLogs(async (log) => { written[log.id] = log; });
     return { ids: Object.keys(written), pending: logs.pendingCount() };
   });
@@ -381,7 +381,7 @@ test("複習：只列開啟的題目，正確率低的排前面，顯示照片�
 test("練習紀錄：下載帳號紀錄不會蓋掉還沒上傳的紀錄，並可匯出表格", async ({ page }) => {
   await page.goto("/practice_logs.html");
   const result = await page.evaluate(async () => {
-    const logs = await import("./practice-log.js?v=3");
+    const logs = await import("./practice-log.js?v=4");
     localStorage.setItem("wordflash_practice_logs_v1", JSON.stringify([
       { id: "a", setName: "本機", total: 2, correct: 1, incorrect: 1, startedAt: "2026-11-08T01:00:00Z", endedAt: "2026-11-08T01:05:00Z", uploadedAt: null, wrong: [{ word: "魚", answer: "ㄩˊ", times: 1 }] }
     ]));
@@ -401,7 +401,7 @@ test("練習紀錄：下載帳號紀錄不會蓋掉還沒上傳的紀錄，並�
 test("練習紀錄：核對時補傳雲端缺少的紀錄", async ({ page }) => {
   await page.goto("/practice_logs.html");
   const result = await page.evaluate(async () => {
-    const logs = await import("./practice-log.js?v=3");
+    const logs = await import("./practice-log.js?v=4");
     localStorage.setItem("wordflash_practice_logs_v1", JSON.stringify([
       { id: "lost", setName: "上傳時斷線", total: 1, startedAt: "2026-11-08T01:00:00Z", endedAt: "2026-11-08T01:00:00Z", uploadedAt: "2026-11-08T01:01:00Z" },
       { id: "ok", setName: "已在雲端", total: 1, startedAt: "2026-11-08T02:00:00Z", endedAt: "2026-11-08T02:00:00Z", uploadedAt: "2026-11-08T02:01:00Z" }
@@ -412,4 +412,30 @@ test("練習紀錄：核對時補傳雲端缺少的紀錄", async ({ page }) => 
     return { missing, written };
   });
   expect(result).toEqual({ missing: 1, written: ["lost"] });
+});
+
+test("練習紀錄：不用登入，匯出檔案到另一台匯入後會排入上傳", async ({ page }) => {
+  await page.goto("/practice_logs.html");
+  const file = await page.evaluate(async () => {
+    const logs = await import("./practice-log.js?v=4");
+    localStorage.setItem("wordflash_practice_logs_v1", JSON.stringify([
+      { id: "ipad-1", setName: "翰林首冊", total: 5, correct: 4, incorrect: 1, startedAt: "2026-11-11T01:00:00Z", endedAt: "2026-11-11T01:05:00Z", uploadedAt: null }
+    ]));
+    return logs.exportLogsFile();
+  });
+  // The "other device": empty storage, then import the file.
+  const result = await page.evaluate(async (text) => {
+    localStorage.removeItem("wordflash_practice_logs_v1");
+    const logs = await import("./practice-log.js?v=4");
+    const first = logs.importLogsFile(text);
+    const second = logs.importLogsFile(text);
+    return { first, second, pending: logs.pendingCount() };
+  }, file);
+  expect(result.first.added).toBe(1);
+  expect(result.second.added).toBe(0);
+  expect(result.pending).toBe(1);
+  await page.reload();
+  await expect(page.locator("#shareLogs")).toBeVisible();
+  await page.locator("#importLogs").setInputFiles({ name: "bad.json", mimeType: "application/json", buffer: Buffer.from("{}") });
+  await expect(page.locator("#message")).toContainText("不是 WordFlash 的練習紀錄檔");
 });

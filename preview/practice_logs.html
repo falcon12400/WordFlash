@@ -67,6 +67,10 @@
     .actions { display: flex; flex-wrap: wrap; gap: 8px; }
     .actions button:disabled { opacity: 0.5; cursor: default; }
     .message { min-height: 1.2em; font-size: 15px; }
+    .transfer { display: grid; gap: 6px; padding: 12px 16px; border: 2px dashed #2b2b2b; border-radius: 12px; background: rgba(255, 249, 236, 0.9); }
+    .transfer p { margin: 0; font-size: 14px; line-height: 1.6; color: #5b554d; }
+    .file-button { border: 2px solid #2b2b2b; border-radius: 8px; padding: 8px 12px; background: #fff9ec; font-size: 15px; cursor: pointer; }
+    .file-button input { display: none; }
   </style>
 </head>
 <body>
@@ -84,12 +88,20 @@
       <button id="downloadAll" type="button">下載帳號裡的全部紀錄</button>
       <button id="exportCsv" type="button">匯出成表格檔（CSV）</button>
     </div>
+    <div class="transfer">
+      <strong>不用登入，把紀錄傳到別台裝置</strong>
+      <p>在這台按「傳出紀錄」，用 AirDrop、LINE 或檔案傳到已登入的裝置；在那台按「匯入紀錄檔」，它就會幫忙上傳。</p>
+      <div class="actions">
+        <button id="shareLogs" type="button">傳出紀錄</button>
+        <label class="file-button">匯入紀錄檔<input id="importLogs" type="file" accept=".json,application/json" /></label>
+      </div>
+    </div>
     <div class="message" id="message" role="status"></div>
     <div id="list"></div>
   </main>
 
   <script type="module">
-    import { loadLogs, openLogSummary, closeStaleLog, logsToCsv } from "./practice-log.js?v=3";
+    import { loadLogs, openLogSummary, closeStaleLog, logsToCsv, exportLogsFile, importLogsFile } from "./practice-log.js?v=4";
     import { importPictureLegacy, startCloudSync } from "./picture-logs.js?v=2";
 
     const status = document.getElementById("status");
@@ -221,6 +233,36 @@
         cloudLogs = (await cloud.loadCloudLogs()) || cloudLogs;
         message.textContent = added ? `已下載 ${added} 筆其他裝置的紀錄。` : "帳號裡的紀錄都已經在這台裝置上了。";
       } catch (error) { message.textContent = `下載失敗：${error.message}`; }
+      refresh();
+    });
+    document.getElementById("shareLogs").addEventListener("click", async () => {
+      const name = `WordFlash-練習紀錄-${new Date().toISOString().slice(0, 10)}.json`;
+      const file = new File([exportLogsFile()], name, { type: "application/json" });
+      // iPad / iPhone: open the share sheet (AirDrop, LINE…); otherwise download.
+      if (navigator.canShare?.({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: "WordFlash 練習紀錄" }); message.textContent = "已傳出紀錄檔。"; return; }
+        catch (error) { if (error?.name === "AbortError") return; }
+      }
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(file);
+      link.download = name;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      message.textContent = "已下載紀錄檔，請傳到已登入的裝置後按「匯入紀錄檔」。";
+    });
+    document.getElementById("importLogs").addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) return;
+      try {
+        const result = importLogsFile(await file.text());
+        message.textContent = result.added
+          ? `已匯入 ${result.added} 筆${result.from ? `${result.from}的` : ""}紀錄${signedIn ? "，正在上傳。" : "；這台登入後就會上傳。"}`
+          : "檔案裡的紀錄這台都已經有了。";
+        if (signedIn) await cloud.sync();
+      } catch (error) {
+        message.textContent = `無法匯入：${error.message}`;
+      }
       refresh();
     });
     document.getElementById("exportCsv").addEventListener("click", () => {

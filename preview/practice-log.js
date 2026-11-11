@@ -225,6 +225,35 @@ export function mergeCloudLogs(cloudLogs) {
   return added;
 }
 
+// Moving records between devices without signing in: one device exports a
+// file, another imports it; a signed-in device then uploads the imported
+// records like its own. Ids are kept, so importing twice adds nothing.
+export const TRANSFER_FORMAT = "wordflash-practice-logs";
+
+export function exportLogsFile() {
+  const open = openLogSummary();
+  const logs = loadLogs().map(({ uploadedAt, ...log }) => log);
+  if (open) logs.push({ ...open, status: "finished" });
+  return JSON.stringify({ format: TRANSFER_FORMAT, version: 1, exportedAt: new Date().toISOString(), device: deviceLabel(), logs });
+}
+
+export function importLogsFile(text) {
+  let data;
+  try { data = JSON.parse(text); } catch { throw new Error("這不是練習紀錄檔。"); }
+  if (data?.format !== TRANSFER_FORMAT || !Array.isArray(data.logs)) throw new Error("這不是 WordFlash 的練習紀錄檔。");
+  const logs = loadLogs();
+  const known = new Set(logs.map(log => log.id));
+  let added = 0;
+  data.logs.forEach((log) => {
+    if (!log || typeof log.id !== "string" || !/^[A-Za-z0-9_-]{1,120}$/.test(log.id) || known.has(log.id)) return;
+    logs.push({ ...log, uploadedAt: null });
+    known.add(log.id);
+    added += 1;
+  });
+  saveLogs(logs);
+  return { added, total: data.logs.length, from: data.device || "" };
+}
+
 const MODE_NAMES = { statistics: "統計", challenge: "挑戰", totals: "累計" };
 const csvCell = (value) => {
   let text = String(value ?? "");
